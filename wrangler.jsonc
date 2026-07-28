@@ -1,0 +1,7 @@
+{
+  "name": "muche-site",
+  "compatibility_date": "2026-07-28",
+  "assets": {
+    "directory": "./dist"
+  }
+}
