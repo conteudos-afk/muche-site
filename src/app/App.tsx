@@ -320,10 +320,12 @@ function SiteNav() {
 function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const rawProgress = useScrollProgress(ref, "end-start")
-  // Travão por pausa: enquanto se faz scroll sem parar (a qualquer velocidade),
-  // o texto fica sempre 100% nítido (sem blur/escala). Só depois de uma pausa
-  // real no scroll é que um novo movimento de scroll passa a avançar a
-  // animação — nunca "foge" logo para o blur, tem sempre de parar primeiro.
+  // Travão por pausa — trava o scroll a sério (não só o efeito visual):
+  // enquanto esta secção está "ativa" (encostada ao topo, ainda a decorrer)
+  // e não tiver sido destrancada, um wheel/touch de scroll é CANCELADO
+  // (preventDefault) e serve só para detetar uma pausa. Só depois de uma
+  // pausa real é que o scroll seguinte é deixado passar — aí sim a secção
+  // avança para a seguinte, com a animação de blur.
   const PAUSE_MS = 260
   const gatedProgress = useMotionValue(0)
   const unlockedRef = useRef(false)
@@ -334,36 +336,47 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
     const el = ref.current
     if (!el) return
 
-    const obs = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) {
-        // Saiu de vista — tranca de novo para a próxima visita a esta secção.
+    // "Ativa" = já chegou ao topo (sticky preso) e ainda não saiu de vista.
+    const isActive = () => {
+      const r = el.getBoundingClientRect()
+      return r.top <= 0 && r.bottom > 0
+    }
+
+    const attemptScroll = () => {
+      if (unlockedRef.current) return true
+      if (pausedRef.current) { unlockedRef.current = true; return true }
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+      pauseTimerRef.current = setTimeout(() => { pausedRef.current = true }, PAUSE_MS)
+      return false
+    }
+
+    const onWheel = (e: WheelEvent) => {
+      if (unlockedRef.current || !isActive()) return
+      if (!attemptScroll()) e.preventDefault()
+    }
+    const onTouchMove = (e: TouchEvent) => {
+      if (unlockedRef.current || !isActive()) return
+      if (!attemptScroll()) e.preventDefault()
+    }
+    window.addEventListener("wheel", onWheel, { passive: false })
+    window.addEventListener("touchmove", onTouchMove, { passive: false })
+
+    const onScroll = () => {
+      const r = el.getBoundingClientRect()
+      if (r.top > window.innerHeight || r.bottom < 0) {
+        // Saiu de vista dos dois lados — tranca de novo para a próxima visita.
         unlockedRef.current = false
         pausedRef.current = false
         if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
       }
-    }, { threshold: 0 })
-    obs.observe(el)
-
-    const onScroll = () => {
-      if (unlockedRef.current) {
-        gatedProgress.set(rawProgress.get())
-        return
-      }
-      if (pausedRef.current) {
-        // Já tinha parado — este novo scroll é que "autoriza" o avanço.
-        unlockedRef.current = true
-        gatedProgress.set(rawProgress.get())
-        return
-      }
-      // Ainda a mexer sem ter parado — mantém sempre nítido.
-      gatedProgress.set(0)
-      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
-      pauseTimerRef.current = setTimeout(() => { pausedRef.current = true }, PAUSE_MS)
+      gatedProgress.set(unlockedRef.current ? rawProgress.get() : 0)
     }
     window.addEventListener("scroll", onScroll, { passive: true })
+    onScroll()
 
     return () => {
-      obs.disconnect()
+      window.removeEventListener("wheel", onWheel)
+      window.removeEventListener("touchmove", onTouchMove)
       window.removeEventListener("scroll", onScroll)
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
     }
@@ -407,17 +420,15 @@ function rectsOverlap(a: { left: number; right: number; top: number; bottom: num
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
   const paths = [svgPaths.p1f980480, svgPaths.p1e8d8a00, svgPaths.p14ba5b00, svgPaths.p32989c80, svgPaths.pe3f1e80, svgPaths.p3eb66200]
-  // Direção-base de cada letra — a distância real e a aleatoriedade são
-  // calculadas no momento do hover, e reduzidas até não sobrepor nenhum
-  // outro elemento da página (menu, tagline, serviços) nem sair do ecrã.
-  const baseDir = [
-    { x: -1, y: -1,   rotate: -25 },
-    { x: 1,  y: -1,   rotate: 20 },
-    { x: -1, y: 1,    rotate: 16 },
-    { x: 1,  y: 1,    rotate: -22 },
-    { x: -1, y: -0.4, rotate: 30 },
-    { x: 1,  y: 0.5,  rotate: -14 },
-  ]
+  // Direção-base de cada letra — repartida em ângulos uniformes (60° à parte)
+  // à volta de um círculo, para que nenhum par de letras fique perto uma da
+  // outra por partilharem uma direção parecida. A distância real e a
+  // aleatoriedade são calculadas no momento do hover, e reduzidas até não
+  // sobrepor nenhum outro elemento da página nem sair do ecrã.
+  const baseDir = Array.from({ length: 6 }, (_, i) => {
+    const angle = ((-150 + i * 60) * Math.PI) / 180
+    return { x: Math.cos(angle), y: Math.sin(angle), rotate: (i % 2 === 0 ? -1 : 1) * (16 + i * 4) }
+  })
   const svgRef = useRef<SVGSVGElement>(null)
   const pathRefs = useRef<(SVGPathElement | null)[]>([])
   const [scatter, setScatter] = useState(() => paths.map(() => ({ x: 0, y: 0, rotate: 0 })))
