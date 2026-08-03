@@ -323,13 +323,12 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
   // Travão por pausa — trava o scroll a sério (não só o efeito visual):
   // enquanto esta secção está "ativa" (encostada ao topo, ainda a decorrer)
   // e não tiver sido destrancada, um wheel/touch de scroll é CANCELADO
-  // (preventDefault) e serve só para detetar uma pausa. Só depois de uma
-  // pausa real é que o scroll seguinte é deixado passar — aí sim a secção
-  // avança para a seguinte, com a animação de blur.
-  const PAUSE_MS = 260
+  // (preventDefault). Uma pausa breve (sem precisar de "sacrificar" mais um
+  // gesto de scroll para confirmar) já destranca — só uma passagem contínua
+  // e sem parar nenhuma é que nunca chega a soltar.
+  const PAUSE_MS = 120
   const gatedProgress = useMotionValue(0)
   const unlockedRef = useRef(false)
-  const pausedRef = useRef(false)
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -344,9 +343,11 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
 
     const attemptScroll = () => {
       if (unlockedRef.current) return true
-      if (pausedRef.current) { unlockedRef.current = true; return true }
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
-      pauseTimerRef.current = setTimeout(() => { pausedRef.current = true }, PAUSE_MS)
+      pauseTimerRef.current = setTimeout(() => {
+        unlockedRef.current = true
+        gatedProgress.set(rawProgress.get())
+      }, PAUSE_MS)
       return false
     }
 
@@ -366,7 +367,6 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
       if (r.top > window.innerHeight || r.bottom < 0) {
         // Saiu de vista dos dois lados — tranca de novo para a próxima visita.
         unlockedRef.current = false
-        pausedRef.current = false
         if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
       }
       gatedProgress.set(unlockedRef.current ? rawProgress.get() : 0)
