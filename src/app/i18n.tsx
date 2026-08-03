@@ -76,7 +76,7 @@ export const COPY = {
     services: {
       scrollHint: "Scroll to explore",
     },
-    team: { mobile: "Mobile:", email: "Email:", linkedin: "LinkedIn:" },
+    team: { mobile: "Mobile:", email: "Email:", linkedin: "LinkedIn:", instagram: "Instagram:" },
     blog: { title: "Blog", all: "All", notFound: "Article not found", backToBlog: "Back to Blog" },
   },
   pt: {
@@ -90,7 +90,7 @@ export const COPY = {
       lead: "Criamos ",
       leadItalic: "tudo o que está ligado à imagem",
       sub: "sempre guiados pelo mesmo princípio:",
-      quote: "Deixe-se relaxar enquanto transformamos desafios em trabalho criativo cuidado e eficaz.",
+      quote: "Relaxar os nossos clientes enquanto transformamos os desafios em propostas criativas, cuidadas e eficazes.",
     },
     portfolio: { concept: "Conceito", client: "Cliente", scroll: "Scroll" },
     contact: {
@@ -106,7 +106,7 @@ export const COPY = {
     services: {
       scrollHint: "Desliza para explorar",
     },
-    team: { mobile: "Telemóvel:", email: "Email:", linkedin: "LinkedIn:" },
+    team: { mobile: "Telemóvel:", email: "Email:", linkedin: "LinkedIn:", instagram: "Instagram:" },
     blog: { title: "Blog", all: "Todos", notFound: "Artigo não encontrado", backToBlog: "Voltar ao Blog" },
   },
 } as const

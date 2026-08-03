@@ -163,33 +163,69 @@ function SiteNav() {
   }
 
   const btnStyle: React.CSSProperties = { color: GOLD, fontFamily: SANS, fontSize: "clamp(13px, 1.1vw, 17px)", fontWeight: 300, letterSpacing: "0.6px", background: "none", border: "none", cursor: "pointer" }
-  const hoverProps = { whileHover: { rotate: 8 }, transition: { type: "spring", stiffness: 300, damping: 14 } } as const
+  // Elegante e legível: em repouso fica ligeiramente esbatido/translúcido,
+  // no hover foca (sem blur, opacidade total) em vez do antigo "rotate".
+  const hoverProps = {
+    animate: { opacity: 0.55, filter: "blur(1.5px)" },
+    whileHover: { opacity: 1, filter: "blur(0px)" },
+    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+  } as const
 
   const LINKS = [
-    { label: c.work,     fn: () => go("/", "work") },
-    { label: c.services, fn: () => go("/services") },
-    { label: c.team,     fn: () => go("/team") },
-    { label: c.blog,     fn: () => go("/blog") },
-    { label: c.hub,      fn: () => { setOpen(false); window.open("https://hub.muche.pt/", "_blank", "noopener") } },
-    { label: c.talk,     fn: () => go("/", "contact") },
+    { label: c.work, fn: () => go("/", "work") },
+    { label: c.team, fn: () => go("/team") },
+    { label: c.blog, fn: () => go("/blog") },
+    { label: c.hub,  fn: () => { setOpen(false); window.open("https://hub.muche.pt/", "_blank", "noopener") } },
+    { label: c.talk, fn: () => go("/", "contact") },
   ]
+
+  // Mosca "magnética" — segue o cursor enquanto este está sobre o menu, e
+  // volta ao centro quando a secção do Portfólio (#work) entra em vista.
+  const moscaX = useMotionValue(0)
+  const moscaY = useMotionValue(0)
+  const smoothMoscaX = useSpring(moscaX, { stiffness: 150, damping: 15 })
+  const smoothMoscaY = useSpring(moscaY, { stiffness: 150, damping: 15 })
+  const chaseEnabled = useRef(true)
+
+  useEffect(() => {
+    const workEl = document.getElementById("work")
+    if (!workEl) return
+    const obs = new IntersectionObserver(([entry]) => {
+      chaseEnabled.current = !entry.isIntersecting
+      if (entry.isIntersecting) { moscaX.set(0); moscaY.set(0) }
+    }, { threshold: 0.15 })
+    obs.observe(workEl)
+    return () => obs.disconnect()
+  }, [moscaX, moscaY])
+
+  const handleNavMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    if (!chaseEnabled.current) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const relX = e.clientX - (rect.left + rect.width / 2)
+    const relY = e.clientY - rect.top
+    moscaX.set(Math.max(-36, Math.min(36, relX * 0.12)))
+    moscaY.set(Math.max(-8, Math.min(26, relY * 0.35)))
+  }
+  const handleNavMouseLeave = () => { moscaX.set(0); moscaY.set(0) }
 
   return (
     <>
       {/* Desktop */}
-      <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between px-14 pt-10 relative">
+      <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between px-14 pt-10" onMouseMove={handleNavMouseMove} onMouseLeave={handleNavMouseLeave}>
         <div className="flex gap-8 lg:gap-10">
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/", "work")}>{c.work}</motion.button>
-          <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/services")}>{c.services}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/team")}>{c.team}</motion.button>
-        </div>
-        <motion.button whileHover={{ rotate: 15 }} transition={{ type: "spring", stiffness: 300, damping: 14 }} onClick={handleMoscaClick} className="absolute left-1/2 -translate-x-1/2" style={{ background: "none", border: "none", cursor: "pointer" }}>
-          <NavHamburger />
-        </motion.button>
-        <div className="flex gap-8 lg:gap-10">
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/blog")}>{c.blog}</motion.button>
+        </div>
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <motion.button whileHover={{ rotate: 15 }} transition={{ type: "spring", stiffness: 300, damping: 14 }} onClick={handleMoscaClick} style={{ x: smoothMoscaX, y: smoothMoscaY, background: "none", border: "none", cursor: "pointer" }}>
+            <NavHamburger />
+          </motion.button>
+        </div>
+        <div className="flex items-center gap-8 lg:gap-10">
           <motion.button {...hoverProps} style={btnStyle} onClick={() => window.open("https://hub.muche.pt/", "_blank", "noopener")}>{c.hub}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/", "contact")}>{c.talk}</motion.button>
+          <LangSwitch />
         </div>
       </nav>
 
@@ -229,6 +265,14 @@ function SiteNav() {
                 {link.label}
               </motion.button>
             ))}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: LINKS.length * 0.06, ease: "easeOut" }}
+              style={{ marginTop: "8px" }}
+            >
+              <LangSwitch variant="menu" />
+            </motion.div>
           </div>
         </motion.div>
       )}
@@ -237,13 +281,13 @@ function SiteNav() {
 }
 
 /* ─── Push-to-background scroll block ───────────────────────────────────── */
-function ScrollBlock({ children, height = "175vh" }: { children: ReactNode; height?: string }) {
+function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const scrollYProgress = useScrollProgress(ref, "end-start")
-  const scale        = useTransform(scrollYProgress, [0, 0.38], [1, 0.84])
-  const borderRadius = useTransform(scrollYProgress, [0, 0.38], ["0px", "22px"])
-  const blur         = useTransform(scrollYProgress, [0.08, 0.38], ["blur(0px)", "blur(10px)"])
-  const opacity      = useTransform(scrollYProgress, [0, 0.5, 0.85, 1], [1, 0.9, 0, 0])
+  const scale        = useTransform(scrollYProgress, [0, 0.55], [1, 0.84])
+  const borderRadius = useTransform(scrollYProgress, [0, 0.55], ["0px", "22px"])
+  const blur         = useTransform(scrollYProgress, [0.12, 0.55], ["blur(0px)", "blur(10px)"])
+  const opacity      = useTransform(scrollYProgress, [0, 0.6, 0.9, 1], [1, 0.9, 0, 0])
   return (
     <div ref={ref} style={{ height, position: "relative" }}>
       <div className="sticky top-0 h-screen overflow-hidden">
@@ -271,14 +315,27 @@ function NavHamburger() {
   )
 }
 function MucheLogo() {
+  const [hovered, setHovered] = useState(false)
+  const paths = [svgPaths.p1f980480, svgPaths.p1e8d8a00, svgPaths.p14ba5b00, svgPaths.p32989c80, svgPaths.pe3f1e80, svgPaths.p3eb66200]
+  // Deslocamento simétrico a partir do centro — separa as letras no hover.
+  const offsets = [-30, -18, -6, 6, 18, 30]
   return (
-    <svg viewBox="0 0 877.256 207" fill="none" className="w-full max-w-[280px] sm:max-w-[400px] md:max-w-[520px] h-auto mx-auto">
-      <path d={svgPaths.p1f980480} fill={GOLD} />
-      <path d={svgPaths.p1e8d8a00} fill={GOLD} />
-      <path d={svgPaths.p14ba5b00} fill={GOLD} />
-      <path d={svgPaths.p32989c80} fill={GOLD} />
-      <path d={svgPaths.pe3f1e80}  fill={GOLD} />
-      <path d={svgPaths.p3eb66200} fill={GOLD} />
+    <svg
+      viewBox="0 0 877.256 207"
+      fill="none"
+      className="w-full max-w-[280px] sm:max-w-[400px] md:max-w-[520px] h-auto mx-auto cursor-pointer"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {paths.map((d, i) => (
+        <motion.path
+          key={i}
+          d={d}
+          fill={GOLD}
+          animate={{ x: hovered ? offsets[i] : 0 }}
+          transition={{ type: "spring", stiffness: 220, damping: 16 }}
+        />
+      ))}
     </svg>
   )
 }
@@ -415,7 +472,7 @@ function PortfolioSection() {
           {PORTFOLIO.map((item, i) => {
             const { services, concept } = portfolioText(item, lang)
             return isMobile ? (
-              /* ── Mobile: image on top + fixed-height text panel ── */
+              /* ── Mobile: image on top, text below (auto height — nunca corta) ── */
               <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${cardW}px`, borderRadius: "20px" }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "4/3" }}>
                   {"video" in item
@@ -423,23 +480,24 @@ function PortfolioSection() {
                     : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
                   }
                 </div>
-                <div style={{ height: "160px", padding: "16px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", justifyContent: "space-between", flexShrink: 0 }}>
+                <div style={{ padding: "16px 20px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
                   <div>
                     <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
                     <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(26px, 7vw, 44px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
                   </div>
-                  <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.6, opacity: 0.6, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{concept}</p>
+                  <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.6, opacity: 0.6 }}>{concept}</p>
                 </div>
               </div>
             ) : (
-              /* ── Desktop: original overlaid gradient text ── */
-              <div key={i} className="shrink-0 relative overflow-hidden" style={{ width: `${cardW}px`, height: "45vw", borderRadius: "6px", background: "#060f13" }}>
-                {"video" in item
-                  ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
-                  : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
-                }
-                <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(6,15,19,0.92) 0%, rgba(6,15,19,0.55) 30%, rgba(6,15,19,0.05) 60%, transparent 80%)" }} />
-                <div className="absolute left-0 right-0 flex items-end justify-between" style={{ bottom: "6%", paddingLeft: "5%", paddingRight: "5%" }}>
+              /* ── Desktop: image on top (altura limitada por vh), texto por baixo ── */
+              <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: "42vh", borderRadius: "6px", background: "#060f13" }}>
+                  {"video" in item
+                    ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
+                    : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
+                  }
+                </div>
+                <div className="flex items-start justify-between" style={{ paddingTop: "5%", gap: "32px" }}>
                   <div className="flex gap-8 items-start" style={{ maxWidth: "46%" }}>
                     <div style={{ fontFamily: CAMPTON_BOOK, fontWeight: 300, color: GOLD, fontSize: "clamp(12px, 1.1vw, 18px)", textAlign: "right", minWidth: "52px", opacity: 0.7, paddingTop: "2px", flexShrink: 0 }}>{c.concept}</div>
                     <p style={{ fontFamily: CAMPTON_BOLD, fontWeight: 600, color: "#ffffff", fontSize: "clamp(11px, 0.95vw, 15px)", lineHeight: 1.55 }}>{concept}</p>
@@ -682,7 +740,13 @@ function ServicesPage() {
 }
 
 /* ─── Team Page — horizontal scroll, faithful to Figma Equipa ───────────── */
-const TEAM_MEMBERS = [
+const TEAM_MEMBERS: {
+  name: string; role: string; role_pt: string
+  mobile: string; mobileHref: string; email: string
+  linkedin: string; linkedinHref: string
+  instagram?: string; instagramHref?: string
+  layers: string[]
+}[] = [
   {
     name: "Fábio Teixeira",
     role: "Co-founder & Content Creator",
@@ -703,6 +767,8 @@ const TEAM_MEMBERS = [
     email: "andre@muche.pt",
     linkedin: "@andreroma",
     linkedinHref: "https://www.linkedin.com/in/andre-roma/",
+    instagram: "@andreroma139",
+    instagramHref: "https://www.instagram.com/andreroma139/",
     layers: [imgTeamBase, imgTeamOv1, imgTeamOv2],
   },
   {
@@ -818,6 +884,7 @@ function TeamPage() {
                     <TeamInfoRow label={cTeam.mobile} value={m.mobile} href={m.mobileHref} />
                     <TeamInfoRow label={cTeam.email} value={m.email} href={`mailto:${m.email}`} />
                     <TeamInfoRow label={cTeam.linkedin} value={m.linkedin} href={m.linkedinHref} />
+                    {m.instagram && <TeamInfoRow label={cTeam.instagram} value={m.instagram} href={m.instagramHref} />}
                   </div>
                 </div>
               ) : (
@@ -832,6 +899,7 @@ function TeamPage() {
                     <TeamInfoRow label={cTeam.mobile} value={m.mobile} href={m.mobileHref} />
                     <TeamInfoRow label={cTeam.email} value={m.email} href={`mailto:${m.email}`} />
                     <TeamInfoRow label={cTeam.linkedin} value={m.linkedin} href={m.linkedinHref} />
+                    {m.instagram && <TeamInfoRow label={cTeam.instagram} value={m.instagram} href={m.instagramHref} />}
                   </div>
                 </div>
               )}
@@ -1346,7 +1414,7 @@ function ArticlePage() {
 function HomePage() {
   return (
     <div className="relative z-10">
-      <ScrollBlock height="120vh"><HeroSection /></ScrollBlock>
+      <ScrollBlock height="170vh"><HeroSection /></ScrollBlock>
       <ScrollBlock><ManifestoSection /></ScrollBlock>
       <PortfolioSection />
       <ContactSection />
