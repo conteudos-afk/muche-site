@@ -344,10 +344,10 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
     const attemptScroll = () => {
       if (unlockedRef.current) return true
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
-      pauseTimerRef.current = setTimeout(() => {
-        unlockedRef.current = true
-        gatedProgress.set(rawProgress.get())
-      }, PAUSE_MS)
+      // Só destranca a flag — nunca escreve o progresso aqui. O blur só pode
+      // mudar dentro de "onScroll" (disparado por um scroll a sério), nunca
+      // como efeito secundário de um temporizador a terminar sozinho.
+      pauseTimerRef.current = setTimeout(() => { unlockedRef.current = true }, PAUSE_MS)
       return false
     }
 
