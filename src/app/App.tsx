@@ -163,12 +163,11 @@ function SiteNav() {
   }
 
   const btnStyle: React.CSSProperties = { color: GOLD, fontFamily: SANS, fontSize: "clamp(13px, 1.1vw, 17px)", fontWeight: 300, letterSpacing: "0.6px", background: "none", border: "none", cursor: "pointer" }
-  // Elegante e legível: em repouso fica ligeiramente esbatido/translúcido,
-  // no hover foca (sem blur, opacidade total) em vez do antigo "rotate".
+  // Simples e legível: 100% de opacidade em repouso, reduz para 60% no hover.
   const hoverProps = {
-    animate: { opacity: 0.55, filter: "blur(1.5px)" },
-    whileHover: { opacity: 1, filter: "blur(0px)" },
-    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+    animate: { opacity: 1 },
+    whileHover: { opacity: 0.6 },
+    transition: { duration: 0.3, ease: "easeOut" },
   } as const
 
   const LINKS = [
@@ -179,45 +178,61 @@ function SiteNav() {
     { label: c.talk, fn: () => go("/", "contact") },
   ]
 
-  // Mosca "magnética" — segue o cursor enquanto este está sobre o menu, e
-  // volta ao centro quando a secção do Portfólio (#work) entra em vista.
+  // Mosca "magnética" — segue o cursor por todo o site, e volta ao lugar
+  // de origem (no menu) quando a secção do Portfólio (#work) entra em vista.
+  const moscaWrapRef = useRef<HTMLDivElement>(null)
   const moscaX = useMotionValue(0)
   const moscaY = useMotionValue(0)
-  const smoothMoscaX = useSpring(moscaX, { stiffness: 150, damping: 15 })
-  const smoothMoscaY = useSpring(moscaY, { stiffness: 150, damping: 15 })
+  const smoothMoscaX = useSpring(moscaX, { stiffness: 120, damping: 18 })
+  const smoothMoscaY = useSpring(moscaY, { stiffness: 120, damping: 18 })
   const chaseEnabled = useRef(true)
+  const homePos = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
-    const workEl = document.getElementById("work")
-    if (!workEl) return
-    const obs = new IntersectionObserver(([entry]) => {
-      chaseEnabled.current = !entry.isIntersecting
-      if (entry.isIntersecting) { moscaX.set(0); moscaY.set(0) }
-    }, { threshold: 0.15 })
-    obs.observe(workEl)
-    return () => obs.disconnect()
-  }, [moscaX, moscaY])
+    const measureHome = () => {
+      const rect = moscaWrapRef.current?.getBoundingClientRect()
+      if (rect) homePos.current = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+    }
+    measureHome()
+    window.addEventListener("resize", measureHome)
 
-  const handleNavMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    if (!chaseEnabled.current) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const relX = e.clientX - (rect.left + rect.width / 2)
-    const relY = e.clientY - rect.top
-    moscaX.set(Math.max(-36, Math.min(36, relX * 0.12)))
-    moscaY.set(Math.max(-8, Math.min(26, relY * 0.35)))
-  }
-  const handleNavMouseLeave = () => { moscaX.set(0); moscaY.set(0) }
+    const onMove = (e: MouseEvent) => {
+      if (!chaseEnabled.current) return
+      const { x: hx, y: hy } = homePos.current
+      const targetX = e.clientX - hx
+      const targetY = e.clientY - hy
+      moscaX.set(Math.max(-hx + 24, Math.min(window.innerWidth - hx - 24, targetX)))
+      moscaY.set(Math.max(-hy + 16, Math.min(window.innerHeight - hy - 32, targetY)))
+    }
+    window.addEventListener("mousemove", onMove)
+
+    const workEl = document.getElementById("work")
+    let obs: IntersectionObserver | undefined
+    if (workEl) {
+      obs = new IntersectionObserver(([entry]) => {
+        chaseEnabled.current = !entry.isIntersecting
+        if (entry.isIntersecting) { moscaX.set(0); moscaY.set(0) }
+      }, { threshold: 0.15 })
+      obs.observe(workEl)
+    }
+
+    return () => {
+      window.removeEventListener("resize", measureHome)
+      window.removeEventListener("mousemove", onMove)
+      obs?.disconnect()
+    }
+  }, [moscaX, moscaY])
 
   return (
     <>
       {/* Desktop */}
-      <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between px-14 pt-10" onMouseMove={handleNavMouseMove} onMouseLeave={handleNavMouseLeave}>
+      <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between px-14 pt-10">
         <div className="flex gap-8 lg:gap-10">
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/", "work")}>{c.work}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/team")}>{c.team}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/blog")}>{c.blog}</motion.button>
         </div>
-        <div className="absolute left-1/2 -translate-x-1/2">
+        <div ref={moscaWrapRef} className="absolute left-1/2 -translate-x-1/2 z-50">
           <motion.button whileHover={{ rotate: 15 }} transition={{ type: "spring", stiffness: 300, damping: 14 }} onClick={handleMoscaClick} style={{ x: smoothMoscaX, y: smoothMoscaY, background: "none", border: "none", cursor: "pointer" }}>
             <NavHamburger />
           </motion.button>
@@ -283,7 +298,11 @@ function SiteNav() {
 /* ─── Push-to-background scroll block ───────────────────────────────────── */
 function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
-  const scrollYProgress = useScrollProgress(ref, "end-start")
+  const rawProgress = useScrollProgress(ref, "end-start")
+  // Travão: mesmo com um scroll muito rápido, o progresso real fica com uma
+  // spring "pesada" a travar atrás dele, para nunca saltar de imediato para
+  // o blur máximo — garante que o conteúdo se mantém legível.
+  const scrollYProgress = useSpring(rawProgress, { stiffness: 45, damping: 26, restDelta: 0.001 })
   const scale        = useTransform(scrollYProgress, [0, 0.55], [1, 0.84])
   const borderRadius = useTransform(scrollYProgress, [0, 0.55], ["0px", "22px"])
   const blur         = useTransform(scrollYProgress, [0.12, 0.55], ["blur(0px)", "blur(10px)"])
@@ -317,8 +336,15 @@ function NavHamburger() {
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
   const paths = [svgPaths.p1f980480, svgPaths.p1e8d8a00, svgPaths.p14ba5b00, svgPaths.p32989c80, svgPaths.pe3f1e80, svgPaths.p3eb66200]
-  // Deslocamento simétrico a partir do centro — separa as letras no hover.
-  const offsets = [-30, -18, -6, 6, 18, 30]
+  // Dispersão exagerada e aleatória (não só horizontal) — quase aos cantos do ecrã no hover.
+  const scatter = [
+    { x: -560, y: -320, rotate: -35 },
+    { x: 520,  y: -260, rotate: 28 },
+    { x: -460, y: 300,  rotate: 22 },
+    { x: 480,  y: 340,  rotate: -30 },
+    { x: -260, y: -60,  rotate: 40 },
+    { x: 300,  y: 80,   rotate: -18 },
+  ]
   return (
     <svg
       viewBox="0 0 877.256 207"
@@ -332,8 +358,8 @@ function MucheLogo() {
           key={i}
           d={d}
           fill={GOLD}
-          animate={{ x: hovered ? offsets[i] : 0 }}
-          transition={{ type: "spring", stiffness: 220, damping: 16 }}
+          animate={hovered ? { x: scatter[i].x, y: scatter[i].y, rotate: scatter[i].rotate } : { x: 0, y: 0, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 170, damping: 14 }}
         />
       ))}
     </svg>
@@ -454,7 +480,7 @@ function PortfolioSection() {
 
   const isMobile = vpw < 640
   const cardW    = isMobile ? vpw * 0.88 : vpw * 0.80
-  const gap      = isMobile ? 20 : 32
+  const gap      = isMobile ? 28 : 96
   const targetX  = -(3 * (cardW + gap))
 
   const rawProgress    = useScrollProgress(ref, "end-end")
@@ -491,13 +517,13 @@ function PortfolioSection() {
             ) : (
               /* ── Desktop: image on top (altura limitada por vh), texto por baixo ── */
               <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: "42vh", borderRadius: "6px", background: "#060f13" }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: "60vh", borderRadius: "6px", background: "#060f13" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
                   }
                 </div>
-                <div className="flex items-start justify-between" style={{ paddingTop: "5%", gap: "32px" }}>
+                <div className="flex items-start justify-between" style={{ paddingTop: "14px", gap: "32px" }}>
                   <div className="flex gap-8 items-start" style={{ maxWidth: "46%" }}>
                     <div style={{ fontFamily: CAMPTON_BOOK, fontWeight: 300, color: GOLD, fontSize: "clamp(12px, 1.1vw, 18px)", textAlign: "right", minWidth: "52px", opacity: 0.7, paddingTop: "2px", flexShrink: 0 }}>{c.concept}</div>
                     <p style={{ fontFamily: CAMPTON_BOLD, fontWeight: 600, color: "#ffffff", fontSize: "clamp(11px, 0.95vw, 15px)", lineHeight: 1.55 }}>{concept}</p>
