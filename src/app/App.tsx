@@ -320,39 +320,52 @@ function SiteNav() {
 function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const rawProgress = useScrollProgress(ref, "end-start")
-  // Travão forte: só quando a secção realmente ENTRA na janela visível é que
-  // se arma um temporizador — enquanto não passarem alguns segundos aí, o
-  // blur/escala ficam trancados a 0, por mais depressa que se faça scroll.
-  // (Antes o temporizador arrancava logo no mount da página inteira, o que
-  // fazia o travão "expirar" muito antes de a pessoa lá chegar de facto.)
-  const DWELL_MS = 2200
+  // Travão por pausa: enquanto se faz scroll sem parar (a qualquer velocidade),
+  // o texto fica sempre 100% nítido (sem blur/escala). Só depois de uma pausa
+  // real no scroll é que um novo movimento de scroll passa a avançar a
+  // animação — nunca "foge" logo para o blur, tem sempre de parar primeiro.
+  const PAUSE_MS = 260
   const gatedProgress = useMotionValue(0)
-  const readyRef = useRef(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const unlockedRef = useRef(false)
+  const pausedRef = useRef(false)
+  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    let armed = false
+
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !armed) {
-        armed = true
-        timerRef.current = setTimeout(() => {
-          readyRef.current = true
-          // Se o scroll já tiver parado, nada mais ia disparar um "change" para
-          // libertar o blur — empurra o valor atual assim que a espera termina.
-          gatedProgress.set(rawProgress.get())
-        }, DWELL_MS)
+      if (!entry.isIntersecting) {
+        // Saiu de vista — tranca de novo para a próxima visita a esta secção.
+        unlockedRef.current = false
+        pausedRef.current = false
+        if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
       }
     }, { threshold: 0 })
     obs.observe(el)
-    const unsubscribe = rawProgress.on("change", v => {
-      gatedProgress.set(readyRef.current ? v : 0)
-    })
+
+    const onScroll = () => {
+      if (unlockedRef.current) {
+        gatedProgress.set(rawProgress.get())
+        return
+      }
+      if (pausedRef.current) {
+        // Já tinha parado — este novo scroll é que "autoriza" o avanço.
+        unlockedRef.current = true
+        gatedProgress.set(rawProgress.get())
+        return
+      }
+      // Ainda a mexer sem ter parado — mantém sempre nítido.
+      gatedProgress.set(0)
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
+      pauseTimerRef.current = setTimeout(() => { pausedRef.current = true }, PAUSE_MS)
+    }
+    window.addEventListener("scroll", onScroll, { passive: true })
+
     return () => {
       obs.disconnect()
-      unsubscribe()
-      if (timerRef.current) clearTimeout(timerRef.current)
+      window.removeEventListener("scroll", onScroll)
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
     }
   }, [rawProgress, gatedProgress])
 
@@ -387,13 +400,17 @@ function NavHamburger() {
     </svg>
   )
 }
+function rectsOverlap(a: { left: number; right: number; top: number; bottom: number }, b: DOMRect) {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+}
+
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
   const paths = [svgPaths.p1f980480, svgPaths.p1e8d8a00, svgPaths.p14ba5b00, svgPaths.p32989c80, svgPaths.pe3f1e80, svgPaths.p3eb66200]
-  // Direção-alvo de cada letra (não a distância — essa é calculada em tempo
-  // real a partir da posição real de cada uma, para nunca saírem do ecrã
-  // e ficarem "cortadas" pela máscara da secção).
-  const dir = [
+  // Direção-base de cada letra — a distância real e a aleatoriedade são
+  // calculadas no momento do hover, e reduzidas até não sobrepor nenhum
+  // outro elemento da página (menu, tagline, serviços) nem sair do ecrã.
+  const baseDir = [
     { x: -1, y: -1,   rotate: -25 },
     { x: 1,  y: -1,   rotate: 20 },
     { x: -1, y: 1,    rotate: 16 },
@@ -401,28 +418,58 @@ function MucheLogo() {
     { x: -1, y: -0.4, rotate: 30 },
     { x: 1,  y: 0.5,  rotate: -14 },
   ]
+  const svgRef = useRef<SVGSVGElement>(null)
   const pathRefs = useRef<(SVGPathElement | null)[]>([])
   const [scatter, setScatter] = useState(() => paths.map(() => ({ x: 0, y: 0, rotate: 0 })))
 
   const computeScatter = () => {
-    const margin = 28
+    const margin = 20
+    // Zonas a evitar: o menu e o resto do conteúdo da hero (tagline + serviços) —
+    // para as letras nunca ficarem em cima de texto legível.
+    const keepOut: DOMRect[] = []
+    const nav = document.querySelector("nav")
+    if (nav) keepOut.push(nav.getBoundingClientRect())
+    // svg -> motion.div (px-8...) -> coluna da hero (logo + tagline + serviços)
+    const col = svgRef.current?.parentElement?.parentElement
+    if (col) {
+      Array.from(col.children).slice(1).forEach(child => keepOut.push(child.getBoundingClientRect()))
+    }
+
     const next = paths.map((_, i) => {
       const el = pathRefs.current[i]
-      const d = dir[i]
-      if (!el) return { x: 0, y: 0, rotate: d.rotate }
+      const base = baseDir[i]
+      // Aleatoriedade: ângulo ligeiramente rodado à volta da direção base e distância variável.
+      const jitter = (Math.random() - 0.5) * 0.9
+      const dx = base.x + jitter * (base.y === 0 ? 1 : base.y)
+      const dy = base.y + jitter * (base.x === 0 ? 1 : base.x) * 0.6
+      const len = Math.hypot(dx, dy) || 1
+      const ux = dx / len
+      const uy = dy / len
+      const rotate = base.rotate * (0.7 + Math.random() * 0.6)
+      if (!el) return { x: 0, y: 0, rotate }
       const r = el.getBoundingClientRect()
-      // Espaço livre real até cada borda do ecrã, a partir da posição atual da letra.
-      const room = d.x < 0 ? r.left - margin : window.innerWidth - margin - r.right
-      const roomY = d.y < 0 ? r.top - margin : window.innerHeight - margin - r.bottom
-      const x = d.x * Math.max(0, room) * 0.9
-      const y = d.y * Math.max(0, roomY) * 0.9
-      return { x, y, rotate: d.rotate }
+      const roomX = ux < 0 ? r.left - margin : window.innerWidth - margin - r.right
+      const roomY = uy < 0 ? r.top - margin : window.innerHeight - margin - r.bottom
+      const maxByX = ux !== 0 ? Math.max(0, roomX) / Math.abs(ux) : Infinity
+      const maxByY = uy !== 0 ? Math.max(0, roomY) / Math.abs(uy) : Infinity
+      let dist = Math.min(maxByX, maxByY) * (0.55 + Math.random() * 0.35)
+
+      // Reduz a distância até a posição final não sobrepor nenhuma zona proibida.
+      for (let tries = 0; tries < 12; tries++) {
+        const x = ux * dist
+        const y = uy * dist
+        const testRect = { left: r.left + x, right: r.right + x, top: r.top + y, bottom: r.bottom + y }
+        if (!keepOut.some(k => rectsOverlap(testRect, k))) break
+        dist *= 0.75
+      }
+      return { x: ux * dist, y: uy * dist, rotate }
     })
     setScatter(next)
   }
 
   return (
     <svg
+      ref={svgRef}
       viewBox="0 0 877.256 207"
       fill="none"
       className="w-full max-w-[280px] sm:max-w-[400px] md:max-w-[520px] h-auto mx-auto cursor-pointer"
