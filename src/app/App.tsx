@@ -178,15 +178,26 @@ function SiteNav() {
     { label: c.talk, fn: () => go("/", "contact") },
   ]
 
-  // Mosca "magnética" — segue o cursor por todo o site, e volta ao lugar
-  // de origem (no menu) quando a secção do Portfólio (#work) entra em vista.
+  // Mosca "magnética" — só persegue o cursor depois de lhe passares o rato
+  // por cima; para e volta ao lugar assim que o cursor se aproxima das
+  // palavras do menu (para não bloquear cliques) ou quando a secção do
+  // Portfólio (#work) entra em vista.
+  const navRef = useRef<HTMLElement>(null)
   const moscaWrapRef = useRef<HTMLDivElement>(null)
   const moscaX = useMotionValue(0)
   const moscaY = useMotionValue(0)
   const smoothMoscaX = useSpring(moscaX, { stiffness: 120, damping: 18 })
   const smoothMoscaY = useSpring(moscaY, { stiffness: 120, damping: 18 })
-  const chaseEnabled = useRef(true)
+  const chasing = useRef(false)
+  const hasLeftNav = useRef(false)
   const homePos = useRef({ x: 0, y: 0 })
+
+  const stopChasing = () => {
+    chasing.current = false
+    hasLeftNav.current = false
+    moscaX.set(0)
+    moscaY.set(0)
+  }
 
   useEffect(() => {
     const measureHome = () => {
@@ -197,7 +208,16 @@ function SiteNav() {
     window.addEventListener("resize", measureHome)
 
     const onMove = (e: MouseEvent) => {
-      if (!chaseEnabled.current) return
+      if (!chasing.current) return
+      const navRect = navRef.current?.getBoundingClientRect()
+      const belowNav = !navRect || e.clientY > navRect.bottom + 20
+      if (belowNav) hasLeftNav.current = true
+      // Só larga o cursor quando volta a aproximar-se do menu depois de já ter saído —
+      // sem isto, cortava logo a perseguição no primeiro movimento (ainda dentro do menu).
+      if (hasLeftNav.current && navRect && e.clientY <= navRect.bottom + 20) {
+        stopChasing()
+        return
+      }
       const { x: hx, y: hy } = homePos.current
       const targetX = e.clientX - hx
       const targetY = e.clientY - hy
@@ -210,8 +230,7 @@ function SiteNav() {
     let obs: IntersectionObserver | undefined
     if (workEl) {
       obs = new IntersectionObserver(([entry]) => {
-        chaseEnabled.current = !entry.isIntersecting
-        if (entry.isIntersecting) { moscaX.set(0); moscaY.set(0) }
+        if (entry.isIntersecting) stopChasing()
       }, { threshold: 0.15 })
       obs.observe(workEl)
     }
@@ -223,17 +242,19 @@ function SiteNav() {
     }
   }, [moscaX, moscaY])
 
+  const handleMoscaHoverStart = () => { chasing.current = true }
+
   return (
     <>
       {/* Desktop */}
-      <nav className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between px-14 pt-10">
+      <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between px-14 pt-10">
         <div className="flex gap-8 lg:gap-10">
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/", "work")}>{c.work}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/team")}>{c.team}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/blog")}>{c.blog}</motion.button>
         </div>
         <div ref={moscaWrapRef} className="absolute left-1/2 -translate-x-1/2 z-50">
-          <motion.button whileHover={{ rotate: 15 }} transition={{ type: "spring", stiffness: 300, damping: 14 }} onClick={handleMoscaClick} style={{ x: smoothMoscaX, y: smoothMoscaY, background: "none", border: "none", cursor: "pointer" }}>
+          <motion.button onHoverStart={handleMoscaHoverStart} whileHover={{ rotate: 15 }} transition={{ type: "spring", stiffness: 300, damping: 14 }} onClick={handleMoscaClick} style={{ x: smoothMoscaX, y: smoothMoscaY, background: "none", border: "none", cursor: "pointer" }}>
             <NavHamburger />
           </motion.button>
         </div>
@@ -299,10 +320,33 @@ function SiteNav() {
 function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const rawProgress = useScrollProgress(ref, "end-start")
-  // Travão: mesmo com um scroll muito rápido, o progresso real fica com uma
-  // spring "pesada" a travar atrás dele, para nunca saltar de imediato para
-  // o blur máximo — garante que o conteúdo se mantém legível.
-  const scrollYProgress = useSpring(rawProgress, { stiffness: 45, damping: 26, restDelta: 0.001 })
+  // Travão forte: enquanto a secção está perto de 100% visível (progress ~0),
+  // fica "trancada" a 0 durante alguns segundos — só depois disso o blur
+  // passa a responder ao scroll. Um scroll rápido nunca faz saltar o blur
+  // de imediato, e a spring por cima continua a suavizar depois de destrancar.
+  const DWELL_MS = 2200
+  const gatedProgress = useMotionValue(0)
+  const readyRef = useRef(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const arm = () => {
+      if (readyRef.current) return
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => { readyRef.current = true }, DWELL_MS)
+    }
+    arm() // a secção começa visível em repouso — arranca o temporizador já
+    const unsubscribe = rawProgress.on("change", v => {
+      if (v < 0.02 && !readyRef.current) arm()
+      gatedProgress.set(readyRef.current ? v : 0)
+    })
+    return () => {
+      unsubscribe()
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [rawProgress, gatedProgress])
+
+  const scrollYProgress = useSpring(gatedProgress, { stiffness: 45, damping: 26, restDelta: 0.001 })
   const scale        = useTransform(scrollYProgress, [0, 0.55], [1, 0.84])
   const borderRadius = useTransform(scrollYProgress, [0, 0.55], ["0px", "22px"])
   const blur         = useTransform(scrollYProgress, [0.12, 0.55], ["blur(0px)", "blur(10px)"])
@@ -335,16 +379,19 @@ function NavHamburger() {
 }
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
+  const vpw = useWindowWidth()
   const paths = [svgPaths.p1f980480, svgPaths.p1e8d8a00, svgPaths.p14ba5b00, svgPaths.p32989c80, svgPaths.pe3f1e80, svgPaths.p3eb66200]
-  // Dispersão exagerada e aleatória (não só horizontal) — quase aos cantos do ecrã no hover.
-  const scatter = [
-    { x: -560, y: -320, rotate: -35 },
-    { x: 520,  y: -260, rotate: 28 },
-    { x: -460, y: 300,  rotate: 22 },
-    { x: 480,  y: 340,  rotate: -30 },
-    { x: -260, y: -60,  rotate: 40 },
-    { x: 300,  y: 80,   rotate: -18 },
+  // Dispersão exagerada e aleatória (não só horizontal), mas em % da largura
+  // do ecrã (não px fixos) para nunca sair da área visível e ficar cortada.
+  const scatterPct = [
+    { x: -0.15, y: -0.20, rotate: -25 },
+    { x: 0.14,  y: -0.22, rotate: 20 },
+    { x: -0.13, y: 0.20,  rotate: 16 },
+    { x: 0.14,  y: 0.22,  rotate: -22 },
+    { x: -0.09, y: -0.10, rotate: 30 },
+    { x: 0.10,  y: 0.12,  rotate: -14 },
   ]
+  const scatter = scatterPct.map(s => ({ x: s.x * vpw, y: s.y * vpw, rotate: s.rotate }))
   return (
     <svg
       viewBox="0 0 877.256 207"
@@ -517,7 +564,7 @@ function PortfolioSection() {
             ) : (
               /* ── Desktop: image on top (altura limitada por vh), texto por baixo ── */
               <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: "60vh", borderRadius: "6px", background: "#060f13" }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: "68vh", borderRadius: "6px", background: "#060f13" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
