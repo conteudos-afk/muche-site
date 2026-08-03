@@ -333,14 +333,16 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
   useEffect(() => {
     const el = ref.current
     if (!el) return
+    let armed = false
     const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        readyRef.current = false
-        if (timerRef.current) clearTimeout(timerRef.current)
-        timerRef.current = setTimeout(() => { readyRef.current = true }, DWELL_MS)
-      } else {
-        readyRef.current = false
-        if (timerRef.current) clearTimeout(timerRef.current)
+      if (entry.isIntersecting && !armed) {
+        armed = true
+        timerRef.current = setTimeout(() => {
+          readyRef.current = true
+          // Se o scroll já tiver parado, nada mais ia disparar um "change" para
+          // libertar o blur — empurra o valor atual assim que a espera termina.
+          gatedProgress.set(rawProgress.get())
+        }, DWELL_MS)
       }
     }, { threshold: 0 })
     obs.observe(el)
@@ -424,6 +426,7 @@ function MucheLogo() {
       viewBox="0 0 877.256 207"
       fill="none"
       className="w-full max-w-[280px] sm:max-w-[400px] md:max-w-[520px] h-auto mx-auto cursor-pointer"
+      style={{ overflow: "visible" }}
       onMouseEnter={() => { computeScatter(); setHovered(true) }}
       onMouseLeave={() => setHovered(false)}
     >
