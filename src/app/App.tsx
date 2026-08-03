@@ -165,8 +165,8 @@ function SiteNav() {
   const btnStyle: React.CSSProperties = { color: GOLD, fontFamily: SANS, fontSize: "clamp(13px, 1.1vw, 17px)", fontWeight: 300, letterSpacing: "0.6px", background: "none", border: "none", cursor: "pointer" }
   // Simples e legível: 100% de opacidade em repouso, reduz para 60% no hover.
   const hoverProps = {
-    animate: { opacity: 1 },
-    whileHover: { opacity: 0.6 },
+    animate: { opacity: 1, letterSpacing: "0.6px" },
+    whileHover: { opacity: 0.6, letterSpacing: "2.5px" },
     transition: { duration: 0.3, ease: "easeOut" },
   } as const
 
@@ -320,13 +320,12 @@ function SiteNav() {
 function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const rawProgress = useScrollProgress(ref, "end-start")
-  // Travão por pausa — trava o scroll a sério (não só o efeito visual):
-  // enquanto esta secção está "ativa" (encostada ao topo, ainda a decorrer)
-  // e não tiver sido destrancada, um wheel/touch de scroll é CANCELADO
-  // (preventDefault). Uma pausa breve (sem precisar de "sacrificar" mais um
-  // gesto de scroll para confirmar) já destranca — só uma passagem contínua
-  // e sem parar nenhuma é que nunca chega a soltar.
+  // Travão por pausa — suave, não uma parede: enquanto esta secção está
+  // "ativa" e ainda não foi destrancada, o scroll continua a mexer-se, só
+  // que bastante mais devagar (resistência), em vez de ficar completamente
+  // preso. Uma pausa breve já destranca a velocidade normal.
   const PAUSE_MS = 120
+  const RESISTANCE = 0.28 // fração da velocidade normal enquanto travado
   const gatedProgress = useMotionValue(0)
   const unlockedRef = useRef(false)
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -351,15 +350,28 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
       return false
     }
 
+    let lastTouchY: number | null = null
+
     const onWheel = (e: WheelEvent) => {
       if (unlockedRef.current || !isActive()) return
-      if (!attemptScroll()) e.preventDefault()
+      if (!attemptScroll()) {
+        e.preventDefault()
+        window.scrollBy(0, e.deltaY * RESISTANCE)
+      }
     }
+    const onTouchStart = (e: TouchEvent) => { lastTouchY = e.touches[0]?.clientY ?? null }
     const onTouchMove = (e: TouchEvent) => {
       if (unlockedRef.current || !isActive()) return
-      if (!attemptScroll()) e.preventDefault()
+      const y = e.touches[0]?.clientY
+      const delta = y != null && lastTouchY != null ? lastTouchY - y : 0
+      lastTouchY = y ?? lastTouchY
+      if (!attemptScroll()) {
+        e.preventDefault()
+        if (delta) window.scrollBy(0, delta * RESISTANCE)
+      }
     }
     window.addEventListener("wheel", onWheel, { passive: false })
+    window.addEventListener("touchstart", onTouchStart, { passive: true })
     window.addEventListener("touchmove", onTouchMove, { passive: false })
 
     const onScroll = () => {
@@ -376,6 +388,7 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
 
     return () => {
       window.removeEventListener("wheel", onWheel)
+      window.removeEventListener("touchstart", onTouchStart)
       window.removeEventListener("touchmove", onTouchMove)
       window.removeEventListener("scroll", onScroll)
       if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
