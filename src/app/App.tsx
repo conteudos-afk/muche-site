@@ -320,27 +320,35 @@ function SiteNav() {
 function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const rawProgress = useScrollProgress(ref, "end-start")
-  // Travão forte: enquanto a secção está perto de 100% visível (progress ~0),
-  // fica "trancada" a 0 durante alguns segundos — só depois disso o blur
-  // passa a responder ao scroll. Um scroll rápido nunca faz saltar o blur
-  // de imediato, e a spring por cima continua a suavizar depois de destrancar.
+  // Travão forte: só quando a secção realmente ENTRA na janela visível é que
+  // se arma um temporizador — enquanto não passarem alguns segundos aí, o
+  // blur/escala ficam trancados a 0, por mais depressa que se faça scroll.
+  // (Antes o temporizador arrancava logo no mount da página inteira, o que
+  // fazia o travão "expirar" muito antes de a pessoa lá chegar de facto.)
   const DWELL_MS = 2200
   const gatedProgress = useMotionValue(0)
   const readyRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const arm = () => {
-      if (readyRef.current) return
-      if (timerRef.current) clearTimeout(timerRef.current)
-      timerRef.current = setTimeout(() => { readyRef.current = true }, DWELL_MS)
-    }
-    arm() // a secção começa visível em repouso — arranca o temporizador já
+    const el = ref.current
+    if (!el) return
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        readyRef.current = false
+        if (timerRef.current) clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => { readyRef.current = true }, DWELL_MS)
+      } else {
+        readyRef.current = false
+        if (timerRef.current) clearTimeout(timerRef.current)
+      }
+    }, { threshold: 0 })
+    obs.observe(el)
     const unsubscribe = rawProgress.on("change", v => {
-      if (v < 0.02 && !readyRef.current) arm()
       gatedProgress.set(readyRef.current ? v : 0)
     })
     return () => {
+      obs.disconnect()
       unsubscribe()
       if (timerRef.current) clearTimeout(timerRef.current)
     }
@@ -379,30 +387,50 @@ function NavHamburger() {
 }
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
-  const vpw = useWindowWidth()
   const paths = [svgPaths.p1f980480, svgPaths.p1e8d8a00, svgPaths.p14ba5b00, svgPaths.p32989c80, svgPaths.pe3f1e80, svgPaths.p3eb66200]
-  // Dispersão exagerada e aleatória (não só horizontal), mas em % da largura
-  // do ecrã (não px fixos) para nunca sair da área visível e ficar cortada.
-  const scatterPct = [
-    { x: -0.15, y: -0.20, rotate: -25 },
-    { x: 0.14,  y: -0.22, rotate: 20 },
-    { x: -0.13, y: 0.20,  rotate: 16 },
-    { x: 0.14,  y: 0.22,  rotate: -22 },
-    { x: -0.09, y: -0.10, rotate: 30 },
-    { x: 0.10,  y: 0.12,  rotate: -14 },
+  // Direção-alvo de cada letra (não a distância — essa é calculada em tempo
+  // real a partir da posição real de cada uma, para nunca saírem do ecrã
+  // e ficarem "cortadas" pela máscara da secção).
+  const dir = [
+    { x: -1, y: -1,   rotate: -25 },
+    { x: 1,  y: -1,   rotate: 20 },
+    { x: -1, y: 1,    rotate: 16 },
+    { x: 1,  y: 1,    rotate: -22 },
+    { x: -1, y: -0.4, rotate: 30 },
+    { x: 1,  y: 0.5,  rotate: -14 },
   ]
-  const scatter = scatterPct.map(s => ({ x: s.x * vpw, y: s.y * vpw, rotate: s.rotate }))
+  const pathRefs = useRef<(SVGPathElement | null)[]>([])
+  const [scatter, setScatter] = useState(() => paths.map(() => ({ x: 0, y: 0, rotate: 0 })))
+
+  const computeScatter = () => {
+    const margin = 28
+    const next = paths.map((_, i) => {
+      const el = pathRefs.current[i]
+      const d = dir[i]
+      if (!el) return { x: 0, y: 0, rotate: d.rotate }
+      const r = el.getBoundingClientRect()
+      // Espaço livre real até cada borda do ecrã, a partir da posição atual da letra.
+      const room = d.x < 0 ? r.left - margin : window.innerWidth - margin - r.right
+      const roomY = d.y < 0 ? r.top - margin : window.innerHeight - margin - r.bottom
+      const x = d.x * Math.max(0, room) * 0.9
+      const y = d.y * Math.max(0, roomY) * 0.9
+      return { x, y, rotate: d.rotate }
+    })
+    setScatter(next)
+  }
+
   return (
     <svg
       viewBox="0 0 877.256 207"
       fill="none"
       className="w-full max-w-[280px] sm:max-w-[400px] md:max-w-[520px] h-auto mx-auto cursor-pointer"
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => { computeScatter(); setHovered(true) }}
       onMouseLeave={() => setHovered(false)}
     >
       {paths.map((d, i) => (
         <motion.path
           key={i}
+          ref={el => { pathRefs.current[i] = el }}
           d={d}
           fill={GOLD}
           animate={hovered ? { x: scatter[i].x, y: scatter[i].y, rotate: scatter[i].rotate } : { x: 0, y: 0, rotate: 0 }}
@@ -537,7 +565,7 @@ function PortfolioSection() {
 
   return (
     <div ref={ref} id="work" style={{ height: isMobile ? "680vh" : "560vh", position: "relative" }}>
-      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
+      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center" style={{ paddingTop: "9vh" }}>
         <motion.div
           style={{ x, gap: `${gap}px`, paddingLeft: isMobile ? `${vpw * 0.06}px` : "56px" }}
           className="flex items-stretch will-change-transform"
