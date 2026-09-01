@@ -552,7 +552,7 @@ function MucheLogo() {
       onMouseMove={handleMouseMove}
     >
       <defs>
-        <filter id={filterId} x="-40%" y="-150%" width="180%" height="400%">
+        <filter id={filterId} x="-50%" y="-200%" width="200%" height="500%" colorInterpolationFilters="sRGB">
           <feImage
             ref={feImageRef}
             x={RIPPLE_MAP_X0}
