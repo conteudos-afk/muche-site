@@ -385,8 +385,8 @@ let muchRippleUid = 0
 
 // Largura/altura do canvas que gera o mapa de deslocamento — baixa resolução
 // de propósito (a água ondula em manchas largas, não em detalhe fino), o que
-// também mantém o toDataURL() barato a correr a ~18fps.
-const RIPPLE_CANVAS_W = 220
+// também mantém o toDataURL() barato a correr a ~30fps.
+const RIPPLE_CANVAS_W = 300
 const RIPPLE_CANVAS_H = Math.round((RIPPLE_CANVAS_W * 207) / 877.256)
 const RIPPLE_LIFETIME_S = 1.9 // duração de cada onda, em segundos
 
@@ -396,6 +396,7 @@ function MucheLogo() {
   const svgRef = useRef<SVGSVGElement>(null)
   const feImageRef = useRef<SVGFEImageElement>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const smoothCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const ripplesRef = useRef<{ x: number; y: number; t0: number }[]>([])
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastSpawnRef = useRef(0)
@@ -433,10 +434,14 @@ function MucheLogo() {
 
     const img = ctx.createImageData(RIPPLE_CANVAS_W, RIPPLE_CANVAS_H)
     const data = img.data
-    const WAVELENGTH = 30    // distância (em unidades do viewBox) entre cristas
-    const SPEED = 260        // velocidade a que a onda viaja para fora
+    const WAVELENGTH = 30     // distância (em unidades do viewBox) entre cristas
+    const SPEED = 260         // velocidade a que a onda viaja para fora
     const SPATIAL_DECAY = 190 // quanto mais alto, mais longe a onda se sente
     const TIME_DECAY = 1.1
+    // Envelope largo (a "espessura" do anel) — quanto mais largo, mais devagar
+    // o deslocamento varia de pixel para pixel, o que é o que faz o contorno
+    // mover-se em conjunto e suave em vez de aos solavancos.
+    const RING_WIDTH = 34
 
     for (let py = 0; py < RIPPLE_CANVAS_H; py++) {
       const vy = (py / RIPPLE_CANVAS_H) * 207
@@ -453,7 +458,7 @@ function MucheLogo() {
           // Só desloca perto da frente de onda atual — é isto que dá a
           // sensação de um anel a propagar-se, em vez de tudo a mexer-se
           // ao mesmo tempo (o que pareceria um tremor).
-          const envelope = Math.exp(-Math.pow((dist - front) / 22, 2))
+          const envelope = Math.exp(-Math.pow((dist - front) / RING_WIDTH, 2))
           const amplitude = Math.exp(-dist / SPATIAL_DECAY) * Math.exp(-age * TIME_DECAY) * envelope
           const wave = Math.sin(((dist - front) / WAVELENGTH) * Math.PI * 2) * amplitude
           dxSum += (dx / dist) * wave
@@ -467,7 +472,22 @@ function MucheLogo() {
       }
     }
     ctx.putImageData(img, 0, 0)
-    feImageRef.current?.setAttribute("href", canvas.toDataURL())
+
+    // Segunda passagem, só para suavizar — um leve blur no próprio mapa de
+    // deslocamento apaga o grão de pixel-a-pixel que se via como tremor nas
+    // arestas, sem alterar a forma da onda em si (que já é uma sinusoide lisa).
+    if (!smoothCanvasRef.current) {
+      smoothCanvasRef.current = document.createElement("canvas")
+      smoothCanvasRef.current.width = RIPPLE_CANVAS_W
+      smoothCanvasRef.current.height = RIPPLE_CANVAS_H
+    }
+    const smoothCtx = smoothCanvasRef.current.getContext("2d")
+    if (smoothCtx) {
+      smoothCtx.clearRect(0, 0, RIPPLE_CANVAS_W, RIPPLE_CANVAS_H)
+      smoothCtx.filter = "blur(2px)"
+      smoothCtx.drawImage(canvas, 0, 0)
+      feImageRef.current?.setAttribute("href", smoothCanvasRef.current.toDataURL())
+    }
 
     if (ripples.length === 0 && intervalRef.current) {
       clearInterval(intervalRef.current)
@@ -477,7 +497,7 @@ function MucheLogo() {
 
   const ensureLoopRunning = () => {
     if (intervalRef.current) return
-    intervalRef.current = setInterval(drawFrame, 55) // ~18fps — suficiente para água, mais barato
+    intervalRef.current = setInterval(drawFrame, 33) // ~30fps — mais suave, ainda barato a esta resolução
   }
 
   const spawnRipple = (x: number, y: number) => {
