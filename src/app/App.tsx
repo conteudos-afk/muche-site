@@ -319,9 +319,37 @@ function SiteNav() {
 /* ─── Push-to-background scroll block ───────────────────────────────────── */
 function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
-  // Versão original, sem travão: o blur/escala seguem sempre o scroll
-  // diretamente, seja qual for a velocidade a que se faz scroll.
-  const scrollYProgress = useScrollProgress(ref, "end-start")
+  const rawProgress = useScrollProgress(ref, "end-start")
+  // Pausa curta (bem mais curta que as versões anteriores): quando a secção
+  // entra em vista fica ~180ms com o blur trancado a 0, só para não saltar
+  // logo ao primeiro pixel de scroll — sem bloquear o scroll em si.
+  const SHORT_PAUSE_MS = 180
+  const gatedProgress = useMotionValue(0)
+  const readyRef = useRef(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let armed = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !armed) {
+        armed = true
+        timer = setTimeout(() => { readyRef.current = true }, SHORT_PAUSE_MS)
+      }
+    }, { threshold: 0 })
+    obs.observe(el)
+    const unsubscribe = rawProgress.on("change", v => {
+      gatedProgress.set(readyRef.current ? v : 0)
+    })
+    return () => {
+      obs.disconnect()
+      unsubscribe()
+      if (timer) clearTimeout(timer)
+    }
+  }, [rawProgress, gatedProgress])
+
+  const scrollYProgress = gatedProgress
   const scale        = useTransform(scrollYProgress, [0, 0.55], [1, 0.84])
   const borderRadius = useTransform(scrollYProgress, [0, 0.55], ["0px", "22px"])
   const blur         = useTransform(scrollYProgress, [0.12, 0.55], ["blur(0px)", "blur(10px)"])
@@ -379,12 +407,14 @@ function MucheLogo() {
   const spawnRipple = (x: number, y: number) => {
     const id = ++muchRippleUid
     setRipples(r => [...r, { id, x, y }])
-    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 1000)
+    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 1800)
   }
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const now = performance.now()
-    if (now - lastSpawnRef.current < 200) return
+    // Mais espaçado no tempo — ondas reais não nascem a cada instante, senão
+    // sobrepõem-se e o conjunto parece um tremor em vez de água a propagar-se.
+    if (now - lastSpawnRef.current < 420) return
     lastSpawnRef.current = now
     const { x, y } = toSvgPoint(e.clientX, e.clientY)
     spawnRipple(x, y)
@@ -409,20 +439,24 @@ function MucheLogo() {
     >
       <defs>
         <filter id={filterId} x="-40%" y="-150%" width="180%" height="400%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.05" numOctaves="2" seed="4" result="noise">
+          {/* Ruído com 1 só oitava (sem detalhe fino) e a mudar muito devagar —
+              dá uma ondulação larga e lenta em vez de um tremor de alta frequência. */}
+          <feTurbulence type="fractalNoise" baseFrequency="0.006 0.014" numOctaves="1" seed="7" result="noise">
             {hovered && (
-              <animate attributeName="baseFrequency" values="0.010 0.045;0.02 0.06;0.010 0.045" dur="2.8s" repeatCount="indefinite" />
+              <animate attributeName="baseFrequency" values="0.005 0.012;0.007 0.016;0.005 0.012" dur="9s" repeatCount="indefinite" />
             )}
           </feTurbulence>
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale={hovered ? 9 : 0} xChannelSelector="R" yChannelSelector="G" />
+          {/* Desfoca o ruído — troca o grão fino por manchas grandes e suaves, como reflexos na água */}
+          <feGaussianBlur in="noise" stdDeviation="3" result="softNoise" />
+          <feDisplacementMap in="SourceGraphic" in2="softNoise" scale={hovered ? 3.5 : 0} xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </defs>
-      <g style={{ filter: `url(#${filterId})`, transition: "filter 0.4s ease-out" }}>
+      <g style={{ filter: `url(#${filterId})`, transition: "filter 0.6s ease-out" }}>
         {paths.map((d, i) => (
           <path key={i} d={d} fill={GOLD} />
         ))}
       </g>
-      {/* Ondas concêntricas a partir do ponto onde o cursor está/passou */}
+      {/* Ondas concêntricas reais — nascem no ponto do cursor e propagam-se devagar para fora */}
       {ripples.map(r => (
         <motion.circle
           key={r.id}
@@ -430,11 +464,11 @@ function MucheLogo() {
           cy={r.y}
           fill="none"
           stroke={GOLD}
-          strokeWidth={2.5}
-          initial={{ r: 2, opacity: 0.55 }}
-          animate={{ r: 80, opacity: 0 }}
-          transition={{ duration: 0.95, ease: "easeOut" }}
-          style={{ pointerEvents: "none" }}
+          strokeWidth={1.5}
+          initial={{ r: 2, opacity: 0.4 }}
+          animate={{ r: 100, opacity: 0 }}
+          transition={{ duration: 1.7, ease: [0.22, 0.61, 0.36, 1] }}
+          style={{ pointerEvents: "none", filter: "blur(0.6px)" }}
         />
       ))}
     </svg>
