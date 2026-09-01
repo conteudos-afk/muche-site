@@ -388,7 +388,19 @@ let muchRippleUid = 0
 // também mantém o toDataURL() barato a correr a ~30fps.
 const RIPPLE_CANVAS_W = 300
 const RIPPLE_CANVAS_H = Math.round((RIPPLE_CANVAS_W * 207) / 877.256)
-const RIPPLE_LIFETIME_S = 2.6 // duração de cada onda, em segundos (mais longa — a onda agora viaja mais devagar)
+const RIPPLE_LIFETIME_S = 1.9 // duração de cada onda, em segundos
+
+// Margem (em unidades do viewBox) à volta do logo dentro da qual o mapa de
+// deslocamento também é gerado. Sem isto, o mapa termina exatamente nos
+// limites do viewBox — e como as letras tocam esse limite (topo/fundo), a
+// interpolação da imagem do filtro faz "clamp" para transparente mesmo em
+// cima do contorno, o que lia como tremor/flicker nas arestas. Com a margem,
+// esse limite fica sempre bem afastado de qualquer pixel visível da letra.
+const RIPPLE_MAP_PAD = 40
+const RIPPLE_MAP_X0 = -RIPPLE_MAP_PAD
+const RIPPLE_MAP_Y0 = -RIPPLE_MAP_PAD
+const RIPPLE_MAP_W = 877.256 + RIPPLE_MAP_PAD * 2
+const RIPPLE_MAP_H = 207 + RIPPLE_MAP_PAD * 2
 
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
@@ -435,18 +447,18 @@ function MucheLogo() {
     const img = ctx.createImageData(RIPPLE_CANVAS_W, RIPPLE_CANVAS_H)
     const data = img.data
     const WAVELENGTH = 30     // distância (em unidades do viewBox) entre cristas
-    const SPEED = 145         // velocidade a que a onda viaja para fora (mais lenta = mais fluida)
+    const SPEED = 260         // velocidade a que a onda viaja para fora
     const SPATIAL_DECAY = 190 // quanto mais alto, mais longe a onda se sente
-    const TIME_DECAY = 0.85   // decai um pouco mais devagar no tempo, para acompanhar a onda mais lenta
+    const TIME_DECAY = 1.1    // decaimento no tempo
     // Envelope largo (a "espessura" do anel) — quanto mais largo, mais devagar
     // o deslocamento varia de pixel para pixel, o que é o que faz o contorno
     // mover-se em conjunto e suave em vez de aos solavancos.
     const RING_WIDTH = 34
 
     for (let py = 0; py < RIPPLE_CANVAS_H; py++) {
-      const vy = (py / RIPPLE_CANVAS_H) * 207
+      const vy = RIPPLE_MAP_Y0 + (py / RIPPLE_CANVAS_H) * RIPPLE_MAP_H
       for (let px = 0; px < RIPPLE_CANVAS_W; px++) {
-        const vx = (px / RIPPLE_CANVAS_W) * 877.256
+        const vx = RIPPLE_MAP_X0 + (px / RIPPLE_CANVAS_W) * RIPPLE_MAP_W
         let dxSum = 0
         let dySum = 0
         for (const r of ripples) {
@@ -465,8 +477,8 @@ function MucheLogo() {
           dySum += (dy / dist) * wave
         }
         const idx = (py * RIPPLE_CANVAS_W + px) * 4
-        data[idx]     = Math.max(0, Math.min(255, 128 + dxSum * 65))
-        data[idx + 1] = Math.max(0, Math.min(255, 128 + dySum * 65))
+        data[idx]     = Math.max(0, Math.min(255, 128 + dxSum * 90))
+        data[idx + 1] = Math.max(0, Math.min(255, 128 + dySum * 90))
         data[idx + 2] = 128
         data[idx + 3] = 255
       }
@@ -541,8 +553,16 @@ function MucheLogo() {
     >
       <defs>
         <filter id={filterId} x="-40%" y="-150%" width="180%" height="400%">
-          <feImage ref={feImageRef} x="0" y="0" width="877.256" height="207" preserveAspectRatio="none" result="rippleMap" />
-          <feDisplacementMap in="SourceGraphic" in2="rippleMap" scale={hovered ? 20 : 0} xChannelSelector="R" yChannelSelector="G" />
+          <feImage
+            ref={feImageRef}
+            x={RIPPLE_MAP_X0}
+            y={RIPPLE_MAP_Y0}
+            width={RIPPLE_MAP_W}
+            height={RIPPLE_MAP_H}
+            preserveAspectRatio="none"
+            result="rippleMap"
+          />
+          <feDisplacementMap in="SourceGraphic" in2="rippleMap" scale={hovered ? 34 : 0} xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </defs>
       <g style={{ filter: `url(#${filterId})`, transition: "filter 0.5s ease-out" }}>
