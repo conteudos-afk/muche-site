@@ -388,7 +388,7 @@ let muchRippleUid = 0
 // também mantém o toDataURL() barato a correr a ~30fps.
 const RIPPLE_CANVAS_W = 300
 const RIPPLE_CANVAS_H = Math.round((RIPPLE_CANVAS_W * 207) / 877.256)
-const RIPPLE_LIFETIME_S = 1.9 // duração de cada onda, em segundos
+const RIPPLE_LIFETIME_S = 2.6 // duração de cada onda, em segundos (mais longa — a onda agora viaja mais devagar)
 
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
@@ -435,9 +435,9 @@ function MucheLogo() {
     const img = ctx.createImageData(RIPPLE_CANVAS_W, RIPPLE_CANVAS_H)
     const data = img.data
     const WAVELENGTH = 30     // distância (em unidades do viewBox) entre cristas
-    const SPEED = 260         // velocidade a que a onda viaja para fora
+    const SPEED = 145         // velocidade a que a onda viaja para fora (mais lenta = mais fluida)
     const SPATIAL_DECAY = 190 // quanto mais alto, mais longe a onda se sente
-    const TIME_DECAY = 1.1
+    const TIME_DECAY = 0.85   // decai um pouco mais devagar no tempo, para acompanhar a onda mais lenta
     // Envelope largo (a "espessura" do anel) — quanto mais largo, mais devagar
     // o deslocamento varia de pixel para pixel, o que é o que faz o contorno
     // mover-se em conjunto e suave em vez de aos solavancos.
@@ -465,8 +465,8 @@ function MucheLogo() {
           dySum += (dy / dist) * wave
         }
         const idx = (py * RIPPLE_CANVAS_W + px) * 4
-        data[idx]     = Math.max(0, Math.min(255, 128 + dxSum * 90))
-        data[idx + 1] = Math.max(0, Math.min(255, 128 + dySum * 90))
+        data[idx]     = Math.max(0, Math.min(255, 128 + dxSum * 65))
+        data[idx + 1] = Math.max(0, Math.min(255, 128 + dySum * 65))
         data[idx + 2] = 128
         data[idx + 3] = 255
       }
@@ -542,7 +542,7 @@ function MucheLogo() {
       <defs>
         <filter id={filterId} x="-40%" y="-150%" width="180%" height="400%">
           <feImage ref={feImageRef} x="0" y="0" width="877.256" height="207" preserveAspectRatio="none" result="rippleMap" />
-          <feDisplacementMap in="SourceGraphic" in2="rippleMap" scale={hovered ? 34 : 0} xChannelSelector="R" yChannelSelector="G" />
+          <feDisplacementMap in="SourceGraphic" in2="rippleMap" scale={hovered ? 20 : 0} xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </defs>
       <g style={{ filter: `url(#${filterId})`, transition: "filter 0.5s ease-out" }}>
