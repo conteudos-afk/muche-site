@@ -383,11 +383,21 @@ function NavHamburger() {
 /* ─── MucheLogo — ondulação de água a partir do ponto do cursor ─────────── */
 let muchRippleUid = 0
 
+// Largura/altura do canvas que gera o mapa de deslocamento — baixa resolução
+// de propósito (a água ondula em manchas largas, não em detalhe fino), o que
+// também mantém o toDataURL() barato a correr a ~18fps.
+const RIPPLE_CANVAS_W = 220
+const RIPPLE_CANVAS_H = Math.round((RIPPLE_CANVAS_W * 207) / 877.256)
+const RIPPLE_LIFETIME_S = 1.9 // duração de cada onda, em segundos
+
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
   const paths = [svgPaths.p1f980480, svgPaths.p1e8d8a00, svgPaths.p14ba5b00, svgPaths.p32989c80, svgPaths.pe3f1e80, svgPaths.p3eb66200]
   const svgRef = useRef<SVGSVGElement>(null)
-  const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([])
+  const feImageRef = useRef<SVGFEImageElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const ripplesRef = useRef<{ x: number; y: number; t0: number }[]>([])
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const lastSpawnRef = useRef(0)
   const filterId = useRef(`muche-water-${++muchRippleUid}`).current
 
@@ -404,17 +414,81 @@ function MucheLogo() {
     return { x: p.x, y: p.y }
   }
 
+  // Desenha o mapa de deslocamento: para cada pixel, soma o deslocamento de
+  // todas as ondas ativas — uma sinusoide real (sem ruído nenhum) que viaja
+  // para fora a velocidade constante e cuja amplitude decai com a distância
+  // ao centro e com o tempo, tal como uma pedra a cair na água.
+  const drawFrame = () => {
+    if (!canvasRef.current) {
+      canvasRef.current = document.createElement("canvas")
+      canvasRef.current.width = RIPPLE_CANVAS_W
+      canvasRef.current.height = RIPPLE_CANVAS_H
+    }
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+    const now = performance.now() / 1000
+    const ripples = ripplesRef.current.filter(r => now - r.t0 < RIPPLE_LIFETIME_S)
+    ripplesRef.current = ripples
+
+    const img = ctx.createImageData(RIPPLE_CANVAS_W, RIPPLE_CANVAS_H)
+    const data = img.data
+    const WAVELENGTH = 30    // distância (em unidades do viewBox) entre cristas
+    const SPEED = 260        // velocidade a que a onda viaja para fora
+    const SPATIAL_DECAY = 190 // quanto mais alto, mais longe a onda se sente
+    const TIME_DECAY = 1.1
+
+    for (let py = 0; py < RIPPLE_CANVAS_H; py++) {
+      const vy = (py / RIPPLE_CANVAS_H) * 207
+      for (let px = 0; px < RIPPLE_CANVAS_W; px++) {
+        const vx = (px / RIPPLE_CANVAS_W) * 877.256
+        let dxSum = 0
+        let dySum = 0
+        for (const r of ripples) {
+          const dx = vx - r.x
+          const dy = vy - r.y
+          const dist = Math.hypot(dx, dy) || 0.0001
+          const age = now - r.t0
+          const front = SPEED * age
+          // Só desloca perto da frente de onda atual — é isto que dá a
+          // sensação de um anel a propagar-se, em vez de tudo a mexer-se
+          // ao mesmo tempo (o que pareceria um tremor).
+          const envelope = Math.exp(-Math.pow((dist - front) / 22, 2))
+          const amplitude = Math.exp(-dist / SPATIAL_DECAY) * Math.exp(-age * TIME_DECAY) * envelope
+          const wave = Math.sin(((dist - front) / WAVELENGTH) * Math.PI * 2) * amplitude
+          dxSum += (dx / dist) * wave
+          dySum += (dy / dist) * wave
+        }
+        const idx = (py * RIPPLE_CANVAS_W + px) * 4
+        data[idx]     = Math.max(0, Math.min(255, 128 + dxSum * 90))
+        data[idx + 1] = Math.max(0, Math.min(255, 128 + dySum * 90))
+        data[idx + 2] = 128
+        data[idx + 3] = 255
+      }
+    }
+    ctx.putImageData(img, 0, 0)
+    feImageRef.current?.setAttribute("href", canvas.toDataURL())
+
+    if (ripples.length === 0 && intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+  }
+
+  const ensureLoopRunning = () => {
+    if (intervalRef.current) return
+    intervalRef.current = setInterval(drawFrame, 55) // ~18fps — suficiente para água, mais barato
+  }
+
   const spawnRipple = (x: number, y: number) => {
-    const id = ++muchRippleUid
-    setRipples(r => [...r, { id, x, y }])
-    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 1800)
+    ripplesRef.current = [...ripplesRef.current, { x, y, t0: performance.now() / 1000 }]
+    ensureLoopRunning()
   }
 
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const now = performance.now()
-    // Mais espaçado no tempo — ondas reais não nascem a cada instante, senão
-    // sobrepõem-se e o conjunto parece um tremor em vez de água a propagar-se.
-    if (now - lastSpawnRef.current < 420) return
+    // Espaçado no tempo — ondas reais não nascem a cada instante.
+    if (now - lastSpawnRef.current < 450) return
     lastSpawnRef.current = now
     const { x, y } = toSvgPoint(e.clientX, e.clientY)
     spawnRipple(x, y)
@@ -426,6 +500,14 @@ function MucheLogo() {
     spawnRipple(x, y)
   }
 
+  const handleLeave = () => {
+    setHovered(false)
+    // Deixa as ondas já lançadas terminarem sozinhas (o loop para-se quando
+    // a última expira); só marca a secção como "não interativa" no filtro.
+  }
+
+  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current) }, [])
+
   return (
     <svg
       ref={svgRef}
@@ -434,43 +516,20 @@ function MucheLogo() {
       className="w-full max-w-[280px] sm:max-w-[400px] md:max-w-[520px] h-auto mx-auto cursor-pointer"
       style={{ overflow: "visible" }}
       onMouseEnter={handleEnter}
-      onMouseLeave={() => { setHovered(false); setRipples([]) }}
+      onMouseLeave={handleLeave}
       onMouseMove={handleMouseMove}
     >
       <defs>
         <filter id={filterId} x="-40%" y="-150%" width="180%" height="400%">
-          {/* Ruído com 1 só oitava (sem detalhe fino) e a mudar muito devagar —
-              dá uma ondulação larga e lenta em vez de um tremor de alta frequência. */}
-          <feTurbulence type="fractalNoise" baseFrequency="0.006 0.014" numOctaves="1" seed="7" result="noise">
-            {hovered && (
-              <animate attributeName="baseFrequency" values="0.005 0.012;0.007 0.016;0.005 0.012" dur="9s" repeatCount="indefinite" />
-            )}
-          </feTurbulence>
-          {/* Desfoca o ruído — troca o grão fino por manchas grandes e suaves, como reflexos na água */}
-          <feGaussianBlur in="noise" stdDeviation="3" result="softNoise" />
-          <feDisplacementMap in="SourceGraphic" in2="softNoise" scale={hovered ? 3.5 : 0} xChannelSelector="R" yChannelSelector="G" />
+          <feImage ref={feImageRef} x="0" y="0" width="877.256" height="207" preserveAspectRatio="none" result="rippleMap" />
+          <feDisplacementMap in="SourceGraphic" in2="rippleMap" scale={hovered ? 34 : 0} xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </defs>
-      <g style={{ filter: `url(#${filterId})`, transition: "filter 0.6s ease-out" }}>
+      <g style={{ filter: `url(#${filterId})`, transition: "filter 0.5s ease-out" }}>
         {paths.map((d, i) => (
           <path key={i} d={d} fill={GOLD} />
         ))}
       </g>
-      {/* Ondas concêntricas reais — nascem no ponto do cursor e propagam-se devagar para fora */}
-      {ripples.map(r => (
-        <motion.circle
-          key={r.id}
-          cx={r.x}
-          cy={r.y}
-          fill="none"
-          stroke={GOLD}
-          strokeWidth={1.5}
-          initial={{ r: 2, opacity: 0.4 }}
-          animate={{ r: 100, opacity: 0 }}
-          transition={{ duration: 1.7, ease: [0.22, 0.61, 0.36, 1] }}
-          style={{ pointerEvents: "none", filter: "blur(0.6px)" }}
-        />
-      ))}
     </svg>
   )
 }
