@@ -319,83 +319,9 @@ function SiteNav() {
 /* ─── Push-to-background scroll block ───────────────────────────────────── */
 function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
   const ref = useRef<HTMLDivElement>(null)
-  const rawProgress = useScrollProgress(ref, "end-start")
-  // Travão por pausa — suave, não uma parede: enquanto esta secção está
-  // "ativa" e ainda não foi destrancada, o scroll continua a mexer-se, só
-  // que bastante mais devagar (resistência), em vez de ficar completamente
-  // preso. Uma pausa breve já destranca a velocidade normal.
-  const PAUSE_MS = 120
-  const RESISTANCE = 0.28 // fração da velocidade normal enquanto travado
-  const gatedProgress = useMotionValue(0)
-  const unlockedRef = useRef(false)
-  const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-
-    // "Ativa" = já chegou ao topo (sticky preso) e ainda não saiu de vista.
-    const isActive = () => {
-      const r = el.getBoundingClientRect()
-      return r.top <= 0 && r.bottom > 0
-    }
-
-    const attemptScroll = () => {
-      if (unlockedRef.current) return true
-      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
-      // Só destranca a flag — nunca escreve o progresso aqui. O blur só pode
-      // mudar dentro de "onScroll" (disparado por um scroll a sério), nunca
-      // como efeito secundário de um temporizador a terminar sozinho.
-      pauseTimerRef.current = setTimeout(() => { unlockedRef.current = true }, PAUSE_MS)
-      return false
-    }
-
-    let lastTouchY: number | null = null
-
-    const onWheel = (e: WheelEvent) => {
-      if (unlockedRef.current || !isActive()) return
-      if (!attemptScroll()) {
-        e.preventDefault()
-        window.scrollBy(0, e.deltaY * RESISTANCE)
-      }
-    }
-    const onTouchStart = (e: TouchEvent) => { lastTouchY = e.touches[0]?.clientY ?? null }
-    const onTouchMove = (e: TouchEvent) => {
-      if (unlockedRef.current || !isActive()) return
-      const y = e.touches[0]?.clientY
-      const delta = y != null && lastTouchY != null ? lastTouchY - y : 0
-      lastTouchY = y ?? lastTouchY
-      if (!attemptScroll()) {
-        e.preventDefault()
-        if (delta) window.scrollBy(0, delta * RESISTANCE)
-      }
-    }
-    window.addEventListener("wheel", onWheel, { passive: false })
-    window.addEventListener("touchstart", onTouchStart, { passive: true })
-    window.addEventListener("touchmove", onTouchMove, { passive: false })
-
-    const onScroll = () => {
-      const r = el.getBoundingClientRect()
-      if (r.top > window.innerHeight || r.bottom < 0) {
-        // Saiu de vista dos dois lados — tranca de novo para a próxima visita.
-        unlockedRef.current = false
-        if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
-      }
-      gatedProgress.set(unlockedRef.current ? rawProgress.get() : 0)
-    }
-    window.addEventListener("scroll", onScroll, { passive: true })
-    onScroll()
-
-    return () => {
-      window.removeEventListener("wheel", onWheel)
-      window.removeEventListener("touchstart", onTouchStart)
-      window.removeEventListener("touchmove", onTouchMove)
-      window.removeEventListener("scroll", onScroll)
-      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current)
-    }
-  }, [rawProgress, gatedProgress])
-
-  const scrollYProgress = useSpring(gatedProgress, { stiffness: 45, damping: 26, restDelta: 0.001 })
+  // Versão original, sem travão: o blur/escala seguem sempre o scroll
+  // diretamente, seja qual for a velocidade a que se faz scroll.
+  const scrollYProgress = useScrollProgress(ref, "end-start")
   const scale        = useTransform(scrollYProgress, [0, 0.55], [1, 0.84])
   const borderRadius = useTransform(scrollYProgress, [0, 0.55], ["0px", "22px"])
   const blur         = useTransform(scrollYProgress, [0.12, 0.55], ["blur(0px)", "blur(10px)"])
@@ -426,69 +352,48 @@ function NavHamburger() {
     </svg>
   )
 }
-function rectsOverlap(a: { left: number; right: number; top: number; bottom: number }, b: DOMRect) {
-  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
-}
+/* ─── MucheLogo — ondulação de água a partir do ponto do cursor ─────────── */
+let muchRippleUid = 0
 
 function MucheLogo() {
   const [hovered, setHovered] = useState(false)
   const paths = [svgPaths.p1f980480, svgPaths.p1e8d8a00, svgPaths.p14ba5b00, svgPaths.p32989c80, svgPaths.pe3f1e80, svgPaths.p3eb66200]
-  // Direção-base de cada letra — repartida em ângulos uniformes (60° à parte)
-  // à volta de um círculo, para que nenhum par de letras fique perto uma da
-  // outra por partilharem uma direção parecida. A distância real e a
-  // aleatoriedade são calculadas no momento do hover, e reduzidas até não
-  // sobrepor nenhum outro elemento da página nem sair do ecrã.
-  const baseDir = Array.from({ length: 6 }, (_, i) => {
-    const angle = ((-150 + i * 60) * Math.PI) / 180
-    return { x: Math.cos(angle), y: Math.sin(angle), rotate: (i % 2 === 0 ? -1 : 1) * (16 + i * 4) }
-  })
   const svgRef = useRef<SVGSVGElement>(null)
-  const pathRefs = useRef<(SVGPathElement | null)[]>([])
-  const [scatter, setScatter] = useState(() => paths.map(() => ({ x: 0, y: 0, rotate: 0 })))
+  const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([])
+  const lastSpawnRef = useRef(0)
+  const filterId = useRef(`muche-water-${++muchRippleUid}`).current
 
-  const computeScatter = () => {
-    const margin = 20
-    // Zonas a evitar: o menu e o resto do conteúdo da hero (tagline + serviços) —
-    // para as letras nunca ficarem em cima de texto legível.
-    const keepOut: DOMRect[] = []
-    const nav = document.querySelector("nav")
-    if (nav) keepOut.push(nav.getBoundingClientRect())
-    // svg -> motion.div (px-8...) -> coluna da hero (logo + tagline + serviços)
-    const col = svgRef.current?.parentElement?.parentElement
-    if (col) {
-      Array.from(col.children).slice(1).forEach(child => keepOut.push(child.getBoundingClientRect()))
-    }
+  // Converte a posição do cursor (coordenadas de ecrã) para o espaço interno do viewBox do SVG.
+  const toSvgPoint = (clientX: number, clientY: number) => {
+    const svg = svgRef.current
+    if (!svg) return { x: 0, y: 0 }
+    const pt = svg.createSVGPoint()
+    pt.x = clientX
+    pt.y = clientY
+    const ctm = svg.getScreenCTM()
+    if (!ctm) return { x: 0, y: 0 }
+    const p = pt.matrixTransform(ctm.inverse())
+    return { x: p.x, y: p.y }
+  }
 
-    const next = paths.map((_, i) => {
-      const el = pathRefs.current[i]
-      const base = baseDir[i]
-      // Aleatoriedade: ângulo ligeiramente rodado à volta da direção base e distância variável.
-      const jitter = (Math.random() - 0.5) * 0.9
-      const dx = base.x + jitter * (base.y === 0 ? 1 : base.y)
-      const dy = base.y + jitter * (base.x === 0 ? 1 : base.x) * 0.6
-      const len = Math.hypot(dx, dy) || 1
-      const ux = dx / len
-      const uy = dy / len
-      const rotate = base.rotate * (0.7 + Math.random() * 0.6)
-      if (!el) return { x: 0, y: 0, rotate }
-      const r = el.getBoundingClientRect()
-      const roomX = ux < 0 ? r.left - margin : window.innerWidth - margin - r.right
-      const roomY = uy < 0 ? r.top - margin : window.innerHeight - margin - r.bottom
-      const maxByX = ux !== 0 ? Math.max(0, roomX) / Math.abs(ux) : Infinity
-      const maxByY = uy !== 0 ? Math.max(0, roomY) / Math.abs(uy) : Infinity
-      let dist = Math.min(maxByX, maxByY) * (0.55 + Math.random() * 0.35)
+  const spawnRipple = (x: number, y: number) => {
+    const id = ++muchRippleUid
+    setRipples(r => [...r, { id, x, y }])
+    setTimeout(() => setRipples(r => r.filter(rp => rp.id !== id)), 1000)
+  }
 
-      // Reduz a distância até a posição final não sobrepor nenhuma zona proibida.
-      for (let tries = 0; tries < 12; tries++) {
-        const x = ux * dist
-        const y = uy * dist
-        const testRect = { left: r.left + x, right: r.right + x, top: r.top + y, bottom: r.bottom + y }
-        if (!keepOut.some(k => rectsOverlap(testRect, k))) break
-        dist *= 0.75
-      }
-      return { x: ux * dist, y: uy * dist, rotate }
-    })
-    setScatter(next)
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    const now = performance.now()
+    if (now - lastSpawnRef.current < 200) return
+    lastSpawnRef.current = now
+    const { x, y } = toSvgPoint(e.clientX, e.clientY)
+    spawnRipple(x, y)
+  }
+
+  const handleEnter = (e: React.MouseEvent<SVGSVGElement>) => {
+    setHovered(true)
+    const { x, y } = toSvgPoint(e.clientX, e.clientY)
+    spawnRipple(x, y)
   }
 
   return (
@@ -498,17 +403,38 @@ function MucheLogo() {
       fill="none"
       className="w-full max-w-[280px] sm:max-w-[400px] md:max-w-[520px] h-auto mx-auto cursor-pointer"
       style={{ overflow: "visible" }}
-      onMouseEnter={() => { computeScatter(); setHovered(true) }}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={handleEnter}
+      onMouseLeave={() => { setHovered(false); setRipples([]) }}
+      onMouseMove={handleMouseMove}
     >
-      {paths.map((d, i) => (
-        <motion.path
-          key={i}
-          ref={el => { pathRefs.current[i] = el }}
-          d={d}
-          fill={GOLD}
-          animate={hovered ? { x: scatter[i].x, y: scatter[i].y, rotate: scatter[i].rotate } : { x: 0, y: 0, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 170, damping: 14 }}
+      <defs>
+        <filter id={filterId} x="-40%" y="-150%" width="180%" height="400%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.012 0.05" numOctaves="2" seed="4" result="noise">
+            {hovered && (
+              <animate attributeName="baseFrequency" values="0.010 0.045;0.02 0.06;0.010 0.045" dur="2.8s" repeatCount="indefinite" />
+            )}
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale={hovered ? 9 : 0} xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+      <g style={{ filter: `url(#${filterId})`, transition: "filter 0.4s ease-out" }}>
+        {paths.map((d, i) => (
+          <path key={i} d={d} fill={GOLD} />
+        ))}
+      </g>
+      {/* Ondas concêntricas a partir do ponto onde o cursor está/passou */}
+      {ripples.map(r => (
+        <motion.circle
+          key={r.id}
+          cx={r.x}
+          cy={r.y}
+          fill="none"
+          stroke={GOLD}
+          strokeWidth={2.5}
+          initial={{ r: 2, opacity: 0.55 }}
+          animate={{ r: 80, opacity: 0 }}
+          transition={{ duration: 0.95, ease: "easeOut" }}
+          style={{ pointerEvents: "none" }}
         />
       ))}
     </svg>
