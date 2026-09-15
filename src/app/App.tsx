@@ -98,57 +98,42 @@ function LazyVideo({ src, className, style }: { src: string; className?: string;
 }
 
 /* ─── Teentac portfolio mockup — real site loaded inside the laptop screen ───
-   The screen in the mockup photo is a slightly rotated trapezoid (perspective),
-   not an axis-aligned rectangle. A true projective corner-pin (matrix3d) fits
-   all four corners exactly, but browsers can't reliably hit-test clicks
-   through a genuinely perspective-transformed cross-origin iframe (confirmed
-   directly: click dispatch onto it was refused as "unattributable"). Since
-   the iframe needs to stay clickable and scrollable, we instead fit the best
-   *affine* transform (translate/scale/rotate/skew only, via CSS matrix()) —
-   no perspective division, so hit-testing is unambiguous — using a
-   least-squares fit across all four measured corners. The quad is close to a
-   parallelogram already, so the affine fit lands within ~2% of the true
-   corners, invisible at this size. The four corners are re-projected into the
-   container's own box on every resize using the same math the browser uses
-   for object-fit: cover, so the fit stays correct at any card width/height. */
+   The screen in the mockup photo is a slightly rotated trapezoid (real
+   perspective, not a parallelogram — its diagonals' midpoints don't
+   coincide), so a best-fit *affine* transform (no perspective term) leaves a
+   visible ~10px-per-corner residual, which reads as the whole overlay
+   sitting slightly crooked relative to the bezel. We corner-pin instead with
+   a true projective transform (unit-square-to-quad, Heckbert's classic
+   mapping) expressed as a CSS matrix3d, which matches all four measured
+   corners exactly. The four corners are re-projected into the container's
+   own box on every resize using the same math the browser uses for
+   object-fit: cover, so the fit stays correct at any card width/height. */
 const TEENTAC_IMG_W = 1920
 const TEENTAC_IMG_H = 1440
 const TEENTAC_SCREEN_CORNERS: { tl: [number, number]; tr: [number, number]; br: [number, number]; bl: [number, number] } = {
-  tl: [627, 360],
-  tr: [1489, 336],
-  br: [1452, 911],
-  bl: [551, 898],
+  tl: [627, 362],
+  tr: [1479, 337],
+  br: [1453, 908],
+  bl: [552, 898],
 }
 
-function solve3x3(m: number[][], rhs: number[]): number[] {
-  const det = (mm: number[][]) =>
-    mm[0][0] * (mm[1][1] * mm[2][2] - mm[1][2] * mm[2][1]) -
-    mm[0][1] * (mm[1][0] * mm[2][2] - mm[1][2] * mm[2][0]) +
-    mm[0][2] * (mm[1][0] * mm[2][1] - mm[1][1] * mm[2][0])
-  const d = det(m)
-  const withCol = (col: number, vec: number[]) => m.map((row, i) => row.map((v, j) => (j === col ? vec[i] : v)))
-  return [det(withCol(0, rhs)) / d, det(withCol(1, rhs)) / d, det(withCol(2, rhs)) / d]
-}
-
-// Best-fit affine transform (least squares) mapping 4 source points to 4
-// target points — no perspective term, so it stays a simple, reliably
-// hit-testable CSS matrix() rather than a matrix3d corner-pin.
-function bestFitAffine(srcPts: [number, number][], dstX: number[], dstY: number[]) {
-  let Suu = 0, Suv = 0, Su = 0, Svv = 0, Sv = 0
-  for (const [u, v] of srcPts) { Suu += u * u; Suv += u * v; Su += u; Svv += v * v; Sv += v }
-  const M = [
-    [Suu, Suv, Su],
-    [Suv, Svv, Sv],
-    [Su, Sv, srcPts.length],
-  ]
-  const rhsX = [0, 0, 0], rhsY = [0, 0, 0]
-  srcPts.forEach(([u, v], i) => {
-    rhsX[0] += u * dstX[i]; rhsX[1] += v * dstX[i]; rhsX[2] += dstX[i]
-    rhsY[0] += u * dstY[i]; rhsY[1] += v * dstY[i]; rhsY[2] += dstY[i]
-  })
-  const [A, B, C] = solve3x3(M, rhsX)
-  const [D, E, F] = solve3x3(M, rhsY)
-  return { A, B, C, D, E, F }
+// Classic unit-square (0,0)-(1,0)-(1,1)-(0,1) -> quad projective mapping.
+function squareToQuad(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) {
+  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3
+  const dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3
+  let a: number, b: number, d: number, e: number, g: number, h: number
+  if (dx3 === 0 && dy3 === 0) {
+    a = x1 - x0; b = x2 - x1; d = y1 - y0; e = y2 - y1; g = 0; h = 0
+  } else {
+    const denom = dx1 * dy2 - dx2 * dy1
+    g = (dx3 * dy2 - dx2 * dy3) / denom
+    h = (dx1 * dy3 - dx3 * dy1) / denom
+    a = x1 - x0 + g * x1
+    b = x3 - x0 + h * x3
+    d = y1 - y0 + g * y1
+    e = y3 - y0 + h * y3
+  }
+  return { a, b, c: x0, d, e, f: y0, g, h }
 }
 
 function TeentacInteractiveMockup({ img, className }: { img: string; className?: string }) {
@@ -174,7 +159,7 @@ function TeentacInteractiveMockup({ img, className }: { img: string; className?:
   const IFRAME_W = 1280
   const IFRAME_H = 800
 
-  const affineTransform = (() => {
+  const matrix3d = (() => {
     if (!box || box.w === 0 || box.h === 0) return null
     // Same math as object-fit: cover, so the corners stay locked to the
     // laptop's actual screen regardless of how the photo itself is cropped.
@@ -186,20 +171,19 @@ function TeentacInteractiveMockup({ img, className }: { img: string; className?:
     const [x1, y1] = toBox(TEENTAC_SCREEN_CORNERS.tr)
     const [x2, y2] = toBox(TEENTAC_SCREEN_CORNERS.br)
     const [x3, y3] = toBox(TEENTAC_SCREEN_CORNERS.bl)
-    const srcPts: [number, number][] = [[0, 0], [IFRAME_W, 0], [IFRAME_W, IFRAME_H], [0, IFRAME_H]]
-    const { A, B, C, D, E, F } = bestFitAffine(srcPts, [x0, x1, x2, x3], [y0, y1, y2, y3])
-    return `matrix(${A}, ${D}, ${B}, ${E}, ${C}, ${F})`
+    const sq = squareToQuad(x0, y0, x1, y1, x2, y2, x3, y3)
+    return `matrix3d(${sq.a / IFRAME_W}, ${sq.d / IFRAME_W}, 0, ${sq.g / IFRAME_W}, ${sq.b / IFRAME_H}, ${sq.e / IFRAME_H}, 0, ${sq.h / IFRAME_H}, 0, 0, 1, 0, ${sq.c}, ${sq.f}, 0, 1)`
   })()
 
   return (
     <div ref={containerRef} className={className} style={{ position: "relative" }}>
       <img src={img} alt="Teentac" className="size-full object-cover" style={{ position: "absolute", inset: 0 }} />
-      {affineTransform && (
+      {matrix3d && (
         <iframe
           src={visible ? "https://www.teentac.pt/" : undefined}
           title="Teentac — pré-visualização em direto"
           className="absolute"
-          style={{ left: 0, top: 0, width: `${IFRAME_W}px`, height: `${IFRAME_H}px`, border: 0, transformOrigin: "0 0", transform: affineTransform, background: "#fff" }}
+          style={{ left: 0, top: 0, width: `${IFRAME_W}px`, height: `${IFRAME_H}px`, border: 0, transformOrigin: "0 0", transform: matrix3d, background: "#fff" }}
         />
       )}
     </div>
