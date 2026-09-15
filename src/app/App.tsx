@@ -97,6 +97,115 @@ function LazyVideo({ src, className, style }: { src: string; className?: string;
   )
 }
 
+/* ─── Teentac portfolio mockup — real site loaded inside the laptop screen ───
+   The screen in the mockup photo is a slightly rotated trapezoid (perspective),
+   not an axis-aligned rectangle. A true projective corner-pin (matrix3d) fits
+   all four corners exactly, but browsers can't reliably hit-test clicks
+   through a genuinely perspective-transformed cross-origin iframe (confirmed
+   directly: click dispatch onto it was refused as "unattributable"). Since
+   the iframe needs to stay clickable and scrollable, we instead fit the best
+   *affine* transform (translate/scale/rotate/skew only, via CSS matrix()) —
+   no perspective division, so hit-testing is unambiguous — using a
+   least-squares fit across all four measured corners. The quad is close to a
+   parallelogram already, so the affine fit lands within ~2% of the true
+   corners, invisible at this size. The four corners are re-projected into the
+   container's own box on every resize using the same math the browser uses
+   for object-fit: cover, so the fit stays correct at any card width/height. */
+const TEENTAC_IMG_W = 1920
+const TEENTAC_IMG_H = 1440
+const TEENTAC_SCREEN_CORNERS: { tl: [number, number]; tr: [number, number]; br: [number, number]; bl: [number, number] } = {
+  tl: [627, 360],
+  tr: [1489, 336],
+  br: [1452, 911],
+  bl: [551, 898],
+}
+
+function solve3x3(m: number[][], rhs: number[]): number[] {
+  const det = (mm: number[][]) =>
+    mm[0][0] * (mm[1][1] * mm[2][2] - mm[1][2] * mm[2][1]) -
+    mm[0][1] * (mm[1][0] * mm[2][2] - mm[1][2] * mm[2][0]) +
+    mm[0][2] * (mm[1][0] * mm[2][1] - mm[1][1] * mm[2][0])
+  const d = det(m)
+  const withCol = (col: number, vec: number[]) => m.map((row, i) => row.map((v, j) => (j === col ? vec[i] : v)))
+  return [det(withCol(0, rhs)) / d, det(withCol(1, rhs)) / d, det(withCol(2, rhs)) / d]
+}
+
+// Best-fit affine transform (least squares) mapping 4 source points to 4
+// target points — no perspective term, so it stays a simple, reliably
+// hit-testable CSS matrix() rather than a matrix3d corner-pin.
+function bestFitAffine(srcPts: [number, number][], dstX: number[], dstY: number[]) {
+  let Suu = 0, Suv = 0, Su = 0, Svv = 0, Sv = 0
+  for (const [u, v] of srcPts) { Suu += u * u; Suv += u * v; Su += u; Svv += v * v; Sv += v }
+  const M = [
+    [Suu, Suv, Su],
+    [Suv, Svv, Sv],
+    [Su, Sv, srcPts.length],
+  ]
+  const rhsX = [0, 0, 0], rhsY = [0, 0, 0]
+  srcPts.forEach(([u, v], i) => {
+    rhsX[0] += u * dstX[i]; rhsX[1] += v * dstX[i]; rhsX[2] += dstX[i]
+    rhsY[0] += u * dstY[i]; rhsY[1] += v * dstY[i]; rhsY[2] += dstY[i]
+  })
+  const [A, B, C] = solve3x3(M, rhsX)
+  const [D, E, F] = solve3x3(M, rhsY)
+  return { A, B, C, D, E, F }
+}
+
+function TeentacInteractiveMockup({ img, className }: { img: string; className?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      setBox({ w: width, h: height })
+    })
+    ro.observe(el)
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setVisible(true); io.disconnect() }
+    }, { rootMargin: "800px" })
+    io.observe(el)
+    return () => { ro.disconnect(); io.disconnect() }
+  }, [])
+
+  const IFRAME_W = 1280
+  const IFRAME_H = 800
+
+  const affineTransform = (() => {
+    if (!box || box.w === 0 || box.h === 0) return null
+    // Same math as object-fit: cover, so the corners stay locked to the
+    // laptop's actual screen regardless of how the photo itself is cropped.
+    const scale = Math.max(box.w / TEENTAC_IMG_W, box.h / TEENTAC_IMG_H)
+    const offsetX = (box.w - TEENTAC_IMG_W * scale) / 2
+    const offsetY = (box.h - TEENTAC_IMG_H * scale) / 2
+    const toBox = ([px, py]: [number, number]): [number, number] => [offsetX + px * scale, offsetY + py * scale]
+    const [x0, y0] = toBox(TEENTAC_SCREEN_CORNERS.tl)
+    const [x1, y1] = toBox(TEENTAC_SCREEN_CORNERS.tr)
+    const [x2, y2] = toBox(TEENTAC_SCREEN_CORNERS.br)
+    const [x3, y3] = toBox(TEENTAC_SCREEN_CORNERS.bl)
+    const srcPts: [number, number][] = [[0, 0], [IFRAME_W, 0], [IFRAME_W, IFRAME_H], [0, IFRAME_H]]
+    const { A, B, C, D, E, F } = bestFitAffine(srcPts, [x0, x1, x2, x3], [y0, y1, y2, y3])
+    return `matrix(${A}, ${D}, ${B}, ${E}, ${C}, ${F})`
+  })()
+
+  return (
+    <div ref={containerRef} className={className} style={{ position: "relative" }}>
+      <img src={img} alt="Teentac" className="size-full object-cover" style={{ position: "absolute", inset: 0 }} />
+      {affineTransform && (
+        <iframe
+          src={visible ? "https://www.teentac.pt/" : undefined}
+          title="Teentac — pré-visualização em direto"
+          className="absolute"
+          style={{ left: 0, top: 0, width: `${IFRAME_W}px`, height: `${IFRAME_H}px`, border: 0, transformOrigin: "0 0", transform: affineTransform, background: "#fff" }}
+        />
+      )}
+    </div>
+  )
+}
+
 const GOLD = "#FFAA03"
 const DARK = "#0b1c22"
 const PALMORE      = "'Palmore', 'Cormorant Garamond', serif"
@@ -711,7 +820,9 @@ function PortfolioSection() {
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "4/3" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
-                    : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
+                    : item.client === "Teentac"
+                      ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" />
+                      : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
                   }
                 </div>
                 <div style={{ padding: "16px 20px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
@@ -728,7 +839,9 @@ function PortfolioSection() {
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: "68vh", borderRadius: "6px", background: "#060f13" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
-                    : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
+                    : item.client === "Teentac"
+                      ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" />
+                      : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
                   }
                 </div>
                 <div className="flex items-start justify-between" style={{ paddingTop: "14px", gap: "32px" }}>
