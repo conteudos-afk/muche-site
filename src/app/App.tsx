@@ -111,10 +111,10 @@ function LazyVideo({ src, className, style }: { src: string; className?: string;
 const TEENTAC_IMG_W = 1920
 const TEENTAC_IMG_H = 1440
 const TEENTAC_SCREEN_CORNERS: { tl: [number, number]; tr: [number, number]; br: [number, number]; bl: [number, number] } = {
-  tl: [627, 362],
-  tr: [1479, 337],
-  br: [1453, 908],
-  bl: [552, 898],
+  tl: [625.7, 358.1],
+  tr: [1490.8, 334.8],
+  br: [1452.4, 910.7],
+  bl: [550.6, 898.6],
 }
 
 // Classic unit-square (0,0)-(1,0)-(1,1)-(0,1) -> quad projective mapping.
@@ -737,12 +737,12 @@ function ManifestoSection() {
       </div>
       <div className="md:flex-1 flex items-center justify-center md:justify-start px-12 md:px-0 md:pl-10 md:pr-14 pt-3 pb-8 md:pt-0 md:pb-0">
         <motion.div className="max-w-[300px] md:max-w-[520px]" initial={{ opacity: 0, y: 36 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 1.3, delay: 0.18, ease: [0.16, 1, 0.3, 1] }} viewport={{ once: true, margin: "-80px" }}>
-          <p style={{ color: GOLD, lineHeight: 0.95, marginBottom: "52px" }}>
+          <p style={{ color: GOLD, lineHeight: 1.25, marginBottom: "52px" }}>
             <span style={{ fontFamily: SANS, fontWeight: 300, fontSize: sansSize }}>{c.lead}</span>
             <span style={{ fontFamily: SERIF, fontSize: serifSize, letterSpacing: "0.01em" }}>{c.leadItalic}</span>
             <span style={{ fontFamily: SANS, fontWeight: 300, fontSize: sansSize }}>, {c.sub}</span>
           </p>
-          <p style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: serifSize, lineHeight: 0.95, letterSpacing: "0.01em" }}>
+          <p style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: serifSize, lineHeight: 1.25, letterSpacing: "0.01em" }}>
             {c.quote}
           </p>
         </motion.div>
