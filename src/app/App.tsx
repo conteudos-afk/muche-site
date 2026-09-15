@@ -4,9 +4,9 @@ import { RouterProvider, createBrowserRouter, Outlet, useNavigate, useParams, us
 import heroVideo from "@/imports/Hero_video.mp4"
 import svgPaths from "@/imports/HomeFinal/svg-kkmjukgdk7"
 import imgPort1 from "@/imports/HorizontalScroll/014471abff9def0ea5f6c8ea469567d04bd612e3.png"
-import imgPort2 from "@/imports/HorizontalScroll/66a8dab35a123292bc1e2965a2b2ec70d30157b2.png"
 import videoDecoProteste from "@/imports/Vi_deo_Natal_DecoPROteste_1200x628.mp4"
 import videoLPCC from "@/imports/LPCC_PORTFOLIO.mp4"
+import videoOliviaHotel from "@/imports/OliviaHotel.mp4"
 import imgTeamBg   from "@/imports/Equipa/9e968e30d54dd8c86db81bbd440330d0c8bbd7af.png"
 import imgTeamBase from "@/imports/Equipa/014471abff9def0ea5f6c8ea469567d04bd612e3.png"
 import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a96.png"
@@ -644,12 +644,12 @@ function ManifestoSection() {
       </div>
       <div className="md:flex-1 flex items-center justify-center md:justify-start px-12 md:px-0 md:pl-10 md:pr-14 pt-3 pb-8 md:pt-0 md:pb-0">
         <motion.div className="max-w-[300px] md:max-w-[520px]" initial={{ opacity: 0, y: 36 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 1.3, delay: 0.18, ease: [0.16, 1, 0.3, 1] }} viewport={{ once: true, margin: "-80px" }}>
-          <p style={{ color: GOLD, lineHeight: 0.75, marginBottom: "52px" }}>
+          <p style={{ color: GOLD, lineHeight: 0.95, marginBottom: "52px" }}>
             <span style={{ fontFamily: SANS, fontWeight: 300, fontSize: sansSize }}>{c.lead}</span>
             <span style={{ fontFamily: SERIF, fontSize: serifSize, letterSpacing: "0.01em" }}>{c.leadItalic}</span>
             <span style={{ fontFamily: SANS, fontWeight: 300, fontSize: sansSize }}>, {c.sub}</span>
           </p>
-          <p style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: serifSize, lineHeight: 0.75, letterSpacing: "0.01em" }}>
+          <p style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: serifSize, lineHeight: 0.95, letterSpacing: "0.01em" }}>
             {c.quote}
           </p>
         </motion.div>
@@ -665,7 +665,7 @@ type PortfolioItem =
 
 const PORTFOLIO: PortfolioItem[] = [
   { img: imgPort1, client: "Teentac", services: "Branding // Web Design", concept: "We created the full visual identity and website, balancing medical credibility with a vibrant, youth-centric design to turn complex health data into a supportive, empathetic experience.", services_pt: "Branding // Web Design", concept_pt: "Criámos a identidade visual completa e o website, equilibrando a credibilidade médica com um design vibrante e jovem, transformando dados de saúde complexos numa experiência acolhedora e empática." },
-  { img: imgPort2, client: "Serenity", services: "Branding", concept: "We designed a visual identity that breathes sophistication and exclusivity, ensuring that the SER brand feels as premium and personalized as the medical service it represents.", services_pt: "Branding", concept_pt: "Desenhámos uma identidade visual que respira sofisticação e exclusividade, garantindo que a marca SER transmite o mesmo nível premium e personalizado do serviço médico que representa." },
+  { video: videoOliviaHotel, client: "Olivia Hotel", services: "Photography // Video", concept: "We focus on visual storytelling that transforms spaces into experiences, creating an irresistible aesthetic that invites guests to check in before they even arrive.", services_pt: "Fotografia // Vídeo", concept_pt: "Focamo-nos em storytelling visual que transforma espaços em experiências, criando uma estética irresistível que convida os hóspedes a fazer check-in antes mesmo de chegarem." },
   { video: videoLPCC, client: "LPCC", services: "Branding // Podcast // Web Design", concept: "Muche created the visual identity, website, and produced the podcast called Ligacoes.", services_pt: "Branding // Podcast // Web Design", concept_pt: "A Muche criou a identidade visual, o website, e produziu o podcast chamado Ligações." },
   { video: videoDecoProteste, client: "Deco Proteste", services: "Promotional Video", concept: "We created a cinematic piece that captures the holiday spirit while reinforcing the brand's commitment to consumers, ensuring their message stood out during the busiest time of the year.", services_pt: "Vídeo Promocional", concept_pt: "Criámos uma peça cinematográfica que capta o espírito natalício, reforçando o compromisso da marca com os consumidores e garantindo que a sua mensagem se destacou na época mais concorrida do ano." },
 ]
@@ -1694,8 +1694,8 @@ const router = createBrowserRouter([
 ])
 
 /* ─── Preloader — waits for every image/video used on the site before it opens ── */
-const PRELOAD_IMAGES = [imgPort1, imgPort2, imgTeamBase, imgTeamOv1, imgTeamOv2, imgTeamOv3, imgTeamOv4]
-const PRELOAD_VIDEOS = [heroVideo, videoLPCC, videoDecoProteste]
+const PRELOAD_IMAGES = [imgPort1, imgTeamBase, imgTeamOv1, imgTeamOv2, imgTeamOv3, imgTeamOv4]
+const PRELOAD_VIDEOS = [heroVideo, videoLPCC, videoDecoProteste, videoOliviaHotel]
 const PRELOAD_TIMEOUT_MS = 15000
 
 function useAssetPreloader() {
