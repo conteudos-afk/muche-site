@@ -818,7 +818,7 @@ function PortfolioSection() {
                 </div>
               </div>
             ) : (
-              /* ── Desktop: image on top (altura limitada por vh), texto por baixo ── */
+              /* ── Desktop: media 16:9 em cima, texto por baixo ── */
               <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9", borderRadius: "6px", background: "#060f13" }}>
                   {"video" in item
