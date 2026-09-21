@@ -801,7 +801,7 @@ function PortfolioSection() {
             return isMobile ? (
               /* ── Mobile: image on top, text below (auto height — nunca corta) ── */
               <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${cardW}px`, borderRadius: "20px" }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "4/3" }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : item.client === "Teentac"
@@ -820,7 +820,7 @@ function PortfolioSection() {
             ) : (
               /* ── Desktop: image on top (altura limitada por vh), texto por baixo ── */
               <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: "68vh", borderRadius: "6px", background: "#060f13" }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9", borderRadius: "6px", background: "#060f13" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : item.client === "Teentac"
@@ -1790,9 +1790,11 @@ const router = createBrowserRouter([
   },
 ])
 
-/* ─── Preloader — waits for every image/video used on the site before it opens ── */
+/* ─── Preloader — waits for the images and the hero video before it opens ───── */
 const PRELOAD_IMAGES = [imgPort1, imgTeamBase, imgTeamOv1, imgTeamOv2, imgTeamOv3, imgTeamOv4]
-const PRELOAD_VIDEOS = [heroVideo, videoLPCC, videoDecoProteste, videoOliviaHotel]
+/* Só o vídeo do hero bloqueia a abertura do site. Os vídeos do portfólio são
+   carregados pelo <LazyVideo>, que só define o src quando a secção fica ativa. */
+const PRELOAD_VIDEOS = [heroVideo]
 const PRELOAD_TIMEOUT_MS = 15000
 
 function useAssetPreloader() {
