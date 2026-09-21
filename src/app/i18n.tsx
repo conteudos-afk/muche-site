@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 
 export type Lang = "en" | "pt"
 
@@ -36,6 +36,16 @@ export function LangProvider({ children }: { children: ReactNode }) {
       // ignore write failures (e.g. private browsing)
     }
   }
+  /* O idioma é escolhido no cliente, por isso o <html lang> e o <title> que vêm
+     no index.html ficam desatualizados assim que alguém troca para inglês.
+     Mantém os dois a par do conteúdo que está realmente a ser mostrado. */
+  useEffect(() => {
+    const meta = COPY[lang].meta
+    document.documentElement.lang = lang
+    document.title = meta.title
+    document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description)
+  }, [lang])
+
   return <LangContext.Provider value={{ lang, setLang }}>{children}</LangContext.Provider>
 }
 
@@ -50,6 +60,10 @@ export function useLangControls() {
 /* ─── UI copy — structural / chrome text ─────────────────────────────────── */
 export const COPY = {
   en: {
+    meta: {
+      title: "Muche — The Creative Agency",
+      description: "Creative agency in Portugal. Video, photography, branding, design, web and podcast — we turn challenges into thoughtful, effective creative work.",
+    },
     nav: { work: "Work", services: "Services", team: "Team", blog: "Blog", hub: "Digital Hub", talk: "Let's Talk" },
     hero: {
       tagline: "The Creative Agency",
@@ -80,6 +94,10 @@ export const COPY = {
     blog: { title: "Blog", all: "All", notFound: "Article not found", backToBlog: "Back to Blog" },
   },
   pt: {
+    meta: {
+      title: "Muche — Agência Criativa",
+      description: "Agência criativa em Portugal. Vídeo, fotografia, branding, design, web e podcast — transformamos desafios em propostas criativas, cuidadas e eficazes.",
+    },
     nav: { work: "Trabalho", services: "Serviços", team: "Equipa", blog: "Blog", hub: "Digital Hub", talk: "Fala Connosco" },
     hero: {
       tagline: "A Agência Criativa",
