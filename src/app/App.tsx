@@ -820,7 +820,12 @@ function PortfolioSection() {
                       : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
                   }
                 </div>
-                <div style={{ padding: "16px 20px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
+                {/* flex: 1 0 auto — o painel cresce para preencher o cartão. Sem
+                    isto ficava com a altura do conteúdo, e como o cartão estica
+                    para igualar o vizinho sobrava espaço por pintar no fundo:
+                    lia-se como cartão cortado, de alturas diferentes, e os
+                    cantos arredondados não chegavam a ver-se. */}
+                <div style={{ padding: "16px 20px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: "10px", flex: "1 0 auto" }}>
                   <div>
                     <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
                     <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(26px, 7vw, 44px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
