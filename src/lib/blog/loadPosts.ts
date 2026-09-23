@@ -1,24 +1,14 @@
 import fs from 'fs'
 import path from 'path'
-import matter from 'gray-matter'
-import { marked } from 'marked'
+import { parsePost } from './parsePost'
 import type { Lang, Post } from './types'
 
-const LANGS: Lang[] = ['pt', 'en']
+/* O `parsePost` mudou-se para `./parsePost`, que não toca em `fs` nem em
+   `path`, para que o bundle do browser o possa importar sem arrastar módulos
+   do Node. Continua a ser exportado daqui para quem já o importava. */
+export { parsePost }
 
-export function parsePost(raw: string, slug: string, lang: Lang): Post {
-  const { data, content } = matter(raw)
-  return {
-    slug,
-    lang,
-    title: String(data.title ?? ''),
-    excerpt: String(data.excerpt ?? ''),
-    category: String(data.category ?? ''),
-    date: String(data.date ?? ''),
-    readTime: String(data.readTime ?? ''),
-    bodyHtml: marked.parse(content.trim(), { async: false }) as string,
-  }
-}
+const LANGS: Lang[] = ['pt', 'en']
 
 export function loadPosts(contentDir: string): Post[] {
   const posts: Post[] = []

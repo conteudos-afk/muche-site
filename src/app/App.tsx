@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, type ReactNode, useMemo } from "react"
+import { useRef, useEffect, useState, type ReactNode } from "react"
 import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, type PanInfo } from "motion/react"
 import { RouterProvider, createBrowserRouter, Outlet, useNavigate, useParams, useLocation } from "react-router"
 import heroVideo from "@/imports/Hero_video.mp4"
@@ -18,7 +18,12 @@ import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a
 import imgTeamOv2  from "@/imports/Equipa/147c0dc1f2d747da38ed29077bb5ca6a2131f401.png"
 import imgTeamOv3  from "@/imports/Equipa/f54adf1f173bd3d652fbb4045cf6b96b0314465f.png"
 import imgTeamOv4  from "@/imports/Equipa/6b262635396e81047e7283b201ec9ec494f79879.png"
-import { LangProvider, useLang, useLangControls, COPY, translateCategory, translateDate, translateReadTime, type Lang } from "./i18n"
+import { LangProvider, useLang, useLangControls, COPY, type Lang } from "./i18n"
+import { ArticleView } from "./blog/ArticleView"
+import { ArticleNotFound } from "./blog/ArticleNotFound"
+import { BlogListView } from "./blog/BlogListView"
+import { GOLD, PALMORE, CAMPTON_BOLD, CAMPTON_BOOK, SANS, SERIF } from "./blog/tokens"
+import { postsFor, postBySlug } from "@/lib/blog/posts"
 
 /* ─── Custom scroll progress — bypasses framer-motion container position check */
 function useScrollProgress(
@@ -249,13 +254,10 @@ function TeentacInteractiveMockup({ img, className }: { img: string; className?:
   )
 }
 
-const GOLD = "#FFAA03"
+/* GOLD, PALMORE, CAMPTON_BOLD, CAMPTON_BOOK, SANS e SERIF vivem agora em
+   `./blog/tokens`, para que os componentes do blog os possam usar sem
+   importar o App inteiro. Os valores são exatamente os mesmos. */
 const DARK = "#0b1c22"
-const PALMORE      = "'Palmore', 'Cormorant Garamond', serif"
-const CAMPTON_BOLD = "'Campton', 'Jost', sans-serif"
-const CAMPTON_BOOK = "'Campton', 'Jost', sans-serif"
-const SANS  = CAMPTON_BOOK
-const SERIF = PALMORE
 
 /* ─── Fixed video background ─────────────────────────────────────────────── */
 function BackgroundVideo() {
@@ -1390,249 +1392,25 @@ function TeamPage() {
   )
 }
 
-/* ─── Blog data ──────────────────────────────────────────────────────────── */
-const BLOG_CATEGORIES = [
-  "Branding & Visual Identity",
-  "Graphic Design",
-  "Video Production",
-  "Web Design",
-  "Photography & Events",
-  "Podcasts",
-] as const
-
-type BlogCategory = typeof BLOG_CATEGORIES[number]
-
-/* ─── Blog list page ─────────────────────────────────────────────────────── */
+/* ─── Blog ───────────────────────────────────────────────────────────────────
+   Os componentes do blog vivem em `src/app/blog/` e não dependem do router
+   nem do browser, para poderem ser renderizados no servidor. O que fica aqui
+   são apenas os invólucros que ligam o router e o idioma a esses
+   componentes. ───────────────────────────────────────────────────────────── */
 function BlogPage() {
   const lang = useLang()
-  const cBack = COPY[lang].back
-  const cBlog = COPY[lang].blog
-  const navigate = useNavigate()
-  const [active, setActive] = useState<BlogCategory | null>(null)
-
-  const filtered = useMemo(
-    () => active ? POSTS.filter(p => p.category === active) : POSTS,
-    [active]
-  )
-
-  return (
-    <div className="min-h-screen pt-28 md:pt-36 pb-20 md:pb-32 px-6 md:px-14 relative z-10">
-      {/* Overlay escuro para melhor legibilidade sobre o vídeo de fundo */}
-      <div className="fixed inset-0 pointer-events-none z-0" style={{ background: "linear-gradient(to bottom, rgba(6,15,19,0.55) 0%, rgba(6,15,19,0.82) 40%, rgba(6,15,19,0.92) 100%)" }} />
-
-      <div className="relative z-10">
-        {/* Back */}
-        <motion.button
-          onClick={() => navigate("/")}
-          whileHover={{ x: -3 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "32px" }}
-        >
-          <span>←</span> {cBack}
-        </motion.button>
-
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}>
-          <h1 style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(36px, 7vw, 100px)", letterSpacing: "0.01em", lineHeight: 0.9, marginBottom: "52px" }}>
-            {cBlog.title}
-          </h1>
-        </motion.div>
-
-        {/* Category filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.15, ease: "easeOut" }}
-          className="flex flex-wrap gap-3"
-          style={{ marginBottom: "56px" }}
-        >
-          <button
-            onClick={() => setActive(null)}
-            style={{
-              background: "none",
-              border: `1px solid ${GOLD}${active === null ? "ff" : "30"}`,
-              color: GOLD,
-              fontFamily: CAMPTON_BOOK,
-              fontWeight: 300,
-              fontSize: "11px",
-              letterSpacing: "3px",
-              textTransform: "uppercase",
-              padding: "8px 18px",
-              cursor: "pointer",
-              opacity: active === null ? 1 : 0.45,
-              transition: "opacity 0.25s, border-color 0.25s",
-            }}
-          >
-            {cBlog.all}
-          </button>
-          {BLOG_CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActive(active === cat ? null : cat)}
-              style={{
-                background: "none",
-                border: `1px solid ${GOLD}${active === cat ? "ff" : "30"}`,
-                color: GOLD,
-                fontFamily: CAMPTON_BOOK,
-                fontWeight: 300,
-                fontSize: "11px",
-                letterSpacing: "3px",
-                textTransform: "uppercase",
-                padding: "8px 18px",
-                cursor: "pointer",
-                opacity: active === cat ? 1 : 0.45,
-                transition: "opacity 0.25s, border-color 0.25s",
-              }}
-            >
-              {translateCategory(cat, lang)}
-            </button>
-          ))}
-        </motion.div>
-
-        {/* Article list */}
-        <div style={{ borderTop: `1px solid ${GOLD}1a` }}>
-          {filtered.map((post, i) => (
-            <motion.div
-              key={post.slug}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}
-              onClick={() => navigate(`/blog/${post.slug}`)}
-              className="group cursor-pointer flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-16 py-8 md:py-10"
-              style={{ borderBottom: `1px solid ${GOLD}1a` }}
-            >
-              {/* Meta */}
-              <div style={{ flex: "0 0 auto", minWidth: "140px", marginBottom: "8px" }}>
-                <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.6, marginBottom: "8px" }}>{translateCategory(post.category, lang)}</p>
-                <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", opacity: 0.5, marginBottom: "6px" }}>{translateDate(post.date, lang)}</p>
-                <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "11px", opacity: 0.45 }}>{translateReadTime(post.readTime, lang)}</p>
-              </div>
-              {/* Content */}
-              <div style={{ flex: 1 }}>
-                <h3
-                  className="group-hover:opacity-75 transition-opacity duration-300"
-                  style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(22px, 2.4vw, 38px)", lineHeight: 1.1, marginBottom: "14px", letterSpacing: "0.01em" }}
-                >
-                  {lang === "pt" ? post.title_pt : post.title}
-                </h3>
-                <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "clamp(13px, 1vw, 16px)", lineHeight: 1.7, opacity: 0.75 }}>
-                  {lang === "pt" ? post.excerpt_pt : post.excerpt}
-                </p>
-              </div>
-              {/* Arrow */}
-              <span
-                className="hidden sm:block group-hover:opacity-60 transition-opacity duration-300"
-                style={{ color: GOLD, opacity: 0.2, fontSize: "22px", flexShrink: 0, paddingTop: "4px" }}
-              >
-                →
-              </span>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  return <BlogListView posts={postsFor(lang)} lang={lang} />
 }
 
-/* ─── Article page ───────────────────────────────────────────────────────── */
 function ArticlePage() {
   const lang = useLang()
-  const cBlog = COPY[lang].blog
   const { slug } = useParams<{ slug: string }>()
-  const navigate = useNavigate()
-  const post = POSTS.find(p => p.slug === slug)
+  const post = slug ? postBySlug(slug, lang) : undefined
 
   useEffect(() => { window.scrollTo(0, 0) }, [slug])
 
-  if (!post) {
-    return (
-      <div className="min-h-screen flex items-center justify-center relative z-10">
-        <div className="text-center">
-          <p style={{ color: GOLD, fontFamily: SANS, fontSize: "12px", letterSpacing: "4px", textTransform: "uppercase", opacity: 0.4, marginBottom: "24px" }}>{cBlog.notFound}</p>
-          <motion.button onClick={() => navigate("/blog")} whileHover={{ x: -3 }} style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.6, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", margin: "0 auto" }}>
-            <span>←</span> {cBlog.backToBlog}
-          </motion.button>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen relative z-10">
-      {/* Frosted top overlay for readability */}
-      <div className="fixed inset-0 pointer-events-none z-0" style={{ background: "linear-gradient(to bottom, rgba(6,15,19,0.55) 0%, rgba(6,15,19,0.82) 40%, rgba(6,15,19,0.92) 100%)" }} />
-
-      <div className="relative z-10 max-w-3xl mx-auto px-5 sm:px-8 pt-28 md:pt-36 pb-20 md:pb-32">
-        {/* Back */}
-        <motion.button
-          onClick={() => navigate("/blog")}
-          whileHover={{ x: -3 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "56px" }}
-        >
-          <span>←</span> {cBlog.title}
-        </motion.button>
-
-        {/* Meta */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: "easeOut" }}>
-          <div className="flex flex-wrap items-center gap-3 md:gap-6" style={{ marginBottom: "28px" }}>
-            <span style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.4 }}>{translateCategory(post.category, lang)}</span>
-            <span className="hidden sm:inline" style={{ color: GOLD, opacity: 0.2, fontSize: "10px" }}>·</span>
-            <span style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", opacity: 0.3 }}>{translateDate(post.date, lang)}</span>
-            <span className="hidden sm:inline" style={{ color: GOLD, opacity: 0.2, fontSize: "10px" }}>·</span>
-            <span style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "11px", opacity: 0.25 }}>{translateReadTime(post.readTime, lang)}</span>
-          </div>
-        </motion.div>
-
-        {/* Title */}
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
-          style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(26px, 4.5vw, 64px)", lineHeight: 1.08, letterSpacing: "0.01em", marginBottom: "20px" }}
-        >
-          {lang === "pt" ? post.title_pt : post.title}
-        </motion.h1>
-
-        {lang === "pt" && (
-          <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", opacity: 0.4, fontStyle: "italic", marginBottom: "36px" }}>
-            O texto completo deste artigo está disponível apenas em inglês.
-          </p>
-        )}
-
-        {/* Divider */}
-        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.8, delay: 0.25, ease: "easeOut" }} style={{ height: "1px", background: `${GOLD}25`, marginBottom: "48px", transformOrigin: "left" }} />
-
-        {/* Body */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}>
-          {post.body.map((block, i) => (
-            <div key={i} style={{ marginBottom: "32px" }}>
-              {block.heading && (
-                <h2 style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(20px, 2vw, 30px)", lineHeight: 1.2, letterSpacing: "0.01em", marginBottom: "14px", opacity: 0.9 }}>
-                  {block.heading}
-                </h2>
-              )}
-              <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "clamp(14px, 1.15vw, 18px)", lineHeight: 1.85, opacity: 0.65 }}>
-                {block.text}
-              </p>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Footer divider + back */}
-        <div style={{ marginTop: "64px", paddingTop: "32px", borderTop: `1px solid ${GOLD}1a` }}>
-          <motion.button
-            onClick={() => navigate("/blog")}
-            whileHover={{ x: -3 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.4, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
-          >
-            <span>←</span> {cBlog.backToBlog}
-          </motion.button>
-        </div>
-      </div>
-    </div>
-  )
+  if (!post) return <ArticleNotFound lang={lang} />
+  return <ArticleView post={post} lang={lang} />
 }
 
 /* ─── Home Page ──────────────────────────────────────────────────────────── */
@@ -1742,14 +1520,21 @@ function LoadingScreen({ progress }: { progress: number }) {
   )
 }
 
+/* As páginas do blog são pré-renderizadas em HTML. Se ficassem à espera do
+   vídeo do hero, o visitante olhava para o ecrã de carregamento enquanto o
+   texto já estava na página — por isso nestas rotas o preloader é ignorado. */
+const isBlogPath = (pathname: string) => /^\/(en\/)?blog(\/|$)/.test(pathname)
+
 export default function App() {
   const { progress, ready } = useAssetPreloader()
+  const isBlog = typeof window !== "undefined" && isBlogPath(window.location.pathname)
+  const gated = ready || isBlog
   return (
     <LangProvider>
       <AnimatePresence>
-        {!ready && <LoadingScreen key="loading" progress={progress} />}
+        {!gated && <LoadingScreen key="loading" progress={progress} />}
       </AnimatePresence>
-      {ready && (
+      {gated && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
           <RouterProvider router={router} />
         </motion.div>
