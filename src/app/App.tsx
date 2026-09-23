@@ -887,14 +887,21 @@ function PortfolioSection() {
   const mGap    = 16
   // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — bem mais larga que
   // alta do que os cartões 9:16 dos vídeos. A ALTURA do cartão é SEMPRE
-  // mMediaH, tal como todos os outros — não se mexe mais nisto. Só a
-  // largura deste cartão é maior (mais destaque, é a única imagem do
-  // conjunto), limitada ao ecrã para nunca ultrapassar a página. Para não
-  // recortar a imagem dentro dessa caixa mais larga-mas-baixa, usa
-  // object-fit: contain em vez de cover (ver mais abaixo) — mostra a
-  // imagem inteira, com uma margem vazia a preencher a caixa, em vez de
-  // cortar os lados ou mexer na altura.
+  // mMediaH, tal como todos os outros — não se mexe nisto. Só a largura
+  // deste cartão é maior (mais destaque, é a única imagem do conjunto),
+  // limitada ao ecrã para nunca ultrapassar a página. Preenche a caixa a
+  // 100% (object-fit: cover, tal como os vídeos) — mas como a caixa fica
+  // mais larga-mas-baixa do que a foto, cobrir a altura corta algo dos
+  // lados. Em vez do recorte simétrico por omissão (centrado na FOTO), o
+  // objectPosition abaixo centra o recorte no ECRÃ do portátil (que não
+  // está mesmo ao centro da foto original) — para não cortar o ecrã.
   const teentacW = Math.min(mMediaH * (4 / 3), vpw - 32)
+  const TEENTAC_IMG_W = 1920, TEENTAC_IMG_H = 1440, TEENTAC_SCREEN_CENTER_X = 1030
+  const teentacCropW = (teentacW / mMediaH) * TEENTAC_IMG_H
+  const teentacTotalCrop = Math.max(0, TEENTAC_IMG_W - teentacCropW)
+  const teentacObjX = teentacTotalCrop > 0
+    ? Math.max(0, Math.min(100, ((TEENTAC_SCREEN_CENTER_X - teentacCropW / 2) / teentacTotalCrop) * 100))
+    : 50
   const mCardWidths = PORTFOLIO.map(item => item.client === "Teentac" ? teentacW : mCardW)
   const { x: mx, dragConstraints, handleDragEnd } = useDragCarouselVariable(mCardWidths, mGap)
 
@@ -916,7 +923,7 @@ function PortfolioSection() {
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${mMediaH}px`, background: "#060f13" }}>
                   {"video" in item
                     ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
-                    : <img src={(item as { img: string }).img} alt={item.client} className={item.client === "Teentac" ? "size-full object-contain" : "size-full object-cover"} draggable={false} />
+                    : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
                   }
                 </div>
                 <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
