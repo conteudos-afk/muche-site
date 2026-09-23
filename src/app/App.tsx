@@ -7,6 +7,11 @@ import imgPort1 from "@/imports/HorizontalScroll/014471abff9def0ea5f6c8ea469567d
 import videoDecoProteste from "@/imports/Vi_deo_Natal_DecoPROteste_1200x628.mp4"
 import videoLPCC from "@/imports/LPCC_PORTFOLIO.mp4"
 import videoOliviaHotel from "@/imports/OliviaHotel.mp4"
+// Versões verticais (9:16) — só para mobile/tablet; o desktop usa sempre as
+// versões horizontais acima, tal como estavam antes.
+import videoDecoProtesteVertical from "@/imports/DecoProteste_vertical.mp4"
+import videoLPCCVertical from "@/imports/LPCC_PORTFOLIO_vertical.mp4"
+import videoOliviaHotelVertical from "@/imports/OliviaHotel_vertical.mp4"
 import imgTeamBg   from "@/imports/Equipa/9e968e30d54dd8c86db81bbd440330d0c8bbd7af.png"
 import imgTeamBase from "@/imports/Equipa/014471abff9def0ea5f6c8ea469567d04bd612e3.png"
 import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a96.png"
@@ -795,13 +800,15 @@ function ManifestoSection() {
 /* ─── Section 3: Portfolio ───────────────────────────────────────────────── */
 type PortfolioItem =
   | { img: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
-  | { video: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
+  | { video: string; videoMobile: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
 
+// videoMobile é a versão vertical (9:16) enviada para mobile/tablet — o
+// desktop usa sempre `video`, a versão horizontal original.
 const PORTFOLIO: PortfolioItem[] = [
   { img: imgPort1, client: "Teentac", services: "Branding // Web Design", concept: "We created the full visual identity and website, balancing medical credibility with a vibrant, youth-centric design to turn complex health data into a supportive, empathetic experience.", services_pt: "Branding // Web Design", concept_pt: "Criámos a identidade visual completa e o website, equilibrando a credibilidade médica com um design vibrante e jovem, transformando dados de saúde complexos numa experiência acolhedora e empática." },
-  { video: videoOliviaHotel, client: "Olivia Hotel", services: "Photography // Video", concept: "We focus on visual storytelling that transforms spaces into experiences, creating an irresistible aesthetic that invites guests to check in before they even arrive.", services_pt: "Fotografia // Vídeo", concept_pt: "Focamo-nos em storytelling visual que transforma espaços em experiências, criando uma estética irresistível que convida os hóspedes a fazer check-in antes mesmo de chegarem." },
-  { video: videoLPCC, client: "LPCC", services: "Branding // Podcast // Web Design", concept: "Muche created the visual identity, website, and produced the podcast called Ligacoes.", services_pt: "Branding // Podcast // Web Design", concept_pt: "A Muche criou a identidade visual, o website, e produziu o podcast chamado Ligações." },
-  { video: videoDecoProteste, client: "Deco Proteste", services: "Promotional Video", concept: "We created a cinematic piece that captures the holiday spirit while reinforcing the brand's commitment to consumers, ensuring their message stood out during the busiest time of the year.", services_pt: "Vídeo Promocional", concept_pt: "Criámos uma peça cinematográfica que capta o espírito natalício, reforçando o compromisso da marca com os consumidores e garantindo que a sua mensagem se destacou na época mais concorrida do ano." },
+  { video: videoOliviaHotel, videoMobile: videoOliviaHotelVertical, client: "Olivia Hotel", services: "Photography // Video", concept: "We focus on visual storytelling that transforms spaces into experiences, creating an irresistible aesthetic that invites guests to check in before they even arrive.", services_pt: "Fotografia // Vídeo", concept_pt: "Focamo-nos em storytelling visual que transforma espaços em experiências, criando uma estética irresistível que convida os hóspedes a fazer check-in antes mesmo de chegarem." },
+  { video: videoLPCC, videoMobile: videoLPCCVertical, client: "LPCC", services: "Branding // Podcast // Web Design", concept: "Muche created the visual identity, website, and produced the podcast called Ligacoes.", services_pt: "Branding // Podcast // Web Design", concept_pt: "A Muche criou a identidade visual, o website, e produziu o podcast chamado Ligações." },
+  { video: videoDecoProteste, videoMobile: videoDecoProtesteVertical, client: "Deco Proteste", services: "Promotional Video", concept: "We created a cinematic piece that captures the holiday spirit while reinforcing the brand's commitment to consumers, ensuring their message stood out during the busiest time of the year.", services_pt: "Vídeo Promocional", concept_pt: "Criámos uma peça cinematográfica que capta o espírito natalício, reforçando o compromisso da marca com os consumidores e garantindo que a sua mensagem se destacou na época mais concorrida do ano." },
 ]
 
 function portfolioText(item: PortfolioItem, lang: Lang) {
@@ -821,7 +828,10 @@ function PortfolioSection() {
   }, [])
   const vpw = vp.w
 
-  const isMobile = vpw < 640
+  // Cobre também os tablets — os vídeos verticais só fazem sentido com o
+  // carrossel vertical de um cartão de cada vez, por isso os dois (layout +
+  // fonte do vídeo) mudam juntos neste limite.
+  const isMobile = vpw < 1024
 
   // Desktop (scroll-jacked horizontal carousel) — inalterado, exceto o limite
   // de largura abaixo. A caixa de média é 16:9, por isso a altura do cartão
@@ -837,12 +847,15 @@ function PortfolioSection() {
   const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
   const hintOpacity    = useTransform(rawProgress, [0, 0.06], [1, 0])
 
-  // Mobile (carrossel por swipe) — vertical 9:16 (igual aos ficheiros
-  // originais, sem recortar para horizontal), um cartão a ocupar quase todo
-  // o ecrã de cada vez (não vários encolhidos lado a lado).
-  const mCardW = vpw - 32
-  const mGap   = 16
-  const mStep  = mCardW + mGap
+  // Mobile/tablet (carrossel por swipe) — vertical 9:16 (igual aos ficheiros
+  // originais, sem recortar para horizontal). A média usa uma altura em vh
+  // (não a largura do cartão) para sobrar sempre espaço para o texto por
+  // baixo ler-se no mesmo ecrã, sem precisar de scroll extra dentro do
+  // cartão — e sem cortar a imagem/vídeo, já que a largura vem do 9:16.
+  const mMediaH = vp.h * 0.56
+  const mCardW  = mMediaH * (9 / 16)
+  const mGap    = 16
+  const mStep   = mCardW + mGap
   const { x: mx, dragConstraints, handleDragEnd } = useDragCarousel(PORTFOLIO.length, mStep)
 
   if (isMobile) {
@@ -862,21 +875,16 @@ function PortfolioSection() {
               <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardW}px`, borderRadius: "20px" }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "9/16" }}>
                   {"video" in item
-                    ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
+                    ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" draggable={false} />
                   }
                 </div>
-                {/* flex: 1 0 auto — o painel cresce para preencher o cartão. Sem
-                    isto ficava com a altura do conteúdo, e como o cartão estica
-                    para igualar o vizinho sobrava espaço por pintar no fundo:
-                    lia-se como cartão cortado, de alturas diferentes, e os
-                    cantos arredondados não chegavam a ver-se. */}
-                <div style={{ padding: "16px 20px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: "10px", flex: "1 0 auto" }}>
+                <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
                   <div>
                     <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
-                    <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(26px, 7vw, 44px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
+                    <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(22px, 6vw, 36px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
                   </div>
-                  <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.6, opacity: 0.6 }}>{concept}</p>
+                  <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.5, opacity: 0.6 }}>{concept}</p>
                 </div>
               </div>
             )
@@ -1220,9 +1228,7 @@ function TeamInfoRow({ label, value, href }: { label: string; value: string; hre
 
 function TeamPage() {
   const lang = useLang()
-  const cBack = COPY[lang].back
   const cTeam = COPY[lang].team
-  const navigate = useNavigate()
   const ref  = useRef<HTMLDivElement>(null)
   useHorizontalSwipeToScroll(ref)
   const [vpw, setVpw] = useState(() => window.innerWidth)
@@ -1232,7 +1238,8 @@ function TeamPage() {
     return () => window.removeEventListener("resize", fn)
   }, [])
 
-  const isMobile = vpw < 640
+  // Mesmo limite do PortfolioSection — tablet usa o carrossel vertical.
+  const isMobile = vpw < 1024
 
   /* Desktop (scroll-jacked horizontal carousel) — inalterado. */
   const cardW   = vpw * 0.85
@@ -1250,16 +1257,9 @@ function TeamPage() {
   const mStep  = mCardW + mGap
   const { x: mx, dragConstraints, handleDragEnd } = useDragCarousel(TEAM_MEMBERS.length, mStep)
 
-  const backButton = (
-    <motion.button onClick={() => navigate("/")} whileHover={{ x: -3 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="fixed top-24 left-6 md:top-32 md:left-14 z-20" style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
-      <span>←</span> {cBack}
-    </motion.button>
-  )
-
   if (isMobile) {
     return (
       <div style={{ position: "relative", overflow: "hidden" }}>
-        {backButton}
         <div style={{ padding: "112px 0 40px", overflow: "hidden" }}>
           <motion.div
             drag="x"
@@ -1301,7 +1301,6 @@ function TeamPage() {
 
   return (
     <div ref={ref} style={{ height: `${TEAM_MEMBERS.length * 140}vh`, position: "relative" }}>
-      {backButton}
       <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
         <motion.div style={{ x, gap: `${gap}px`, paddingLeft: "56px" }} className="flex items-end will-change-transform pt-28">
           {TEAM_MEMBERS.map((m, i) => (
