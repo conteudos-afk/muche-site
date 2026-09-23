@@ -885,11 +885,17 @@ function PortfolioSection() {
   const mMediaH = vp.h * 0.60
   const mCardW  = mMediaH * (9 / 16)
   const mGap    = 16
-  // Teentac é uma imagem (não vídeo) e a foto do mockup tem uma faixa de
-  // fundo vazio à esquerda do portátil — num cartão com a mesma largura dos
-  // outros, o portátil fica com pouca presença. Alargar só este cartão em
-  // mobile (mantendo o 9:16) dá-lhe mais destaque, sem tocar nos restantes.
-  const mCardWidths = PORTFOLIO.map(item => item.client === "Teentac" ? mCardW * 1.3 : mCardW)
+  // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — bem mais larga que
+  // alta do que os cartões 9:16 dos vídeos. À MESMA altura (mMediaH) a
+  // largura em 4:3 (mMediaH*4/3) passaria a caixa para lá da largura do
+  // próprio ecrã em telemóveis. Por isso a largura fica limitada ao ecrã
+  // (com uma margem) e a ALTURA deste cartão é que se ajusta ao 4:3 dessa
+  // largura — garante a imagem inteira, sem recortar nada, em vez de
+  // forçar o 4:3 a uma altura que não cabe.
+  const teentacW = Math.min(mMediaH * (4 / 3), vpw - 32)
+  const teentacH = teentacW * (3 / 4)
+  const mCardWidths  = PORTFOLIO.map(item => item.client === "Teentac" ? teentacW : mCardW)
+  const mCardHeights = PORTFOLIO.map(item => item.client === "Teentac" ? teentacH : mMediaH)
   const { x: mx, dragConstraints, handleDragEnd } = useDragCarouselVariable(mCardWidths, mGap)
 
   if (isMobile) {
@@ -907,7 +913,7 @@ function PortfolioSection() {
             const { services, concept } = portfolioText(item, lang)
             return (
               <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardWidths[i]}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${mMediaH}px` }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${mCardHeights[i]}px` }}>
                   {"video" in item
                     ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" draggable={false} />
