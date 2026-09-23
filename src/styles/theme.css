@@ -124,6 +124,16 @@
     @apply border-border outline-ring/50;
   }
 
+  /* Rede de segurança: nada nesta página deve alargar-a para lá da largura
+     do ecrã (um único elemento a fazer isso já cria scroll horizontal na
+     página inteira). Isto não corrige a causa — só garante que, mesmo que
+     algo volte a ultrapassar a largura, o site não ganha uma barra de
+     scroll lateral por causa disso. */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
