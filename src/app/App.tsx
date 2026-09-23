@@ -841,7 +841,13 @@ function PortfolioSection() {
   // recupera a altura que o cartão tinha antes (68vh de média).
   const cardW    = isMobile ? vpw * 0.88 : Math.min(vpw * 0.80, vp.h * 0.68 * (16 / 9))
   const gap      = isMobile ? 28 : 96
-  const targetX  = -(3 * (cardW + gap))
+  // Teentac é uma imagem (não vídeo) e a foto do mockup tem uma faixa de
+  // fundo vazio à esquerda do portátil — num cartão com a mesma largura dos
+  // outros, isso lia-se como o projeto não estar alinhado à margem do resto
+  // do site. Alargar só este cartão (mantendo o 16:9, sem mexer no recorte)
+  // dá mais espaço ao portátil sem tocar no tamanho dos restantes cartões.
+  const cardWidths = PORTFOLIO.map(item => item.client === "Teentac" ? cardW * 1.3 : cardW)
+  const targetX  = -(cardWidths.slice(0, -1).reduce((sum, w) => sum + w + gap, 0))
   const rawProgress    = useScrollProgress(ref, "end-end")
   const smoothProgress = useSpring(rawProgress, { stiffness: 55, damping: 22, restDelta: 0.0005 })
   const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
@@ -872,7 +878,7 @@ function PortfolioSection() {
           {PORTFOLIO.map((item, i) => {
             const { services, concept } = portfolioText(item, lang)
             return (
-              <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardW}px`, borderRadius: "20px" }}>
+              <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardW}px` }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "9/16" }}>
                   {"video" in item
                     ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
@@ -905,8 +911,8 @@ function PortfolioSection() {
             const { services, concept } = portfolioText(item, lang)
             return (
               /* ── Desktop: media 16:9 em cima, texto por baixo ── */
-              <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9", borderRadius: "6px", background: "#060f13" }}>
+              <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardWidths[i]}px` }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9", background: "#060f13" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : item.client === "Teentac"
@@ -1271,7 +1277,7 @@ function TeamPage() {
           >
             {TEAM_MEMBERS.map((m, i) => (
               <div key={i} className="shrink-0 flex flex-col" style={{ width: `${mCardW}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "4/5", borderRadius: "12px" }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "4/5" }}>
                   <img src={m.layers[0]} alt="" className="absolute max-w-none" style={{ height: "115.34%", left: "11.66%", top: "-12.94%", width: "136%" }} draggable={false} />
                   {m.layers.slice(1).map((src, li) => (
                     <img key={li} src={src} alt="" className="absolute inset-0 size-full object-cover max-w-none" draggable={false} />
