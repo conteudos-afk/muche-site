@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, type ReactNode, useMemo } from "react"
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring } from "motion/react"
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, type PanInfo } from "motion/react"
 import { RouterProvider, createBrowserRouter, Outlet, useNavigate, useParams, useLocation } from "react-router"
 import heroVideo from "@/imports/Hero_video.mp4"
 import svgPaths from "@/imports/HomeFinal/svg-kkmjukgdk7"
@@ -57,6 +57,31 @@ function useHorizontalSwipeToScroll(ref: React.RefObject<HTMLDivElement | null>)
     window.addEventListener("wheel", onWheel, { passive: false })
     return () => window.removeEventListener("wheel", onWheel)
   }, [ref])
+}
+
+/* Carrossel de arrastar (mobile) — gesto horizontal (swipe) troca de item,
+   sem interferir com o scroll vertical normal da página. `touchAction:
+   "pan-y"` (aplicado no elemento, ver uso) é o que faz a divisão: deixa o
+   browser tratar nativamente o gesto vertical (scroll da página) enquanto o
+   Framer Motion trata o horizontal (drag do carrossel). Nada de scroll-jacking
+   aqui — ao contrário da versão desktop, a altura do container é normal. */
+function useDragCarousel(itemCount: number, step: number) {
+  const x = useMotionValue(0)
+  const indexRef = useRef(0)
+  const maxIndex = Math.max(0, itemCount - 1)
+  const goTo = (i: number) => {
+    const clamped = Math.max(0, Math.min(maxIndex, i))
+    indexRef.current = clamped
+    animate(x, -clamped * step, { type: "spring", stiffness: 300, damping: 32, mass: 0.7 })
+  }
+  const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const { offset, velocity } = info
+    let target = indexRef.current
+    if (velocity.x < -350 || offset.x < -step * 0.25) target = indexRef.current + 1
+    else if (velocity.x > 350 || offset.x > step * 0.25) target = indexRef.current - 1
+    goTo(target)
+  }
+  return { x, dragConstraints: { left: -step * maxIndex, right: 0 }, handleDragEnd, goTo }
 }
 
 function useWindowWidth() {
@@ -474,6 +499,14 @@ function NavHamburger() {
   )
 }
 /* ─── MucheLogo — ondulação de água a partir do ponto do cursor ─────────── */
+// PNG 1x1 cinzento neutro (128,128,128) — o valor "sem deslocamento" para o
+// feDisplacementMap. Serve de href inicial do feImage: sem isto, o feImage
+// fica sem href até ao primeiro evento de rato (que nunca acontece em iOS,
+// só touch), e o Safari/WebKit trata um filtro com uma entrada inválida como
+// erro — escondendo TODO o <g filter=...> (o logo inteiro), ao contrário do
+// Chrome que é mais tolerante. Isto é a causa do logo não aparecer em iPhone.
+const RIPPLE_NEUTRAL_HREF = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNoaGgAAAMEAYFL09IQAAAAAElFTkSuQmCC"
+
 let muchRippleUid = 0
 
 // Largura/altura do canvas que gera o mapa de deslocamento — baixa resolução
@@ -648,6 +681,7 @@ function MucheLogo() {
         <filter id={filterId} x="-50%" y="-200%" width="200%" height="500%" colorInterpolationFilters="sRGB">
           <feImage
             ref={feImageRef}
+            href={RIPPLE_NEUTRAL_HREF}
             x={RIPPLE_MAP_X0}
             y={RIPPLE_MAP_Y0}
             width={RIPPLE_MAP_W}
@@ -780,33 +814,41 @@ function PortfolioSection() {
   }, [])
 
   const isMobile = vpw < 640
+
+  // Desktop (scroll-jacked horizontal carousel) — inalterado.
   const cardW    = isMobile ? vpw * 0.88 : vpw * 0.80
   const gap      = isMobile ? 28 : 96
   const targetX  = -(3 * (cardW + gap))
-
   const rawProgress    = useScrollProgress(ref, "end-end")
   const smoothProgress = useSpring(rawProgress, { stiffness: 55, damping: 22, restDelta: 0.0005 })
   const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
   const hintOpacity    = useTransform(rawProgress, [0, 0.06], [1, 0])
 
-  return (
-    <div ref={ref} id="work" style={{ height: isMobile ? "680vh" : "560vh", position: "relative" }}>
-      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center" style={{ paddingTop: "9vh" }}>
+  // Mobile (carrossel por swipe) — vertical, mesmo tamanho para todos os itens.
+  const mCardW = vpw * 0.8
+  const mGap   = 18
+  const mStep  = mCardW + mGap
+  const { x: mx, dragConstraints, handleDragEnd } = useDragCarousel(PORTFOLIO.length, mStep)
+
+  if (isMobile) {
+    return (
+      <div id="work" style={{ position: "relative", padding: "56px 0 40px" }}>
         <motion.div
-          style={{ x, gap: `${gap}px`, paddingLeft: isMobile ? `${vpw * 0.06}px` : "56px" }}
-          className="flex items-stretch will-change-transform"
+          drag="x"
+          dragConstraints={dragConstraints}
+          dragElastic={0.06}
+          onDragEnd={handleDragEnd}
+          style={{ x: mx, gap: `${mGap}px`, paddingLeft: `${(vpw - mCardW) / 2}px`, touchAction: "pan-y" }}
+          className="flex items-stretch"
         >
           {PORTFOLIO.map((item, i) => {
             const { services, concept } = portfolioText(item, lang)
-            return isMobile ? (
-              /* ── Mobile: image on top, text below (auto height — nunca corta) ── */
-              <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${cardW}px`, borderRadius: "20px" }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9" }}>
+            return (
+              <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardW}px`, borderRadius: "20px" }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "4/5" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
-                    : item.client === "Teentac"
-                      ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" />
-                      : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
+                    : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" draggable={false} />
                   }
                 </div>
                 <div style={{ padding: "16px 20px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
@@ -817,7 +859,23 @@ function PortfolioSection() {
                   <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.6, opacity: 0.6 }}>{concept}</p>
                 </div>
               </div>
-            ) : (
+            )
+          })}
+        </motion.div>
+      </div>
+    )
+  }
+
+  return (
+    <div ref={ref} id="work" style={{ height: "560vh", position: "relative" }}>
+      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center" style={{ paddingTop: "9vh" }}>
+        <motion.div
+          style={{ x, gap: `${gap}px`, paddingLeft: "56px" }}
+          className="flex items-stretch will-change-transform"
+        >
+          {PORTFOLIO.map((item, i) => {
+            const { services, concept } = portfolioText(item, lang)
+            return (
               /* ── Desktop: media 16:9 em cima, texto por baixo ── */
               <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9", borderRadius: "6px", background: "#060f13" }}>
@@ -1156,84 +1214,108 @@ function TeamPage() {
 
   const isMobile = vpw < 640
 
-  /* Card: 85vw wide desktop, 92vw mobile, aspect 1597:887 */
-  const cardW   = isMobile ? vpw * 0.92 : vpw * 0.85
-  const gap     = isMobile ? 24 : 56
+  /* Desktop (scroll-jacked horizontal carousel) — inalterado. */
+  const cardW   = vpw * 0.85
+  const gap     = 56
   const targetX = -((TEAM_MEMBERS.length - 1) * (cardW + gap))
-
   const rawProgress    = useScrollProgress(ref, "end-end")
   const smoothProgress = useSpring(rawProgress, { stiffness: 55, damping: 22, restDelta: 0.0005 })
   const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
-
-  /* Photo area = 62.8% of card width; text area = rest */
   const photoW = "62.8%"
   const textW  = "calc(37.2% - 56px)"
 
+  /* Mobile (carrossel por swipe) — foto vertical, mesmo tamanho para todos. */
+  const mCardW = vpw * 0.82
+  const mGap   = 20
+  const mStep  = mCardW + mGap
+  const { x: mx, dragConstraints, handleDragEnd } = useDragCarousel(TEAM_MEMBERS.length, mStep)
+
+  const backButton = (
+    <motion.button onClick={() => navigate("/")} whileHover={{ x: -3 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="fixed top-24 left-6 md:top-32 md:left-14 z-20" style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
+      <span>←</span> {cBack}
+    </motion.button>
+  )
+
+  if (isMobile) {
+    return (
+      <div style={{ position: "relative" }}>
+        {backButton}
+        <div style={{ padding: "112px 0 40px" }}>
+          <motion.div
+            drag="x"
+            dragConstraints={dragConstraints}
+            dragElastic={0.06}
+            onDragEnd={handleDragEnd}
+            style={{ x: mx, gap: `${mGap}px`, paddingLeft: `${(vpw - mCardW) / 2}px`, touchAction: "pan-y" }}
+            className="flex items-stretch"
+          >
+            {TEAM_MEMBERS.map((m, i) => (
+              <div key={i} className="shrink-0 flex flex-col" style={{ width: `${mCardW}px` }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "4/5", borderRadius: "12px" }}>
+                  <img src={m.layers[0]} alt="" className="absolute max-w-none" style={{ height: "115.34%", left: "11.66%", top: "-12.94%", width: "136%" }} draggable={false} />
+                  {m.layers.slice(1).map((src, li) => (
+                    <img key={li} src={src} alt="" className="absolute inset-0 size-full object-cover max-w-none" draggable={false} />
+                  ))}
+                </div>
+                <div style={{ width: "100%", padding: "16px 4px 0" }}>
+                  <h2 style={{ color: GOLD, fontFamily: SERIF, fontWeight: 400, fontStyle: "normal", fontSize: "clamp(28px, 5.7vw, 82px)", lineHeight: 1.0, marginBottom: "clamp(6px, 0.8vw, 12px)", letterSpacing: "0.01em" }}>
+                    {m.name}
+                  </h2>
+                  <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "clamp(13px, 1.56vw, 22px)", lineHeight: 1.3, opacity: 0.75, marginBottom: "clamp(20px, 3vw, 48px)" }}>
+                    {lang === "pt" ? m.role_pt : m.role}
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 1.2vw, 18px)" }}>
+                    <TeamInfoRow label={cTeam.mobile} value={m.mobile} href={m.mobileHref} />
+                    <TeamInfoRow label={cTeam.email} value={m.email} href={`mailto:${m.email}`} />
+                    <TeamInfoRow label={cTeam.linkedin} value={m.linkedin} href={m.linkedinHref} />
+                    {m.instagram && <TeamInfoRow label={cTeam.instagram} value={m.instagram} href={m.instagramHref} />}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div ref={ref} style={{ height: `${TEAM_MEMBERS.length * 140}vh`, position: "relative" }}>
-      <motion.button onClick={() => navigate("/")} whileHover={{ x: -3 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="fixed top-24 left-6 md:top-32 md:left-14 z-20" style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
-        <span>←</span> {cBack}
-      </motion.button>
+      {backButton}
       <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
-        <motion.div style={{ x, gap: `${gap}px`, paddingLeft: isMobile ? "16px" : "56px" }} className="flex items-end will-change-transform pt-28">
+        <motion.div style={{ x, gap: `${gap}px`, paddingLeft: "56px" }} className="flex items-end will-change-transform pt-28">
           {TEAM_MEMBERS.map((m, i) => (
             <motion.div
               key={i}
               className="shrink-0"
-              style={{ width: `${cardW}px`, display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "stretch" : "flex-end", gap: isMobile ? 0 : "clamp(24px, 3.5vw, 56px)" }}
+              style={{ width: `${cardW}px`, display: "flex", flexDirection: "row", alignItems: "flex-end", gap: "clamp(24px, 3.5vw, 56px)" }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: i * 0.1 }}
             >
               {/* Photo composite */}
-              {isMobile ? (
-                <div className="relative overflow-hidden" style={{ width: "100%", aspectRatio: "16/9" }}>
-                  <img src={m.layers[0]} alt="" className="absolute max-w-none" style={{ height: "115.34%", left: "11.66%", top: "-12.94%", width: "136%" }} />
-                  {m.layers.slice(1).map((src, li) => (
-                    <img key={li} src={src} alt="" className="absolute inset-0 size-full object-cover max-w-none" />
-                  ))}
-                </div>
-              ) : (
-                <div className="relative shrink-0 overflow-hidden" style={{ width: photoW, aspectRatio: "1003/887" }}>
-                  <img src={m.layers[0]} alt="" className="absolute max-w-none" style={{ height: "115.34%", left: "11.66%", top: "-12.94%", width: "136%" }} />
-                  {m.layers.slice(1).map((src, li) => (
-                    <img key={li} src={src} alt="" className="absolute inset-0 size-full object-cover max-w-none" />
-                  ))}
-                </div>
-              )}
+              <div className="relative shrink-0 overflow-hidden" style={{ width: photoW, aspectRatio: "1003/887" }}>
+                <img src={m.layers[0]} alt="" className="absolute max-w-none" style={{ height: "115.34%", left: "11.66%", top: "-12.94%", width: "136%" }} />
+                {m.layers.slice(1).map((src, li) => (
+                  <img key={li} src={src} alt="" className="absolute inset-0 size-full object-cover max-w-none" />
+                ))}
+              </div>
 
               {/* Text info */}
-              {isMobile ? (
-                <div style={{ width: "100%", padding: "16px", paddingBottom: "24px" }}>
-                  <h2 style={{ color: GOLD, fontFamily: SERIF, fontWeight: 400, fontStyle: "normal", fontSize: "clamp(28px, 5.7vw, 82px)", lineHeight: 1.0, marginBottom: "clamp(6px, 0.8vw, 12px)", letterSpacing: "0.01em" }}>
-                    {m.name}
-                  </h2>
-                  <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "clamp(13px, 1.56vw, 22px)", lineHeight: 1.3, opacity: 0.75, marginBottom: "clamp(20px, 3vw, 48px)" }}>
-                    {lang === "pt" ? m.role_pt : m.role}
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 1.2vw, 18px)" }}>
-                    <TeamInfoRow label={cTeam.mobile} value={m.mobile} href={m.mobileHref} />
-                    <TeamInfoRow label={cTeam.email} value={m.email} href={`mailto:${m.email}`} />
-                    <TeamInfoRow label={cTeam.linkedin} value={m.linkedin} href={m.linkedinHref} />
-                    {m.instagram && <TeamInfoRow label={cTeam.instagram} value={m.instagram} href={m.instagramHref} />}
-                  </div>
+              <div style={{ width: textW, paddingBottom: "clamp(16px, 2vw, 32px)" }}>
+                <h2 style={{ color: GOLD, fontFamily: SERIF, fontWeight: 400, fontStyle: "normal", fontSize: "clamp(28px, 5.7vw, 82px)", lineHeight: 1.0, marginBottom: "clamp(6px, 0.8vw, 12px)", letterSpacing: "0.01em" }}>
+                  {m.name}
+                </h2>
+                <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "clamp(13px, 1.56vw, 22px)", lineHeight: 1.3, opacity: 0.75, marginBottom: "clamp(20px, 3vw, 48px)" }}>
+                  {lang === "pt" ? m.role_pt : m.role}
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 1.2vw, 18px)" }}>
+                  <TeamInfoRow label={cTeam.mobile} value={m.mobile} href={m.mobileHref} />
+                  <TeamInfoRow label={cTeam.email} value={m.email} href={`mailto:${m.email}`} />
+                  <TeamInfoRow label={cTeam.linkedin} value={m.linkedin} href={m.linkedinHref} />
+                  {m.instagram && <TeamInfoRow label={cTeam.instagram} value={m.instagram} href={m.instagramHref} />}
                 </div>
-              ) : (
-                <div style={{ width: textW, paddingBottom: "clamp(16px, 2vw, 32px)" }}>
-                  <h2 style={{ color: GOLD, fontFamily: SERIF, fontWeight: 400, fontStyle: "normal", fontSize: "clamp(28px, 5.7vw, 82px)", lineHeight: 1.0, marginBottom: "clamp(6px, 0.8vw, 12px)", letterSpacing: "0.01em" }}>
-                    {m.name}
-                  </h2>
-                  <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "clamp(13px, 1.56vw, 22px)", lineHeight: 1.3, opacity: 0.75, marginBottom: "clamp(20px, 3vw, 48px)" }}>
-                    {lang === "pt" ? m.role_pt : m.role}
-                  </p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "clamp(8px, 1.2vw, 18px)" }}>
-                    <TeamInfoRow label={cTeam.mobile} value={m.mobile} href={m.mobileHref} />
-                    <TeamInfoRow label={cTeam.email} value={m.email} href={`mailto:${m.email}`} />
-                    <TeamInfoRow label={cTeam.linkedin} value={m.linkedin} href={m.linkedinHref} />
-                    {m.instagram && <TeamInfoRow label={cTeam.instagram} value={m.instagram} href={m.instagramHref} />}
-                  </div>
-                </div>
-              )}
+              </div>
             </motion.div>
           ))}
         </motion.div>
