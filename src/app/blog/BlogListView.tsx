@@ -3,7 +3,7 @@ import { motion } from "motion/react"
 import { translateCategory, translateDate, translateReadTime, COPY } from "../i18n"
 import type { Lang, Post } from "@/lib/blog/types"
 import { GOLD, SANS, SERIF, CAMPTON_BOOK } from "./tokens"
-import { linkHandler, type OnNavigate } from "./navigate"
+import { articleHref, linkProps, type OnNavigate } from "./navigate"
 
 /* ─── Blog data ──────────────────────────────────────────────────────────── */
 export const BLOG_CATEGORIES = [
@@ -35,8 +35,7 @@ export function BlogListView({ posts, lang, onNavigate }: { posts: Post[]; lang:
       <div className="relative z-10">
         {/* Back */}
         <motion.a
-          href="/"
-          onClick={linkHandler("/", onNavigate)}
+          {...linkProps("/", onNavigate)}
           whileHover={{ x: -3 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "32px", textDecoration: "none", width: "fit-content" }}
@@ -107,8 +106,7 @@ export function BlogListView({ posts, lang, onNavigate }: { posts: Post[]; lang:
           {filtered.map((post, i) => (
             <motion.a
               key={post.slug}
-              href={`/blog/${post.slug}`}
-              onClick={linkHandler(`/blog/${post.slug}`, onNavigate)}
+              {...linkProps(articleHref(post.slug, lang), onNavigate)}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}

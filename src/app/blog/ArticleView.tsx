@@ -2,7 +2,7 @@ import { motion } from "motion/react"
 import { translateCategory, translateDate, translateReadTime, COPY } from "../i18n"
 import type { Lang, Post } from "@/lib/blog/types"
 import { GOLD, SANS, SERIF, CAMPTON_BOOK } from "./tokens"
-import { linkHandler, type OnNavigate } from "./navigate"
+import { blogHref, linkProps, type OnNavigate } from "./navigate"
 
 /* ─── Estilos do corpo do artigo ─────────────────────────────────────────────
    Antes da migração para Markdown o corpo era um array de blocos e os estilos
@@ -43,7 +43,8 @@ const BODY_CSS = `
 
 export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang; onNavigate?: OnNavigate }) {
   const cBlog = COPY[lang].blog
-  const toBlog = linkHandler("/blog", onNavigate)
+  /* O destino depende do idioma: `/blog` em pt, `/en/blog` em inglês. */
+  const toBlog = linkProps(blogHref(lang), onNavigate)
 
   return (
     <div className="min-h-screen relative z-10">
@@ -53,8 +54,7 @@ export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang
       <div className="relative z-10 max-w-3xl mx-auto px-5 sm:px-8 pt-28 md:pt-36 pb-20 md:pb-32">
         {/* Back */}
         <motion.a
-          href="/blog"
-          onClick={toBlog}
+          {...toBlog}
           whileHover={{ x: -3 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "56px", textDecoration: "none", width: "fit-content" }}
@@ -101,8 +101,7 @@ export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang
         {/* Footer divider + back */}
         <div style={{ marginTop: "64px", paddingTop: "32px", borderTop: `1px solid ${GOLD}1a` }}>
           <motion.a
-            href="/blog"
-            onClick={toBlog}
+            {...toBlog}
             whileHover={{ x: -3 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.4, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", width: "fit-content" }}

@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react"
+import type { Lang } from "@/lib/blog/types"
 
 /* ─── Navegação das vistas do blog ───────────────────────────────────────────
    As vistas do blog usam `<a href>` a sério: é o que os rastreadores seguem e
@@ -26,4 +27,27 @@ export function linkHandler(href: string, onNavigate?: OnNavigate) {
     event.preventDefault()
     onNavigate(href)
   }
+}
+
+/* ─── Endereços por idioma ───────────────────────────────────────────────────
+   O blog existe duas vezes: o português na raiz (`/blog`, `/blog/<slug>`) e o
+   inglês debaixo de `/en` (`/en/blog`, `/en/blog/<slug>`). É o mesmo mapa que
+   o `scripts/prerender.mjs` usa para decidir onde escreve cada ficheiro e o
+   `scripts/sitemap.mjs` para os `<loc>` — se um dia mudar, muda nos três.
+
+   A raiz do site (`/`) fica de fora de propósito: não há `/en` para a página
+   inicial, só para o blog. ──────────────────────────────────────────────── */
+export const blogHref = (lang: Lang) => (lang === "en" ? "/en/blog" : "/blog")
+
+export const articleHref = (slug: string, lang: Lang) => `${blogHref(lang)}/${slug}`
+
+/* ─── href + onClick de uma vez ──────────────────────────────────────────────
+   Cada ligação precisa das duas coisas com o mesmo destino: o `href`, que é o
+   que o rastreador segue e o que funciona sem JavaScript, e o `onClick`, que
+   evita o recarregamento quando o router está montado. Passá-las à mão em
+   dois sítios é um convite a que só uma delas seja atualizada — e o sintoma
+   (o clique leva a um sítio, o "abrir noutro separador" leva a outro) é dos
+   que passam despercebidos numa revisão. Daqui saem sempre as duas juntas. */
+export function linkProps(href: string, onNavigate?: OnNavigate) {
+  return { href, onClick: linkHandler(href, onNavigate) }
 }
