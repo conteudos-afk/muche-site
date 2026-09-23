@@ -18,7 +18,7 @@ import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a
 import imgTeamOv2  from "@/imports/Equipa/147c0dc1f2d747da38ed29077bb5ca6a2131f401.png"
 import imgTeamOv3  from "@/imports/Equipa/f54adf1f173bd3d652fbb4045cf6b96b0314465f.png"
 import imgTeamOv4  from "@/imports/Equipa/6b262635396e81047e7283b201ec9ec494f79879.png"
-import { LangProvider, useLang, useLangControls, COPY, type Lang } from "./i18n"
+import { LangProvider, useLang, useLangControls, langFromPath, blogPathIn, COPY, type Lang } from "./i18n"
 import { ArticleView } from "./blog/ArticleView"
 import { ArticleNotFound } from "./blog/ArticleNotFound"
 import { BlogListView } from "./blog/BlogListView"
@@ -273,7 +273,20 @@ function BackgroundVideo() {
 /* ─── PT/EN language toggle ──────────────────────────────────────────────── */
 function LangSwitch({ variant = "nav" }: { variant?: "nav" | "menu" }) {
   const { lang, setLang } = useLangControls()
+  const navigate = useNavigate()
+  const location = useLocation()
   const isMenu = variant === "menu"
+
+  /* No blog o idioma faz parte do endereço, e é o endereço que manda quando a
+     página recarrega. Trocar só o estado deixava o URL a dizer `/en` com o
+     texto em português — e o recarregar desfazia a escolha. Por isso aqui a
+     troca leva também para a versão correspondente da mesma página. Fora do
+     blog não há par de endereços e o `blogPathIn` devolve `null`. */
+  const escolher = (l: Lang) => {
+    setLang(l)
+    const destino = blogPathIn(location.pathname, l)
+    if (destino && destino !== location.pathname) navigate(destino)
+  }
   const optionStyle = (active: boolean): React.CSSProperties => ({
     color: GOLD,
     fontFamily: SANS,
@@ -287,9 +300,9 @@ function LangSwitch({ variant = "nav" }: { variant?: "nav" | "menu" }) {
   })
   return (
     <div className="flex items-center gap-1">
-      <button onClick={() => setLang("pt")} style={optionStyle(lang === "pt")}>PT</button>
+      <button onClick={() => escolher("pt")} style={optionStyle(lang === "pt")}>PT</button>
       <span style={{ color: GOLD, opacity: 0.2, fontSize: isMenu ? "clamp(11px, 2.2vw, 13px)" : "clamp(10px, 0.85vw, 12px)" }}>/</span>
-      <button onClick={() => setLang("en")} style={optionStyle(lang === "en")}>EN</button>
+      <button onClick={() => escolher("en")} style={optionStyle(lang === "en")}>EN</button>
     </div>
   )
 }
@@ -1460,6 +1473,13 @@ const router = createBrowserRouter([
       { path: "team",         Component: TeamPage },
       { path: "blog",         Component: BlogPage },
       { path: "blog/:slug",   Component: ArticlePage },
+      /* O blog em inglês vive debaixo de `/en` — os mesmos componentes, com o
+         idioma imposto pelo caminho (ver `langFromPath` no `i18n.tsx`). Sem
+         estas rotas, o HTML pré-renderizado em `/en/blog/...` aparecia e
+         desaparecia: o router não encontrava nada e limpava o `<div id="root">`
+         assim que o JavaScript montasse. */
+      { path: "en/blog",       Component: BlogPage },
+      { path: "en/blog/:slug", Component: ArticlePage },
     ],
   },
 ])
@@ -1525,7 +1545,7 @@ function LoadingScreen({ progress }: { progress: number }) {
 /* As páginas do blog são pré-renderizadas em HTML. Se ficassem à espera do
    vídeo do hero, o visitante olhava para o ecrã de carregamento enquanto o
    texto já estava na página — por isso nestas rotas o preloader é ignorado. */
-const isBlogPath = (pathname: string) => /^\/(en\/)?blog(\/|$)/.test(pathname)
+const isBlogPath = (pathname: string) => langFromPath(pathname) !== null
 
 export default function App() {
   const { progress, ready } = useAssetPreloader()
