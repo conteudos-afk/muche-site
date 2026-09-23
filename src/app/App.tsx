@@ -907,7 +907,7 @@ function PortfolioSection() {
             const { services, concept } = portfolioText(item, lang)
             return (
               <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardWidths[i]}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "9/16" }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${mMediaH}px` }}>
                   {"video" in item
                     ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" draggable={false} />
