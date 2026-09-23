@@ -11,7 +11,38 @@ export function detectLang(): Lang {
   return hit ? "pt" : "en"
 }
 
+/* ─── O idioma que o endereço impõe ──────────────────────────────────────────
+   As páginas do blog são pré-renderizadas em HTML, uma por idioma: `/blog` e
+   `/blog/<slug>` saem em português, `/en/blog` e `/en/blog/<slug>` em inglês.
+   Esse HTML chega ao browser já escrito — e se a deteção automática dissesse
+   outra coisa (um visitante com português no browser a abrir um endereço
+   `/en`), o React montava por cima com o outro idioma e o texto trocava
+   debaixo dos olhos de quem já estava a ler. Também não seria o que o motor
+   de busca indexou.
+
+   Por isso, nestes endereços, é o caminho que manda — à frente do
+   `localStorage` e do `navigator`. O resto do site não tem endereços por
+   idioma, e aí a escolha continua a ser a de sempre. ─────────────────────── */
+const CAMINHO_BLOG = /^\/(en\/)?blog(\/|$)/
+
+export function langFromPath(pathname: string): Lang | null {
+  const m = CAMINHO_BLOG.exec(pathname)
+  if (!m) return null
+  return m[1] ? "en" : "pt"
+}
+
+/* O mesmo endereço no outro idioma, para o seletor PT/EN poder acompanhar.
+   Devolve `null` fora do blog, onde não há par de endereços a trocar. */
+export function blogPathIn(pathname: string, lang: Lang): string | null {
+  const m = /^\/(?:en\/)?blog(\/.*)?$/.exec(pathname)
+  if (!m) return null
+  const resto = m[1] ?? ""
+  return `${lang === "en" ? "/en" : ""}/blog${resto}`
+}
+
 function initialLang(): Lang {
+  const doCaminho = typeof window !== "undefined" ? langFromPath(window.location.pathname) : null
+  if (doCaminho) return doCaminho
   try {
     const saved = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null
     if (saved === "en" || saved === "pt") return saved
