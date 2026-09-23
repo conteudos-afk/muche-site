@@ -2,6 +2,7 @@ import { motion } from "motion/react"
 import { translateCategory, translateDate, translateReadTime, COPY } from "../i18n"
 import type { Lang, Post } from "@/lib/blog/types"
 import { GOLD, SANS, SERIF, CAMPTON_BOOK } from "./tokens"
+import { linkHandler, type OnNavigate } from "./navigate"
 
 /* ─── Estilos do corpo do artigo ─────────────────────────────────────────────
    Antes da migração para Markdown o corpo era um array de blocos e os estilos
@@ -40,8 +41,9 @@ const BODY_CSS = `
 }
 `
 
-export function ArticleView({ post, lang }: { post: Post; lang: Lang }) {
+export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang; onNavigate?: OnNavigate }) {
   const cBlog = COPY[lang].blog
+  const toBlog = linkHandler("/blog", onNavigate)
 
   return (
     <div className="min-h-screen relative z-10">
@@ -52,6 +54,7 @@ export function ArticleView({ post, lang }: { post: Post; lang: Lang }) {
         {/* Back */}
         <motion.a
           href="/blog"
+          onClick={toBlog}
           whileHover={{ x: -3 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", marginBottom: "56px", textDecoration: "none", width: "fit-content" }}
@@ -99,6 +102,7 @@ export function ArticleView({ post, lang }: { post: Post; lang: Lang }) {
         <div style={{ marginTop: "64px", paddingTop: "32px", borderTop: `1px solid ${GOLD}1a` }}>
           <motion.a
             href="/blog"
+            onClick={toBlog}
             whileHover={{ x: -3 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
             style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.4, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px", textDecoration: "none", width: "fit-content" }}

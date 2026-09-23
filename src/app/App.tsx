@@ -1399,18 +1399,20 @@ function TeamPage() {
    componentes. ───────────────────────────────────────────────────────────── */
 function BlogPage() {
   const lang = useLang()
-  return <BlogListView posts={postsFor(lang)} lang={lang} />
+  const navigate = useNavigate()
+  return <BlogListView posts={postsFor(lang)} lang={lang} onNavigate={navigate} />
 }
 
 function ArticlePage() {
   const lang = useLang()
+  const navigate = useNavigate()
   const { slug } = useParams<{ slug: string }>()
   const post = slug ? postBySlug(slug, lang) : undefined
 
   useEffect(() => { window.scrollTo(0, 0) }, [slug])
 
-  if (!post) return <ArticleNotFound lang={lang} />
-  return <ArticleView post={post} lang={lang} />
+  if (!post) return <ArticleNotFound lang={lang} onNavigate={navigate} />
+  return <ArticleView post={post} lang={lang} onNavigate={navigate} />
 }
 
 /* ─── Home Page ──────────────────────────────────────────────────────────── */
