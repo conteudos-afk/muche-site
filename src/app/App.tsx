@@ -837,15 +837,17 @@ function PortfolioSection() {
   const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
   const hintOpacity    = useTransform(rawProgress, [0, 0.06], [1, 0])
 
-  // Mobile (carrossel por swipe) — vertical, mesmo tamanho para todos os itens.
-  const mCardW = vpw * 0.8
-  const mGap   = 18
+  // Mobile (carrossel por swipe) — vertical 9:16 (igual aos ficheiros
+  // originais, sem recortar para horizontal), um cartão a ocupar quase todo
+  // o ecrã de cada vez (não vários encolhidos lado a lado).
+  const mCardW = vpw - 32
+  const mGap   = 16
   const mStep  = mCardW + mGap
   const { x: mx, dragConstraints, handleDragEnd } = useDragCarousel(PORTFOLIO.length, mStep)
 
   if (isMobile) {
     return (
-      <div id="work" style={{ position: "relative", padding: "56px 0 40px" }}>
+      <div id="work" style={{ position: "relative", padding: "56px 0 40px", overflow: "hidden" }}>
         <motion.div
           drag="x"
           dragConstraints={dragConstraints}
@@ -858,7 +860,7 @@ function PortfolioSection() {
             const { services, concept } = portfolioText(item, lang)
             return (
               <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardW}px`, borderRadius: "20px" }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "4/5" }}>
+                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "9/16" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" draggable={false} />
@@ -1256,9 +1258,9 @@ function TeamPage() {
 
   if (isMobile) {
     return (
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", overflow: "hidden" }}>
         {backButton}
-        <div style={{ padding: "112px 0 40px" }}>
+        <div style={{ padding: "112px 0 40px", overflow: "hidden" }}>
           <motion.div
             drag="x"
             dragConstraints={dragConstraints}
