@@ -124,15 +124,16 @@
     @apply border-border outline-ring/50;
   }
 
-  /* Rede de segurança: nada nesta página deve alargar-a para lá da largura
-     do ecrã (um único elemento a fazer isso já cria scroll horizontal na
-     página inteira). Isto não corrige a causa — só garante que, mesmo que
-     algo volte a ultrapassar a largura, o site não ganha uma barra de
-     scroll lateral por causa disso. */
-  html, body {
-    overflow-x: hidden;
-    max-width: 100vw;
-  }
+  /* CUIDADO: não voltar a pôr overflow-x:hidden em html/body como "rede de
+     segurança" — foi tentado antes e partiu o scroll-jacking horizontal do
+     Portfólio/Equipa em desktop. Motivo: sem overflow-y definido também, o
+     browser converte automaticamente overflow-y para auto nesse elemento
+     (regra do spec para quando um eixo é 'visible' e o outro não), o que
+     transforma o body num contentor de scroll interno — os `window.
+     addEventListener("scroll", ...)` usados nesses componentes deixam de
+     disparar, porque o scroll passa a acontecer no body, não na window. A
+     correção correta do overflow horizontal é sempre ao nível do elemento
+     específico que estica a página (ver os wrappers do carrossel mobile). */
 
   body {
     @apply bg-background text-foreground;
