@@ -692,7 +692,14 @@ function MucheLogo() {
           <feDisplacementMap in="SourceGraphic" in2="rippleMap" scale={hovered ? 34 : 0} xChannelSelector="R" yChannelSelector="G" />
         </filter>
       </defs>
-      <g style={{ filter: `url(#${filterId})`, transition: "filter 0.5s ease-out" }}>
+      {/* Duas camadas de proteção contra o mesmo bug (logótipo invisível em
+          iOS/Safari, que nunca dispara eventos de rato/hover): o feImage
+          acima já nasce com um href válido (RIPPLE_NEUTRAL_HREF), e aqui o
+          filtro só fica ligado ao <g> quando hovered — fora do hover nem
+          sequer há referência a um filtro, o que evita por completo
+          qualquer estado inválido no WebKit. Fora do hover o scale já era
+          0, por isso não há mudança visual. */}
+      <g style={{ filter: hovered ? `url(#${filterId})` : "none", transition: "filter 0.5s ease-out" }}>
         {paths.map((d, i) => (
           <path key={i} d={d} fill={GOLD} />
         ))}
@@ -806,17 +813,23 @@ function PortfolioSection() {
   const c = COPY[lang].portfolio
   const ref = useRef<HTMLDivElement>(null)
   useHorizontalSwipeToScroll(ref)
-  const [vpw, setVpw] = useState(() => window.innerWidth)
+  const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
   useEffect(() => {
-    const onResize = () => setVpw(window.innerWidth)
+    const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight })
     window.addEventListener("resize", onResize)
     return () => window.removeEventListener("resize", onResize)
   }, [])
+  const vpw = vp.w
 
   const isMobile = vpw < 640
 
-  // Desktop (scroll-jacked horizontal carousel) — inalterado.
-  const cardW    = isMobile ? vpw * 0.88 : vpw * 0.80
+  // Desktop (scroll-jacked horizontal carousel) — inalterado, exceto o limite
+  // de largura abaixo. A caixa de média é 16:9, por isso a altura do cartão
+  // depende da LARGURA. Sem limite, em ecrãs largos e baixos (portáteis,
+  // monitores grandes) o cartão cresce para lá do que cabe e corta o nome
+  // do cliente em baixo. Limitar a largura a 68vh x 16/9 mantém o 16:9 e
+  // recupera a altura que o cartão tinha antes (68vh de média).
+  const cardW    = isMobile ? vpw * 0.88 : Math.min(vpw * 0.80, vp.h * 0.68 * (16 / 9))
   const gap      = isMobile ? 28 : 96
   const targetX  = -(3 * (cardW + gap))
   const rawProgress    = useScrollProgress(ref, "end-end")
@@ -851,7 +864,12 @@ function PortfolioSection() {
                     : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" draggable={false} />
                   }
                 </div>
-                <div style={{ padding: "16px 20px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: "10px", flexShrink: 0 }}>
+                {/* flex: 1 0 auto — o painel cresce para preencher o cartão. Sem
+                    isto ficava com a altura do conteúdo, e como o cartão estica
+                    para igualar o vizinho sobrava espaço por pintar no fundo:
+                    lia-se como cartão cortado, de alturas diferentes, e os
+                    cantos arredondados não chegavam a ver-se. */}
+                <div style={{ padding: "16px 20px 20px", background: "rgba(6,15,19,0.45)", backdropFilter: "blur(8px)", display: "flex", flexDirection: "column", gap: "10px", flex: "1 0 auto" }}>
                   <div>
                     <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
                     <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(26px, 7vw, 44px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
