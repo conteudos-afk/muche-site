@@ -30,11 +30,20 @@ const TEMPLATE = path.join(DIST, 'index.html')
    pode deitar abaixo o site. Aqui, no build, o cálculo é outro — um aviso é
    um artigo que vai para produção com um campo errado, e ninguém lê o registo
    de um build que passou. Por isso os avisos são contados e, se houver algum,
-   o build termina com erro. ─────────────────────────────────────────────── */
+   o build termina com erro.
+
+   O embrulho apanha todos os `console.warn` do processo — os do React, os do
+   `motion` e os do `marked` durante os 30 `renderToString` inclusive —, e
+   nenhum desses é um erro de frontmatter. Por isso só são acumulados os que o
+   `parsePost` assina com `[blog] `; os outros passam para o `console` como
+   sempre, sem rebentar o build com um diagnóstico que apontaria ao sítio
+   errado. ───────────────────────────────────────────────────────────────── */
+const ASSINATURA = '[blog] '
 const avisos = []
 const warnOriginal = console.warn
 console.warn = (...args) => {
-  avisos.push(args.map(String).join(' '))
+  const mensagem = args.map(String).join(' ')
+  if (mensagem.startsWith(ASSINATURA)) avisos.push(mensagem)
   warnOriginal.apply(console, args)
 }
 

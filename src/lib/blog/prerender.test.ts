@@ -23,3 +23,16 @@ test('o HTML estático mostra o texto sem esperar pelo JavaScript', () => {
   /* …mas as opacidades a sério e o `text-transform` ficam como estão. */
   expect(html).toContain('opacity:0.5;text-transform:uppercase')
 })
+
+test('um título com "</script>" não parte o HTML nem o JSON-LD', () => {
+  const head = buildHead({
+    title: 'Fecha isto </script><img src=x onerror=alert(1)>', excerpt: 'Um excerto',
+    lang: 'pt', slug: 'teste', category: 'Branding & Visual Identity', date: 'September 2026',
+  })
+  /* O `</script>` não pode aparecer antes do fecho a sério do elemento. */
+  const jsonld = head.slice(head.indexOf('application/ld+json'))
+  expect(jsonld.indexOf('</script>')).toBe(jsonld.length - '</script>'.length)
+  /* E o que lá está dentro continua a ser JSON válido, com o título intacto. */
+  const cru = jsonld.slice(jsonld.indexOf('>') + 1, jsonld.lastIndexOf('</script>'))
+  expect(JSON.parse(cru).headline).toBe('Fecha isto </script><img src=x onerror=alert(1)>')
+})

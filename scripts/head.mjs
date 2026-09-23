@@ -36,7 +36,7 @@ export function buildHead({ title, excerpt, lang, slug, category, date }) {
     `<meta property="og:description" content="${esc(excerpt)}" />`,
     `<meta property="og:url" content="${BASE}${self}" />`,
     `<meta property="og:type" content="article" />`,
-    `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>`,
+    `<script type="application/ld+json">${jsonLd(jsonld)}</script>`,
   ].join('\n    ')
 }
 
@@ -70,7 +70,7 @@ export function buildListHead({ lang }) {
     `<meta property="og:description" content="${esc(excerpt)}" />`,
     `<meta property="og:url" content="${BASE}${self}" />`,
     `<meta property="og:type" content="website" />`,
-    `<script type="application/ld+json">${JSON.stringify(jsonld)}</script>`,
+    `<script type="application/ld+json">${jsonLd(jsonld)}</script>`,
   ].join('\n    ')
 }
 
@@ -98,5 +98,13 @@ export function revealInitialState(html) {
     .replace(/opacity:0(?=[;"])/g, 'opacity:1')
     .replace(/(?<=[";])transform:(?:translate|scale|rotate|skew|matrix)[^;"]*/g, 'transform:none')
 }
+
+/* O `JSON.stringify` não escapa `<`, e isto vai para dentro de um `<script>`:
+   um título que contivesse `</script>` fechava o elemento a meio e o resto do
+   JSON passava a ser lido como HTML, dentro do `<head>`. Como o frontmatter
+   vem de ficheiros de conteúdo, isso é também por onde alguém injetaria
+   marcação. O `\u003c` é escape de JSON válido, por isso o que sai continua a
+   fazer `JSON.parse` exatamente na mesma. */
+const jsonLd = (data) => JSON.stringify(data).replace(/</g, '\\u003c')
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
