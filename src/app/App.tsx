@@ -89,6 +89,35 @@ function useDragCarousel(itemCount: number, step: number) {
   return { x, dragConstraints: { left: -step * maxIndex, right: 0 }, handleDragEnd, goTo }
 }
 
+/* Variante do carrossel de arrastar para quando os cartões NÃO têm todos a
+   mesma largura (ex.: um cartão alargado). Guarda a posição x de cada
+   índice (soma cumulativa de largura+gap) em vez de assumir um "step"
+   uniforme, para o snap ficar sempre exato independentemente da largura de
+   cada cartão. */
+function useDragCarouselVariable(widths: number[], gap: number) {
+  const positions = widths.reduce<number[]>((acc, w, i) => {
+    acc.push(i === 0 ? 0 : acc[i - 1] + widths[i - 1] + gap)
+    return acc
+  }, [])
+  const maxIndex = Math.max(0, widths.length - 1)
+  const x = useMotionValue(0)
+  const indexRef = useRef(0)
+  const goTo = (i: number) => {
+    const clamped = Math.max(0, Math.min(maxIndex, i))
+    indexRef.current = clamped
+    animate(x, -positions[clamped], { type: "spring", stiffness: 300, damping: 32, mass: 0.7 })
+  }
+  const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    const localStep = widths[indexRef.current] + gap
+    const { offset, velocity } = info
+    let target = indexRef.current
+    if (velocity.x < -350 || offset.x < -localStep * 0.25) target = indexRef.current + 1
+    else if (velocity.x > 350 || offset.x > localStep * 0.25) target = indexRef.current - 1
+    goTo(target)
+  }
+  return { x, dragConstraints: { left: -positions[maxIndex], right: 0 }, handleDragEnd, goTo }
+}
+
 function useWindowWidth() {
   const [w, setW] = useState(() => window.innerWidth)
   useEffect(() => {
@@ -841,13 +870,7 @@ function PortfolioSection() {
   // recupera a altura que o cartão tinha antes (68vh de média).
   const cardW    = isMobile ? vpw * 0.88 : Math.min(vpw * 0.80, vp.h * 0.68 * (16 / 9))
   const gap      = isMobile ? 28 : 96
-  // Teentac é uma imagem (não vídeo) e a foto do mockup tem uma faixa de
-  // fundo vazio à esquerda do portátil — num cartão com a mesma largura dos
-  // outros, isso lia-se como o projeto não estar alinhado à margem do resto
-  // do site. Alargar só este cartão (mantendo o 16:9, sem mexer no recorte)
-  // dá mais espaço ao portátil sem tocar no tamanho dos restantes cartões.
-  const cardWidths = PORTFOLIO.map(item => item.client === "Teentac" ? cardW * 1.3 : cardW)
-  const targetX  = -(cardWidths.slice(0, -1).reduce((sum, w) => sum + w + gap, 0))
+  const targetX  = -(3 * (cardW + gap))
   const rawProgress    = useScrollProgress(ref, "end-end")
   const smoothProgress = useSpring(rawProgress, { stiffness: 55, damping: 22, restDelta: 0.0005 })
   const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
@@ -858,11 +881,16 @@ function PortfolioSection() {
   // (não a largura do cartão) para sobrar sempre espaço para o texto por
   // baixo ler-se no mesmo ecrã, sem precisar de scroll extra dentro do
   // cartão — e sem cortar a imagem/vídeo, já que a largura vem do 9:16.
-  const mMediaH = vp.h * 0.56
+  // Ligeiramente maior do que antes (0.56 -> 0.60vh) a pedido.
+  const mMediaH = vp.h * 0.60
   const mCardW  = mMediaH * (9 / 16)
   const mGap    = 16
-  const mStep   = mCardW + mGap
-  const { x: mx, dragConstraints, handleDragEnd } = useDragCarousel(PORTFOLIO.length, mStep)
+  // Teentac é uma imagem (não vídeo) e a foto do mockup tem uma faixa de
+  // fundo vazio à esquerda do portátil — num cartão com a mesma largura dos
+  // outros, o portátil fica com pouca presença. Alargar só este cartão em
+  // mobile (mantendo o 9:16) dá-lhe mais destaque, sem tocar nos restantes.
+  const mCardWidths = PORTFOLIO.map(item => item.client === "Teentac" ? mCardW * 1.3 : mCardW)
+  const { x: mx, dragConstraints, handleDragEnd } = useDragCarouselVariable(mCardWidths, mGap)
 
   if (isMobile) {
     return (
@@ -872,13 +900,13 @@ function PortfolioSection() {
           dragConstraints={dragConstraints}
           dragElastic={0.06}
           onDragEnd={handleDragEnd}
-          style={{ x: mx, gap: `${mGap}px`, paddingLeft: `${(vpw - mCardW) / 2}px`, touchAction: "pan-y" }}
+          style={{ x: mx, gap: `${mGap}px`, paddingLeft: `${(vpw - mCardWidths[0]) / 2}px`, touchAction: "pan-y" }}
           className="flex items-stretch"
         >
           {PORTFOLIO.map((item, i) => {
             const { services, concept } = portfolioText(item, lang)
             return (
-              <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardW}px` }}>
+              <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardWidths[i]}px` }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "9/16" }}>
                   {"video" in item
                     ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
@@ -911,7 +939,7 @@ function PortfolioSection() {
             const { services, concept } = portfolioText(item, lang)
             return (
               /* ── Desktop: media 16:9 em cima, texto por baixo ── */
-              <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardWidths[i]}px` }}>
+              <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9", background: "#060f13" }}>
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
