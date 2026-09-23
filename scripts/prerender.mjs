@@ -18,6 +18,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { buildHead, buildListHead, revealInitialState } from './head.mjs'
+import { buildSitemap } from './sitemap.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
@@ -102,9 +103,14 @@ function escrever(destino, html) {
 /* pt vive na raiz (`/blog`), en vive debaixo de `/en`. */
 const prefixo = (lang) => (lang === 'pt' ? [] : [lang])
 
+/* Para o sitemap, que quer os dois idiomas de cada artigo numa lista só,
+   independentemente das páginas que o loop abaixo vai escrevendo. */
+const todosOsPosts = []
+
 let escritos = 0
 for (const lang of LANGS) {
   const posts = postsFor(lang)
+  for (const { slug } of posts) todosOsPosts.push({ slug, lang })
 
   const lista = montarPagina({
     head: buildListHead({ lang }),
@@ -137,6 +143,14 @@ for (const lang of LANGS) {
     escritos++
   }
 }
+
+/* O `sitemap.xml` fica na raiz do `dist`, não num `index.html` dentro de
+   pasta — por isso não usa o `escrever()` de cima, mas segue o mesmo padrão:
+   cria a pasta de destino (aqui, já existe) e grava o ficheiro. */
+const sitemapDestino = path.join(DIST, 'sitemap.xml')
+fs.mkdirSync(path.dirname(sitemapDestino), { recursive: true })
+fs.writeFileSync(sitemapDestino, buildSitemap(todosOsPosts))
+console.log(`  ${rel(sitemapDestino)}`)
 
 console.warn = warnOriginal
 
