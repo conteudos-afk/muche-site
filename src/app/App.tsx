@@ -23,7 +23,7 @@ import { ArticleView } from "./blog/ArticleView"
 import { ArticleNotFound } from "./blog/ArticleNotFound"
 import { BlogListView } from "./blog/BlogListView"
 import { blogHref } from "./blog/navigate"
-import { GOLD, PALMORE, CAMPTON_BOLD, CAMPTON_BOOK, SANS, SERIF } from "./blog/tokens"
+import { GOLD, CAMPTON_BOLD, CAMPTON_BOOK, SANS, SERIF } from "./blog/tokens"
 import { postsFor, postBySlug } from "@/lib/blog/posts"
 
 /* ─── Custom scroll progress — bypasses framer-motion container position check */
