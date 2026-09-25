@@ -46,8 +46,11 @@ test('a lista do blog usa a raiz com barra, tal como as páginas', () => {
 test('uma página que mostra o corpo inglês aponta o canónico para o inglês', () => {
   const head = buildHead({ ...base, lang: 'pt', bodyLang: 'en' })
   expect(head).toContain('rel="canonical" href="https://www.muche.pt/en/blog/teste/"')
-  expect(head).toContain('property="og:url" content="https://www.muche.pt/en/blog/teste/"')
   expect(head).toContain('"mainEntityOfPage":"https://www.muche.pt/en/blog/teste/"')
+  /* O og:url é a exceção: fala com o Facebook e o LinkedIn, não com os motores
+     de busca, e tem de apontar para esta página. Se seguisse o canónico,
+     partilhar a ligação portuguesa mostrava o cartão da página inglesa. */
+  expect(head).toContain('property="og:url" content="https://www.muche.pt/blog/teste/"')
   /* O par pt/en continua declarado: são traduções uma da outra. */
   expect(head).toContain('hreflang="pt" href="https://www.muche.pt/blog/teste/"')
   expect(head).toContain('hreflang="en" href="https://www.muche.pt/en/blog/teste/"')

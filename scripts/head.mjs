@@ -75,6 +75,11 @@ export function buildHead({ title, excerpt, lang, slug, category, date, bodyLang
   const pathPt = articlePath(slug, 'pt')
   const pathEn = articlePath(slug, 'en')
   const self = canonicalFor(lang, bodyLang, (l) => articlePath(slug, l))
+  /* O `canonical` fala com os motores de busca e pode apontar para o outro
+     idioma; o `og:url` fala com o Facebook e o LinkedIn, e tem de apontar para
+     esta página. Se apontasse para o canónico, partilhar uma ligação portuguesa
+     mostrava o cartão da página inglesa, com título e descrição em português. */
+  const own = articlePath(slug, lang)
   const iso = isoDate(date)
   const jsonld = {
     '@context': 'https://schema.org',
@@ -95,7 +100,7 @@ export function buildHead({ title, excerpt, lang, slug, category, date, bodyLang
     `<link rel="alternate" hreflang="en" href="${BASE}${pathEn}" />`,
     `<meta property="og:title" content="${esc(title)}" />`,
     `<meta property="og:description" content="${esc(excerpt)}" />`,
-    `<meta property="og:url" content="${BASE}${self}" />`,
+    `<meta property="og:url" content="${BASE}${own}" />`,
     `<meta property="og:type" content="article" />`,
     `<meta property="og:site_name" content="Muche" />`,
     `<meta property="og:image" content="${OG_IMAGE}" />`,
@@ -172,7 +177,7 @@ export function revealInitialState(html) {
    um título que contivesse `</script>` fechava o elemento a meio e o resto do
    JSON passava a ser lido como HTML, dentro do `<head>`. Como o frontmatter
    vem de ficheiros de conteúdo, isso é também por onde alguém injetaria
-   marcação. O `<` é escape de JSON válido, por isso o que sai continua a
+   marcação. O `\u003c` é escape de JSON válido, por isso o que sai continua a
    fazer `JSON.parse` exatamente na mesma. */
 const jsonLd = (data) => JSON.stringify(data).replace(/</g, '\\u003c')
 
