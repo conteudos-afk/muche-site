@@ -43,7 +43,7 @@ const BODY_CSS = `
 
 export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang; onNavigate?: OnNavigate }) {
   const cBlog = COPY[lang].blog
-  /* O destino depende do idioma: `/blog` em pt, `/en/blog` em inglês. */
+  /* O destino depende do idioma: `/blog/` em pt, `/en/blog/` em inglês. */
   const toBlog = linkProps(blogHref(lang), onNavigate)
 
   return (
@@ -83,9 +83,15 @@ export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang
           {post.title}
         </motion.h1>
 
-        {lang === "pt" && (
+        {/* O aviso segue o `bodyLang` — a marca que o `withBodyFallback` põe
+            quando a página está a mostrar o corpo de outro idioma — e não o
+            idioma da página. Condicionado a `lang === "pt"`, ficaria preso:
+            no dia em que os artigos forem traduzidos, todas as páginas pt
+            continuavam a dizer que o texto só existe em inglês, por baixo de
+            texto português. */}
+        {post.bodyLang && post.bodyLang !== lang && (
           <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", opacity: 0.4, fontStyle: "italic", marginBottom: "36px" }}>
-            O texto completo deste artigo está disponível apenas em inglês.
+            {cBlog.bodyInEnglish}
           </p>
         )}
 

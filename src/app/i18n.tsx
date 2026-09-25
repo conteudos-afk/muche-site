@@ -12,8 +12,10 @@ export function detectLang(): Lang {
 }
 
 /* ─── O idioma que o endereço impõe ──────────────────────────────────────────
-   As páginas do blog são pré-renderizadas em HTML, uma por idioma: `/blog` e
-   `/blog/<slug>` saem em português, `/en/blog` e `/en/blog/<slug>` em inglês.
+   As páginas do blog são pré-renderizadas em HTML, uma por idioma: `/blog/` e
+   `/blog/<slug>/` saem em português, `/en/blog/` e `/en/blog/<slug>/` em
+   inglês (a barra final é a forma que a Cloudflare serve — ver o
+   `blog/navigate.ts`).
    Esse HTML chega ao browser já escrito — e se a deteção automática dissesse
    outra coisa (um visitante com português no browser a abrir um endereço
    `/en`), o React montava por cima com o outro idioma e o texto trocava
@@ -32,12 +34,16 @@ export function langFromPath(pathname: string): Lang | null {
 }
 
 /* O mesmo endereço no outro idioma, para o seletor PT/EN poder acompanhar.
-   Devolve `null` fora do blog, onde não há par de endereços a trocar. */
+   Devolve `null` fora do blog, onde não há par de endereços a trocar.
+
+   Sai sempre com barra final — é a forma que a Cloudflare Pages serve (ver o
+   `navigate.ts`). Quem chegue pela forma sem barra, por um link antigo ou
+   escrito à mão, sai daqui com a forma boa. */
 export function blogPathIn(pathname: string, lang: Lang): string | null {
   const m = /^\/(?:en\/)?blog(\/.*)?$/.exec(pathname)
   if (!m) return null
-  const resto = m[1] ?? ""
-  return `${lang === "en" ? "/en" : ""}/blog${resto}`
+  const resto = (m[1] ?? "").replace(/\/+$/, "")
+  return `${lang === "en" ? "/en" : ""}/blog${resto}/`
 }
 
 function initialLang(): Lang {
@@ -141,7 +147,14 @@ export const COPY = {
       scrollHint: "Scroll to explore",
     },
     team: { mobile: "Mobile:", email: "Email:", linkedin: "LinkedIn:", instagram: "Instagram:" },
-    blog: { title: "Blog", all: "All", notFound: "Article not found", backToBlog: "Back to Blog" },
+    blog: {
+      title: "Blog", all: "All", notFound: "Article not found", backToBlog: "Back to Blog",
+      /* Só aparece quando a página mostra o corpo de outro idioma (o
+         `bodyLang` do post). Hoje isso só acontece nas páginas pt, mas a
+         condição é o empréstimo, não o idioma — por isso a frase existe nos
+         dois. */
+      bodyInEnglish: "The full text of this article is available in English only.",
+    },
   },
   pt: {
     meta: {
@@ -175,7 +188,10 @@ export const COPY = {
       scrollHint: "Desliza para explorar",
     },
     team: { mobile: "Telemóvel:", email: "Email:", linkedin: "LinkedIn:", instagram: "Instagram:" },
-    blog: { title: "Blog", all: "Todos", notFound: "Artigo não encontrado", backToBlog: "Voltar ao Blog" },
+    blog: {
+      title: "Blog", all: "Todos", notFound: "Artigo não encontrado", backToBlog: "Voltar ao Blog",
+      bodyInEnglish: "O texto completo deste artigo está disponível apenas em inglês.",
+    },
   },
 } as const
 

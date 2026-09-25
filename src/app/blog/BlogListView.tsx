@@ -4,18 +4,9 @@ import { translateCategory, translateDate, translateReadTime, COPY } from "../i1
 import type { Lang, Post } from "@/lib/blog/types"
 import { GOLD, SANS, SERIF, CAMPTON_BOOK } from "./tokens"
 import { articleHref, linkProps, type OnNavigate } from "./navigate"
-
-/* ─── Blog data ──────────────────────────────────────────────────────────── */
-export const BLOG_CATEGORIES = [
-  "Branding & Visual Identity",
-  "Graphic Design",
-  "Video Production",
-  "Web Design",
-  "Photography & Events",
-  "Podcasts",
-] as const
-
-type BlogCategory = typeof BLOG_CATEGORIES[number]
+/* A lista vive no `lib/blog`, partilhada com a validação do frontmatter no
+   build — ver `src/lib/blog/categories.ts`. */
+import { BLOG_CATEGORIES, type BlogCategory } from "@/lib/blog/categories"
 
 export function BlogListView({ posts, lang, onNavigate }: { posts: Post[]; lang: Lang; onNavigate?: OnNavigate }) {
   const cBack = COPY[lang].back

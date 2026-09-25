@@ -13,8 +13,13 @@
    compilador. ─────────────────────────────────────────────────────────────── */
 const BASE = 'https://www.muche.pt'
 
-const urlFor = (slug, lang) => lang === 'pt' ? `${BASE}/blog/${slug}` : `${BASE}/en/blog/${slug}`
-const listUrlFor = (lang) => lang === 'pt' ? `${BASE}/blog` : `${BASE}/en/blog`
+/* Os `<loc>` terminam em barra porque é essa a forma que a Cloudflare Pages
+   serve — as páginas são `index.html` dentro de pasta, e quem peça a forma
+   sem barra leva 308. Um sitemap com os endereços sem barra era submeter 30
+   redirecionamentos. O mesmo mapa vive no `scripts/head.mjs` e no
+   `src/app/blog/navigate.ts` — se um dia mudar, muda nos três. */
+const urlFor = (slug, lang) => lang === 'pt' ? `${BASE}/blog/${slug}/` : `${BASE}/en/blog/${slug}/`
+const listUrlFor = (lang) => lang === 'pt' ? `${BASE}/blog/` : `${BASE}/en/blog/`
 
 /* Uma entrada `<url>` por página, com o par pt/en em `xhtml:link` — `loc` é
    qual dos dois é esta entrada; `locPt`/`locEn` são sempre os dois endereços,

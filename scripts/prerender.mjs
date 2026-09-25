@@ -63,8 +63,22 @@ const molde = fs.readFileSync(TEMPLATE, 'utf-8')
 /* O `import.meta.glob` do `posts.ts` só existe depois do Vite, por isso os
    artigos vêm do bundle compilado — e é ao importá-lo que o `parsePost` corre
    e os avisos (se os houver) aparecem. */
-const { renderArticle, renderList, postsFor, postBySlug, LANGS } =
+const { renderArticle, renderList, POSTS, postsFor, postBySlug, validatePosts, LANGS } =
   await import(pathToFileURL(SSR_ENTRY).href)
+
+/* ─── Frontmatter incompleto ─────────────────────────────────────────────────
+   Os avisos acima apanham um cabeçalho que o leitor não sabe ler. Esta
+   verificação apanha o erro mais provável e mais silencioso: um cabeçalho
+   perfeitamente legível a que falta um campo, ou com um `titel:` mal escrito.
+   O `parsePost` resolve isso com `?? ''` e publica um `<title> — Muche</title>`
+   com descrição vazia. Aqui é erro, antes de se escrever qualquer página. */
+const problemas = validatePosts(POSTS)
+if (problemas.length > 0) {
+  falhar(
+    `${problemas.length} problema(s) no frontmatter dos artigos.\n` +
+    problemas.map(p => `  - ${p}`).join('\n')
+  )
+}
 
 /* ─── Molde → página ─────────────────────────────────────────────────────────
    Cada troca é verificada: um `replace` que não encontra nada devolve a string
@@ -135,6 +149,9 @@ for (const lang of LANGS) {
         slug: post.slug,
         category: post.category,
         date: post.date,
+        /* Marcado pelo `withBodyFallback` quando o corpo veio de outro
+           idioma: é o que faz o canónico desta página apontar para lá. */
+        bodyLang: post.bodyLang,
       }),
       body: renderArticle(post, lang),
       lang,

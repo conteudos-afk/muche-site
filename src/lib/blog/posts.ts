@@ -42,7 +42,10 @@ export function sortPosts(posts: Post[]): Post[] {
 export function withBodyFallback(post: Post, all: Post[]): Post {
   if (post.bodyHtml) return post
   const en = all.find(p => p.slug === post.slug && p.lang === 'en')
-  return en ? { ...post, bodyHtml: en.bodyHtml } : post
+  /* O `bodyLang` assina o empréstimo: é por ele que a vista sabe que tem de
+     avisar o leitor e o `head.mjs` sabe que o canónico da página é o do
+     inglês. Quem tem corpo próprio nunca passa por aqui e fica sem a marca. */
+  return en ? { ...post, bodyHtml: en.bodyHtml, bodyLang: en.lang } : post
 }
 
 const FILES = import.meta.glob('../../../content/blog/*/*.md', {

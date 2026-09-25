@@ -30,16 +30,31 @@ function linkHandler(href: string, onNavigate?: OnNavigate) {
 }
 
 /* ─── Endereços por idioma ───────────────────────────────────────────────────
-   O blog existe duas vezes: o português na raiz (`/blog`, `/blog/<slug>`) e o
-   inglês debaixo de `/en` (`/en/blog`, `/en/blog/<slug>`). É o mesmo mapa que
-   o `scripts/prerender.mjs` usa para decidir onde escreve cada ficheiro e o
-   `scripts/sitemap.mjs` para os `<loc>` — se um dia mudar, muda nos três.
+   O blog existe duas vezes: o português na raiz (`/blog/`, `/blog/<slug>/`) e
+   o inglês debaixo de `/en` (`/en/blog/`, `/en/blog/<slug>/`). É o mesmo mapa
+   que o `scripts/prerender.mjs` usa para decidir onde escreve cada ficheiro,
+   o `scripts/head.mjs` para o `canonical` e o `scripts/sitemap.mjs` para os
+   `<loc>` — se um dia mudar, muda nos quatro.
+
+   ─── Porquê a barra final ───────────────────────────────────────────────────
+   Cada página do blog é um `index.html` dentro de pasta
+   (`dist/blog/<slug>/index.html`), e a Cloudflare Pages serve esses ficheiros
+   em `/blog/<slug>/`: quem peça `/blog/<slug>` leva 308 permanente para a
+   forma com barra. Declarar internamente a forma sem barra era pôr cada
+   ligação, cada `canonical` e cada `<loc>` do sitemap a apontar para um
+   redirecionamento — 30 endereços submetidos que redirecionam todos.
+
+   Por isso a forma com barra é a única que sai daqui, e vale também para a
+   raiz do blog (`/blog/`, `/en/blog/`), que é um `index.html` dentro de pasta
+   como as outras. O router não se importa: o React Router ignora a barra
+   final ao fazer o match, por isso `blog/:slug` continua a casar com
+   `/blog/<slug>/` e o `slug` chega sem barra (ver `navigate.test.ts`).
 
    A raiz do site (`/`) fica de fora de propósito: não há `/en` para a página
    inicial, só para o blog. ──────────────────────────────────────────────── */
-export const blogHref = (lang: Lang) => (lang === "en" ? "/en/blog" : "/blog")
+export const blogHref = (lang: Lang) => (lang === "en" ? "/en/blog/" : "/blog/")
 
-export const articleHref = (slug: string, lang: Lang) => `${blogHref(lang)}/${slug}`
+export const articleHref = (slug: string, lang: Lang) => `${blogHref(lang)}${slug}/`
 
 /* ─── href + onClick de uma vez ──────────────────────────────────────────────
    Cada ligação precisa das duas coisas com o mesmo destino: o `href`, que é o
