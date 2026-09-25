@@ -78,11 +78,25 @@ Um passo de build gera HTML estático por artigo e por idioma, contendo:
 ### URLs
 
 ```
-/blog                → índice, português
-/blog/<slug>         → artigo, português
-/en/blog             → índice, inglês
-/en/blog/<slug>      → artigo, inglês
+/blog/                → índice, português
+/blog/<slug>/         → artigo, português
+/en/blog/             → índice, inglês
+/en/blog/<slug>/      → artigo, inglês
 ```
+
+**Com barra final, sempre.** Cada página é um `index.html` dentro de pasta
+(`dist/blog/<slug>/index.html`) e a Cloudflare Pages serve-a em
+`/blog/<slug>/`, respondendo 308 permanente a quem peça a forma sem barra. A
+forma canónica do site é, portanto, a que tem barra — incluindo a raiz do
+blog — e é ela que sai no `canonical`, no `hreflang`, no `og:url`, no
+`mainEntityOfPage` e nos `<loc>` do `sitemap.xml`, além das ligações internas.
+Declarar a forma sem barra era submeter 30 endereços que redirecionam e
+apontar cada canónico para um redirecionamento.
+
+O React Router ignora a barra final ao fazer o match, por isso `blog/:slug`
+continua a casar com `/blog/<slug>/` e o `slug` chega sem barra. O mapa vive
+em `src/app/blog/navigate.ts`, `scripts/head.mjs`, `scripts/sitemap.mjs` e
+`scripts/prerender.mjs`.
 
 ### Ficheiros de apoio
 
