@@ -18,10 +18,11 @@ import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a
 import imgTeamOv2  from "@/imports/Equipa/147c0dc1f2d747da38ed29077bb5ca6a2131f401.png"
 import imgTeamOv3  from "@/imports/Equipa/f54adf1f173bd3d652fbb4045cf6b96b0314465f.png"
 import imgTeamOv4  from "@/imports/Equipa/6b262635396e81047e7283b201ec9ec494f79879.png"
-import { LangProvider, useLang, useLangControls, langFromPath, blogPathIn, COPY, type Lang } from "./i18n"
+import { LangProvider, useLang, useLangControls, useLangFromPath, langFromPath, blogPathIn, COPY, type Lang } from "./i18n"
 import { ArticleView } from "./blog/ArticleView"
 import { ArticleNotFound } from "./blog/ArticleNotFound"
 import { BlogListView } from "./blog/BlogListView"
+import { blogHref } from "./blog/navigate"
 import { GOLD, PALMORE, CAMPTON_BOLD, CAMPTON_BOOK, SANS, SERIF } from "./blog/tokens"
 import { postsFor, postBySlug } from "@/lib/blog/posts"
 
@@ -271,7 +272,7 @@ function BackgroundVideo() {
 
 /* ─── Fixed nav — responsive mobile/desktop ──────────────────────────────── */
 /* ─── PT/EN language toggle ──────────────────────────────────────────────── */
-function LangSwitch({ variant = "nav" }: { variant?: "nav" | "menu" }) {
+function LangSwitch({ variant = "nav", onNavigated }: { variant?: "nav" | "menu"; onNavigated?: () => void }) {
   const { lang, setLang } = useLangControls()
   const navigate = useNavigate()
   const location = useLocation()
@@ -281,11 +282,21 @@ function LangSwitch({ variant = "nav" }: { variant?: "nav" | "menu" }) {
      página recarrega. Trocar só o estado deixava o URL a dizer `/en` com o
      texto em português — e o recarregar desfazia a escolha. Por isso aqui a
      troca leva também para a versão correspondente da mesma página. Fora do
-     blog não há par de endereços e o `blogPathIn` devolve `null`. */
+     blog não há par de endereços e o `blogPathIn` devolve `null`.
+
+     `replace: true` — troca de idioma não é um novo passo no histórico, é a
+     mesma página noutra língua. Sem isto, o botão Voltar do browser tinha de
+     ser premido duas vezes para sair da página (uma para desfazer a troca de
+     idioma, sem efeito visível, e só a seguir a navegação real). */
   const escolher = (l: Lang) => {
     setLang(l)
     const destino = blogPathIn(location.pathname, l)
-    if (destino && destino !== location.pathname) navigate(destino)
+    if (destino && destino !== location.pathname) navigate(destino, { replace: true })
+    /* No menu móvel isto vive dentro do overlay a tapar o ecrã — os restantes
+       botões desse overlay fecham-no ao navegar (via `go()`), e este tinha
+       ficado de fora: trocar de idioma mudava a página por baixo de um
+       overlay que continuava visível. */
+    onNavigated?.()
   }
   const optionStyle = (active: boolean): React.CSSProperties => ({
     color: GOLD,
@@ -340,7 +351,7 @@ function SiteNav() {
   const LINKS = [
     { label: c.work, fn: () => go("/", "work") },
     { label: c.team, fn: () => go("/team") },
-    { label: c.blog, fn: () => go("/blog") },
+    { label: c.blog, fn: () => go(blogHref(lang)) },
     { label: c.hub,  fn: () => { setOpen(false); window.open("https://hub.muche.pt/", "_blank", "noopener") } },
     { label: c.talk, fn: () => go("/", "contact") },
   ]
@@ -418,7 +429,7 @@ function SiteNav() {
         <div className="flex gap-8 lg:gap-10">
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/", "work")}>{c.work}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/team")}>{c.team}</motion.button>
-          <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/blog")}>{c.blog}</motion.button>
+          <motion.button {...hoverProps} style={btnStyle} onClick={() => go(blogHref(lang))}>{c.blog}</motion.button>
         </div>
         <div ref={moscaWrapRef} className="absolute left-1/2 -translate-x-1/2 z-50">
           <motion.button onHoverStart={handleMoscaHoverStart} whileHover={{ rotate: 15 }} transition={{ type: "spring", stiffness: 300, damping: 14 }} onClick={handleMoscaClick} style={{ x: smoothMoscaX, y: smoothMoscaY, background: "none", border: "none", cursor: "pointer" }}>
@@ -474,7 +485,7 @@ function SiteNav() {
               transition={{ duration: 0.4, delay: LINKS.length * 0.06, ease: "easeOut" }}
               style={{ marginTop: "8px" }}
             >
-              <LangSwitch variant="menu" />
+              <LangSwitch variant="menu" onNavigated={() => setOpen(false)} />
             </motion.div>
           </div>
         </motion.div>
@@ -1452,6 +1463,12 @@ function ScrollToTop() {
 
 /* ─── Layout (global background + nav + outlet) ──────────────────────────── */
 function Layout() {
+  /* O `pathname` só é observável aqui dentro do router — é o que permite ao
+     idioma acompanhar a navegação por histórico (botão Voltar do browser),
+     que o `initialLang()` do primeiro render não cobre. Ver `useLangFromPath`
+     em `i18n.tsx`. */
+  const { pathname } = useLocation()
+  useLangFromPath(pathname)
   return (
     <div>
       <ScrollToTop />

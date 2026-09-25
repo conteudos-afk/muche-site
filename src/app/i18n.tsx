@@ -55,9 +55,11 @@ function initialLang(): Lang {
 interface LangContextValue {
   lang: Lang
   setLang: (lang: Lang) => void
+  /* Impõe o idioma sem o gravar: a escolha é do endereço, não do visitante. */
+  forceLang: (lang: Lang) => void
 }
 
-const LangContext = createContext<LangContextValue>({ lang: "en", setLang: () => {} })
+const LangContext = createContext<LangContextValue>({ lang: "en", setLang: () => {}, forceLang: () => {} })
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang)
@@ -77,11 +79,28 @@ export function LangProvider({ children }: { children: ReactNode }) {
     document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description)
   }, [lang])
 
-  return <LangContext.Provider value={{ lang, setLang }}>{children}</LangContext.Provider>
+  return <LangContext.Provider value={{ lang, setLang, forceLang: setLangState }}>{children}</LangContext.Provider>
 }
 
 export function useLang() {
   return useContext(LangContext).lang
+}
+
+/* ─── Manter o idioma a par do endereço depois da montagem ───────────────────
+   O `initialLang` resolve o primeiro render — é ele que evita ver o texto
+   trocar numa página pré-renderizada. Mas o endereço muda mais do que uma vez:
+   o botão Voltar do browser desfaz a navegação do seletor PT/EN e devolvia um
+   `/en/blog` com texto português e ligações para `/blog`, que é exatamente o
+   desencontro que os endereços por idioma existem para evitar.
+
+   Daí este efeito, a correr dentro do router, onde o `pathname` é observável.
+   Usa o `forceLang`: o idioma vem do endereço, não é uma escolha a gravar. */
+export function useLangFromPath(pathname: string) {
+  const { lang, forceLang } = useContext(LangContext)
+  useEffect(() => {
+    const doCaminho = langFromPath(pathname)
+    if (doCaminho && doCaminho !== lang) forceLang(doCaminho)
+  }, [pathname, lang, forceLang])
 }
 
 export function useLangControls() {
