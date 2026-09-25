@@ -17,7 +17,7 @@ import type { Lang } from "@/lib/blog/types"
    ──────────────────────────────────────────────────────────────────────── */
 export type OnNavigate = (href: string) => void
 
-export function linkHandler(href: string, onNavigate?: OnNavigate) {
+function linkHandler(href: string, onNavigate?: OnNavigate) {
   if (!onNavigate) return undefined
   return (event: MouseEvent) => {
     /* Ctrl/Cmd/Shift/Alt e o botão do meio abrem noutro separador ou noutra
