@@ -11,7 +11,44 @@ export function detectLang(): Lang {
   return hit ? "pt" : "en"
 }
 
+/* ─── O idioma que o endereço impõe ──────────────────────────────────────────
+   As páginas do blog são pré-renderizadas em HTML, uma por idioma: `/blog/` e
+   `/blog/<slug>/` saem em português, `/en/blog/` e `/en/blog/<slug>/` em
+   inglês (a barra final é a forma que a Cloudflare serve — ver o
+   `blog/navigate.ts`).
+   Esse HTML chega ao browser já escrito — e se a deteção automática dissesse
+   outra coisa (um visitante com português no browser a abrir um endereço
+   `/en`), o React montava por cima com o outro idioma e o texto trocava
+   debaixo dos olhos de quem já estava a ler. Também não seria o que o motor
+   de busca indexou.
+
+   Por isso, nestes endereços, é o caminho que manda — à frente do
+   `localStorage` e do `navigator`. O resto do site não tem endereços por
+   idioma, e aí a escolha continua a ser a de sempre. ─────────────────────── */
+const CAMINHO_BLOG = /^\/(en\/)?blog(\/|$)/
+
+export function langFromPath(pathname: string): Lang | null {
+  const m = CAMINHO_BLOG.exec(pathname)
+  if (!m) return null
+  return m[1] ? "en" : "pt"
+}
+
+/* O mesmo endereço no outro idioma, para o seletor PT/EN poder acompanhar.
+   Devolve `null` fora do blog, onde não há par de endereços a trocar.
+
+   Sai sempre com barra final — é a forma que a Cloudflare Pages serve (ver o
+   `navigate.ts`). Quem chegue pela forma sem barra, por um link antigo ou
+   escrito à mão, sai daqui com a forma boa. */
+export function blogPathIn(pathname: string, lang: Lang): string | null {
+  const m = /^\/(?:en\/)?blog(\/.*)?$/.exec(pathname)
+  if (!m) return null
+  const resto = (m[1] ?? "").replace(/\/+$/, "")
+  return `${lang === "en" ? "/en" : ""}/blog${resto}/`
+}
+
 function initialLang(): Lang {
+  const doCaminho = typeof window !== "undefined" ? langFromPath(window.location.pathname) : null
+  if (doCaminho) return doCaminho
   try {
     const saved = typeof localStorage !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null
     if (saved === "en" || saved === "pt") return saved
@@ -24,9 +61,11 @@ function initialLang(): Lang {
 interface LangContextValue {
   lang: Lang
   setLang: (lang: Lang) => void
+  /* Impõe o idioma sem o gravar: a escolha é do endereço, não do visitante. */
+  forceLang: (lang: Lang) => void
 }
 
-const LangContext = createContext<LangContextValue>({ lang: "en", setLang: () => {} })
+const LangContext = createContext<LangContextValue>({ lang: "en", setLang: () => {}, forceLang: () => {} })
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang)
@@ -46,11 +85,28 @@ export function LangProvider({ children }: { children: ReactNode }) {
     document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description)
   }, [lang])
 
-  return <LangContext.Provider value={{ lang, setLang }}>{children}</LangContext.Provider>
+  return <LangContext.Provider value={{ lang, setLang, forceLang: setLangState }}>{children}</LangContext.Provider>
 }
 
 export function useLang() {
   return useContext(LangContext).lang
+}
+
+/* ─── Manter o idioma a par do endereço depois da montagem ───────────────────
+   O `initialLang` resolve o primeiro render — é ele que evita ver o texto
+   trocar numa página pré-renderizada. Mas o endereço muda mais do que uma vez:
+   o botão Voltar do browser desfaz a navegação do seletor PT/EN e devolvia um
+   `/en/blog` com texto português e ligações para `/blog`, que é exatamente o
+   desencontro que os endereços por idioma existem para evitar.
+
+   Daí este efeito, a correr dentro do router, onde o `pathname` é observável.
+   Usa o `forceLang`: o idioma vem do endereço, não é uma escolha a gravar. */
+export function useLangFromPath(pathname: string) {
+  const { lang, forceLang } = useContext(LangContext)
+  useEffect(() => {
+    const doCaminho = langFromPath(pathname)
+    if (doCaminho && doCaminho !== lang) forceLang(doCaminho)
+  }, [pathname, lang, forceLang])
 }
 
 export function useLangControls() {
@@ -91,7 +147,14 @@ export const COPY = {
       scrollHint: "Scroll to explore",
     },
     team: { mobile: "Mobile:", email: "Email:", linkedin: "LinkedIn:", instagram: "Instagram:" },
-    blog: { title: "Blog", all: "All", notFound: "Article not found", backToBlog: "Back to Blog" },
+    blog: {
+      title: "Blog", all: "All", notFound: "Article not found", backToBlog: "Back to Blog",
+      /* Só aparece quando a página mostra o corpo de outro idioma (o
+         `bodyLang` do post). Hoje isso só acontece nas páginas pt, mas a
+         condição é o empréstimo, não o idioma — por isso a frase existe nos
+         dois. */
+      bodyInEnglish: "The full text of this article is available in English only.",
+    },
   },
   pt: {
     meta: {
@@ -125,7 +188,10 @@ export const COPY = {
       scrollHint: "Desliza para explorar",
     },
     team: { mobile: "Telemóvel:", email: "Email:", linkedin: "LinkedIn:", instagram: "Instagram:" },
-    blog: { title: "Blog", all: "Todos", notFound: "Artigo não encontrado", backToBlog: "Voltar ao Blog" },
+    blog: {
+      title: "Blog", all: "Todos", notFound: "Artigo não encontrado", backToBlog: "Voltar ao Blog",
+      bodyInEnglish: "O texto completo deste artigo está disponível apenas em inglês.",
+    },
   },
 } as const
 
