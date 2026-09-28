@@ -25,6 +25,7 @@ Escrever artigos consome tempo que a equipa não tem. O objetivo é que o blog c
 | Ritmo dos artigos novos | **2 por semana**, agendado |
 | Arranque | **Fase A e Fase B em paralelo**, desde o início |
 | Modelo | **Claude Opus 5** |
+| Merge | Humano nos primeiros 10 artigos; **prazo de 48h** a partir do 11.º |
 | Idiomas | Português e inglês, ambos gerados na mesma execução |
 
 ## Arquitetura
@@ -79,11 +80,26 @@ Quando a lista esgotar, a automação **abre um issue a avisar**. Não inventa t
 
 Em ambos os modos, o `CODEOWNERS` pede revisão automaticamente e o Cloudflare Pages gera a pré-visualização.
 
-### Revisão
+### Revisão, e o prazo de 48 horas
 
 A equipa lê o artigo **no site de pré-visualização**, não em código. Aprova e faz merge. O merge publica, pelo circuito já montado.
 
-**Correção ao spec da fundação:** esse documento afirma que o `main` exige uma aprovação. Já não exige — a proteção foi baixada para zero aprovações a 2026-09-25, mantendo o Pull Request obrigatório. A automação abre PR mas não faz merge, por isso continua a ser preciso um humano; o que mudou é que já não é preciso um segundo humano.
+Para os Pull Requests não se acumularem por rever — o risco principal deste desenho — há um **prazo de 48 horas**, introduzido por etapas:
+
+| Etapa | Comportamento |
+|---|---|
+| **Artigos 1 a 10** | Merge só por humano. Sem prazo, sem automático |
+| **Artigo 11 em diante** | Aviso às 24h; merge automático às 48h se ninguém tiver reagido |
+
+Qualquer comentário no Pull Request **trava o relógio**. Não é preciso aprovar formalmente nem pedir alterações: escrever qualquer coisa basta.
+
+O Pull Request mostra sempre em que ponto está — «artigo 4 de 10 antes do prazo automático» — para a transição não acontecer sem ninguém reparar.
+
+**Porquê a rampa.** O prazo faz «sem resposta» significar «aprovado», e as duas situações em que ninguém responde — férias, semana cheia — são exatamente aquelas em que ninguém está a olhar para o que sai em nome da agência. Os primeiros 10 artigos são onde se descobre o que o gerador faz mal, e é onde vale a pena estar a olhar. Passada essa fase, o prazo deixa de ser um salto de fé.
+
+Foi uma decisão consciente da equipa, depois de discutida a alternativa de aplicar o prazo desde o primeiro artigo.
+
+**Correção ao spec da fundação:** esse documento afirma que o `main` exige uma aprovação. Já não exige — a proteção foi baixada para zero aprovações a 2026-09-25, mantendo o Pull Request obrigatório. Nos primeiros 10 artigos a automação abre PR mas não faz merge, por isso continua a ser preciso um humano; o que mudou é que já não é preciso um segundo humano. A partir do 11.º, o prazo de 48 horas acima substitui esse humano quando ninguém reage.
 
 ## Quando algo corre mal
 
@@ -94,6 +110,7 @@ A equipa lê o artigo **no site de pré-visualização**, não em código. Aprov
 | Campo em falta ou categoria inválida | O build falha — validação já existente |
 | Slug repetido | O gerador recusa antes de escrever |
 | Artigo fora do intervalo de palavras | O gerador tenta uma vez; se falhar, abre o PR com aviso |
+| Build falha no PR | O prazo não corre. Merge automático só com o build verde |
 
 ## Custo
 
@@ -113,12 +130,12 @@ Requer `ANTHROPIC_API_KEY` como secret do repositório, criada pelo dono do site
 
 - **Imagens nos artigos.** Decisão explícita: estrutura resolve a legibilidade, e imagens de stock genéricas num site de agência criativa contradizem o que a agência vende.
 - **Escolha automática de temas para além da lista.**
-- **Publicação automática.** O merge é sempre humano.
+- **Publicação sem revisão possível.** Mesmo com o prazo de 48 horas, o artigo fica sempre visível em pré-visualização e travável por qualquer comentário. O que o prazo automatiza é o silêncio, não a revisão.
 - **Promoção do conteúdo** — redes sociais, newsletter.
 
 ## Riscos
 
-**Carga de revisão.** Dois artigos novos por semana, mais os lotes de expansão a correr em paralelo, é bastante leitura numa equipa que declarou falta de tempo. Os 14 artigos da Fase A são cerca de 42 mil palavras, umas sete horas de leitura atenta. Os lotes de três existem para tornar isso gerível, não para o eliminar. Se os PRs se acumularem por rever, o problema deixa de ser técnico.
+**Carga de revisão.** Dois artigos novos por semana, mais os lotes de expansão a correr em paralelo, é bastante leitura numa equipa que declarou falta de tempo. Os 14 artigos da Fase A são cerca de 42 mil palavras, umas sete horas de leitura atenta. Os lotes de três existem para tornar isso gerível, não para o eliminar. O prazo de 48 horas, a partir do 11.º artigo, impede que a acumulação pare o blog — mas em troca faz «sem resposta» valer como aprovação, que é um risco diferente e não menor.
 
 **Ritmo e políticas anti-spam.** ~100 artigos por ano em dois idiomas são ~200 páginas novas. A política de *scaled content abuse* do Google não penaliza conteúdo por ser gerado por IA — penaliza conteúdo em escala sem valor real. A proteção é a qualidade e a utilidade, avaliáveis só depois dos primeiros.
 
@@ -131,3 +148,4 @@ Requer `ANTHROPIC_API_KEY` como secret do repositório, criada pelo dono do site
 3. O PR abre com pré-visualização funcional e revisão pedida automaticamente
 4. A voz é indistinguível dos artigos aprovados — avaliado por leitura, não por métrica
 5. Com a lista esgotada, a automação avisa em vez de inventar
+6. O prazo de 48h não corre antes do 11.º artigo, e um comentário trava-o
