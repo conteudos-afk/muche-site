@@ -8,9 +8,9 @@ readTime: "4 min read"
 
 Speed is invisible when it is there and unbearable when it is not. A fast website is not noticed — it simply allows the experience to begin. A slow website is noticed immediately, and the judgment it provokes is disproportionately harsh: if this company cannot be bothered to make their website fast, what does that say about how they treat other details?
 
-## The numbers are stark
+## Nobody waits
 
-Google's data has consistently shown that a one-second delay in page load time can reduce conversions by up to 20%. For mobile users — now the majority of web traffic — the tolerance is even lower. A page that takes more than three seconds to load on mobile will lose over half of its visitors before they have seen a single word of content.
+Every second of waiting costs visitors, and the effect compounds: the longer it takes, the larger the share of people who leave before seeing anything at all. On mobile — now the majority of traffic — tolerance is lower still, and that is exactly where network conditions are worst. Someone who closes a slow tab does not register that the site was slow: they register that it was not worth it.
 
 ## Performance is a brand value
 

@@ -10,7 +10,7 @@ Colour is one of the most immediate and powerful tools in a brand's arsenal. Bef
 
 ## Emotion before logic
 
-Studies show that up to 90% of snap judgements about products can be based on colour alone. Warm tones like gold and amber suggest warmth, quality, and tradition. Cool blues communicate trust and precision. Deep greens evoke nature and ethics. None of this is accidental in the brands you admire — it is engineered.
+Colour arrives before shape and long before words: it is the first signal the eye processes and the last one forgotten. Warm tones like gold and amber suggest warmth, quality, and tradition. Cool blues communicate trust and precision. Deep greens evoke nature and ethics. None of this is accidental in the brands you admire — it is engineered.
 
 ## Owning a colour
 
