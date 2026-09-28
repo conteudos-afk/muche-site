@@ -52,21 +52,41 @@ Regras do frontmatter, sem excepção:
 
 A seguir ao frontmatter vem o corpo, em Markdown: parágrafos, \`##\` para subtítulos, listas com \`-\`. Sem \`#\` de nível 1 — o título já está no frontmatter.`
 
+/* Os artigos de referência vêm de disco — o título ou o corpo podem trazer
+   aspas duplas ou os seus próprios blocos de código. Sem tratamento, isso
+   parte a sintaxe `chave: "valor"` do frontmatter simulado, ou fecha a
+   vedação exterior mais cedo do que devia. */
+function escaparAspas(valor) {
+  return String(valor ?? '').replace(/"/g, '\\"')
+}
+
+function maiorSequenciaDeCrases(texto) {
+  const corridas = String(texto).match(/`+/g)
+  return corridas ? Math.max(...corridas.map(c => c.length)) : 0
+}
+
 function blocoReferencias(referencias) {
-  return referencias.map((ref, i) => `
+  return referencias.map((ref, i) => {
+    const conteudo = `---
+title: "${escaparAspas(ref.frontmatter.title)}"
+excerpt: "${escaparAspas(ref.frontmatter.excerpt)}"
+category: "${escaparAspas(ref.frontmatter.category)}"
+date: "${escaparAspas(ref.frontmatter.date)}"
+readTime: "${escaparAspas(ref.frontmatter.readTime)}"
+---
+
+${ref.corpo}`
+    /* Uma vedação de N crases só fecha com N crases ou mais (a regra normal
+       do Markdown). Por isso a vedação exterior tem de ser sempre mais
+       comprida do que a maior sequência de crases que aparece cá dentro. */
+    const vedacao = '`'.repeat(Math.max(3, maiorSequenciaDeCrases(conteudo) + 1))
+    return `
 ### Referência ${i + 1} — ${ref.slug}
 
-\`\`\`
----
-title: "${ref.frontmatter.title ?? ''}"
-excerpt: "${ref.frontmatter.excerpt ?? ''}"
-category: "${ref.frontmatter.category ?? ''}"
-date: "${ref.frontmatter.date ?? ''}"
-readTime: "${ref.frontmatter.readTime ?? ''}"
----
-
-${ref.corpo}
-\`\`\``).join('\n')
+${vedacao}
+${conteudo}
+${vedacao}`
+  }).join('\n')
 }
 
 const DIMENSAO = `O corpo tem de ter entre ${MIN_PALAVRAS} e ${MAX_PALAVRAS} palavras. Não é uma sugestão: um artigo de 900 palavras não serve, e um de 2500 também não.`

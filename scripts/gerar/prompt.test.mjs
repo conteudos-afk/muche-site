@@ -25,6 +25,14 @@ test('o sistema proíbe estatísticas sem fonte e imagens', () => {
   expect(SISTEMA.toLowerCase()).toContain('imagens')
 })
 
+test('o sistema mantém os termos do ofício em inglês, telemóvel/celular e os termos proibidos', () => {
+  expect(SISTEMA).toContain('branding, storytelling, podcast, design, copy')
+  expect(SISTEMA.toLowerCase()).toContain('telemóvel')
+  expect(SISTEMA.toLowerCase()).toContain('celular')
+  expect(SISTEMA).toContain('filme de marca')
+  expect(SISTEMA).toContain('vídeo institucional')
+})
+
 test('o prompt de escrita leva o tema, o ângulo e a categoria', () => {
   const p = promptEscrever({ tema: TEMA, referencias: [REF] })
   expect(p).toContain('Quanto custa um vídeo de marca')
@@ -45,16 +53,20 @@ test('o prompt de escrita pede o intervalo de palavras', () => {
 })
 
 test('o prompt de expansão leva o artigo original inteiro', () => {
-  const original = { ...REF, slug: 'original', corpo: 'Texto curto a expandir.' }
+  const original = {
+    ...REF, slug: 'original', corpo: 'Texto curto a expandir.',
+    frontmatter: { ...REF.frontmatter, title: 'Título original a expandir' },
+  }
   const p = promptExpandir({ artigo: original, referencias: [REF] })
   expect(p).toContain('Texto curto a expandir.')
-  expect(p).toContain('Título de referência')
+  expect(p).toContain('Título original a expandir')
 })
 
 test('o prompt de expansão manda manter o slug e a categoria', () => {
-  const original = { ...REF, slug: 'original' }
+  const original = { ...REF, slug: 'original', frontmatter: { ...REF.frontmatter, category: 'Fotografia' } }
   const p = promptExpandir({ artigo: original, referencias: [REF] })
   expect(p).toContain('original')
+  expect(p).toContain('a categoria `Fotografia`')
   expect(p.toLowerCase()).toContain('mantém')
 })
 
@@ -63,4 +75,17 @@ test('o prompt inglês leva o artigo português e uma referência inglesa', () =
   const p = promptIngles({ artigoPt: 'Artigo em português.', referenciaEn: refEn })
   expect(p).toContain('Artigo em português.')
   expect(p).toContain('An approved English article.')
+})
+
+test('o bloco de referências escapa aspas duplas no frontmatter', () => {
+  const refComAspas = { ...REF, frontmatter: { ...REF.frontmatter, title: 'Um título com "aspas" dentro' } }
+  const p = promptEscrever({ tema: TEMA, referencias: [refComAspas] })
+  expect(p).toContain('title: "Um título com \\"aspas\\" dentro"')
+})
+
+test('o bloco de referências alarga a vedação quando o corpo já tem crases', () => {
+  const refComCrases = { ...REF, corpo: 'Antes.\n\n```js\nconst x = 1\n```\n\nDepois.' }
+  const p = promptEscrever({ tema: TEMA, referencias: [refComCrases] })
+  expect(p).toContain('````')
+  expect(p).toContain('```js\nconst x = 1\n```\n\nDepois.')
 })
