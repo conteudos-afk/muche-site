@@ -33,6 +33,11 @@ test('o sistema mantém os termos do ofício em inglês, telemóvel/celular e os
   expect(SISTEMA).toContain('vídeo institucional')
 })
 
+test('o sistema proíbe qualquer coisa a seguir à última linha do artigo', () => {
+  expect(SISTEMA).toContain('última linha do artigo')
+  expect(SISTEMA).toContain('comentário sobre o próprio artigo')
+})
+
 test('o prompt de escrita leva o tema, o ângulo e a categoria', () => {
   const p = promptEscrever({ tema: TEMA, referencias: [REF] })
   expect(p).toContain('Quanto custa um vídeo de marca')

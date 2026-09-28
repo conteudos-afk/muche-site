@@ -8,7 +8,13 @@
    renderizada, por isso não pode servir para almofadar um artigo curto até
    ao mínimo. Tira-se antes do resto, para que o texto lá dentro não escape
    às outras limpezas (por exemplo, se tiver a sua própria vedação de
-   código). ─────────────────────────────────────────────────────────────── */
+   código).
+
+   Um `<!--` sem `-->` a fechar — uma resposta cortada ou malformada a meio
+   do comentário — não pode reabrir a mesma fuga: sem isto, tudo o que vem
+   depois do `<!--` por fechar contava como prosa. Por isso, depois de tirar
+   os comentários fechados, tira-se também um `<!--` solto até ao fim do
+   texto. ───────────────────────────────────────────────────────────────── */
 
 export const MIN_PALAVRAS = 1200
 export const MAX_PALAVRAS = 1800
@@ -17,8 +23,10 @@ export function contarPalavras(markdown) {
   const texto = String(markdown)
     /* Frontmatter */
     .replace(/^﻿?---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/, '')
-    /* Comentários HTML, de uma linha ou de várias */
+    /* Comentários HTML, de uma linha ou de várias, fechados */
     .replace(/<!--[\s\S]*?-->/g, ' ')
+    /* Um `<!--` que nunca fecha: tira-se até ao fim do texto */
+    .replace(/<!--[\s\S]*$/, ' ')
     /* Blocos e trechos de código */
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/`[^`]*`/g, ' ')

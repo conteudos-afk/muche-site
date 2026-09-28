@@ -26,6 +26,11 @@ test('não conta comentários HTML, incluindo em várias linhas', () => {
   expect(contarPalavras(md)).toBe(6)
 })
 
+test('não conta um comentário HTML sem fecho, até ao fim do texto', () => {
+  const md = 'Uma frase real.\n\n<!-- palavra palavra palavra palavra palavra palavra'
+  expect(contarPalavras(md)).toBe(3)
+})
+
 test('o intervalo é o do spec', () => {
   expect([MIN_PALAVRAS, MAX_PALAVRAS]).toEqual([1200, 1800])
   expect(dentroDoIntervalo(1199)).toBe(false)

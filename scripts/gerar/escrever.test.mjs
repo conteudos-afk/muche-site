@@ -59,6 +59,14 @@ test('não deixa um comentário HTML preencher um artigo curto até ao mínimo',
   expect(problemas.join(' ')).toContain('1100')
 })
 
+test('não deixa um comentário HTML sem fecho (resposta cortada a meio) preencher um artigo curto', () => {
+  const real = 'palavra '.repeat(1100).trim()
+  const comentarioSemFecho = `<!-- ${'palavra '.repeat(300).trim()}`
+  const curtoDisfarcado = BOM.replace(CORPO_LONGO, `${real}\n\n${comentarioSemFecho}`)
+  const problemas = verificarArtigo({ markdown: curtoDisfarcado, slug: 'teste', lang: 'pt' })
+  expect(problemas.join(' ')).toContain('1100')
+})
+
 test('acusa um artigo sem frontmatter nenhum', () => {
   expect(verificarArtigo({ markdown: 'Só corpo.', slug: 'teste', lang: 'pt' }).join(' ')).toContain('frontmatter')
 })
