@@ -23,7 +23,7 @@ Valores copiados do spec `docs/superpowers/specs/2026-09-28-blog-automacao-desig
 - **«vídeo de marca»**, nunca «filme de marca» nem «vídeo institucional».
 - Termos do ofício em inglês quando é isso que se usa em Portugal: *branding*, *storytelling*, *podcast*, *design*.
 - **Categorias:** exatamente as seis de `src/lib/blog/categories.ts`. Não inventar.
-- **Instalação de dependências:** `npm install`, nunca `npm ci` — o repositório não tem lockfile.
+- **Instalação de dependências nos workflows:** `npm ci`. O repositório **tem** `package-lock.json` versionado. (Acrescentar uma dependência nova continua a ser `npm install --save-dev`.)
 - **Comentários e mensagens em português europeu**, como o resto do repositório.
 - **Merge automático só com build verde**, garantido pelo próprio workflow: o `main` não tem status checks obrigatórios.
 
@@ -45,7 +45,11 @@ Valores copiados do spec `docs/superpowers/specs/2026-09-28-blog-automacao-desig
 | `.github/workflows/gerar-artigos.yml` | Agendado 2×/semana + disparo manual |
 | `.github/workflows/prazo-artigos.yml` | De hora a hora; avisa às 24h, junta às 48h |
 
-Os testes ficam ao lado, como `*.test.mjs`. O vitest já os apanha pelo padrão por omissão.
+Os testes ficam ao lado, como `*.test.mjs`. O `vitest.config.ts` deste repositório
+**restringe** o que apanha (`include: ['src/**/*.test.ts']`), por isso a Task 1
+alarga-o para `['src/**/*.test.ts', 'scripts/**/*.test.mjs']`. Sem isso o vitest
+diz «No test files found» em vez de falhar — um teste que não corre parece um
+teste que passa.
 
 ---
 
@@ -1710,9 +1714,7 @@ jobs:
         with:
           node-version: '24'
 
-      # `npm ci` exigia lockfile, e este repositório não tem nenhum — é
-      # `npm install` que o Cloudflare Pages também corre.
-      - run: npm install
+      - run: npm ci
 
       - name: Gerar
         id: gerar
@@ -2234,7 +2236,7 @@ jobs:
             git worktree add "../pr-$numero" "pr-$numero"
 
             verde=false
-            if (cd "../pr-$numero" && npm install && npm run build); then verde=true; fi
+            if (cd "../pr-$numero" && npm ci && npm run build); then verde=true; fi
             echo "build do PR #$numero: verde=$verde"
 
             git worktree remove --force "../pr-$numero"
