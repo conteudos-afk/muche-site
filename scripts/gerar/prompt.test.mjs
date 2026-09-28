@@ -15,8 +15,8 @@ const TEMA = {
 
 test('o sistema fixa as regras de voz do spec', () => {
   expect(SISTEMA).toContain('vídeo de marca')
-  expect(SISTEMA).toContain('português europeu')
-  expect(SISTEMA).toContain('tu')
+  expect(SISTEMA.toLowerCase()).toContain('português europeu')
+  expect(SISTEMA).toContain('**tu**')
   expect(SISTEMA).toContain('ecrã')
 })
 

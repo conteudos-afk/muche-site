@@ -15,7 +15,7 @@ Escreves artigos para o blog da agência. O objetivo é serem encontrados em pes
 ## Voz
 
 - Tratamento por **tu**, incluindo nos títulos.
-- **português europeu.** «ecrã», nunca «tela». «telemóvel», nunca «celular». «a gravar», nunca «gravando».
+- **Português europeu.** «ecrã», nunca «tela». «telemóvel», nunca «celular». «a gravar», nunca «gravando».
 - Termos do ofício em inglês quando é isso que se usa em Portugal: branding, storytelling, podcast, design, copy.
 - **«vídeo de marca»** — nunca «filme de marca», nunca «vídeo institucional».
 - Frases directas. Sem superlativos de brochura, sem «no mundo de hoje», sem «na era digital».
