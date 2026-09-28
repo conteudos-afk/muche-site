@@ -1,0 +1,328 @@
+# Temas do blog, por ordem de prioridade.
+#
+# O gerador lê daqui e nunca inventa assuntos. Quando esta lista esgotar, a
+# automação abre um issue a avisar em vez de continuar.
+#
+# prioridade: 1 = intenção de compra (preço, prazo, o que inclui)
+#             2 = decisão (como escolher, o que corre mal)
+#             3 = curiosidade
+#
+# estado: por-escrever | publicado — o gerador muda para "publicado" sozinho.
+# categorias válidas: Branding & Visual Identity, Graphic Design,
+# Video Production, Web Design, Photography & Events, Podcasts
+
+temas:
+  - slug: quanto-custa-video-de-marca
+    tema: "Quanto custa um vídeo de marca"
+    angulo: "O que faz o preço variar — equipa, dias de rodagem, pós-produção — e porque é que o orçamento mais baixo costuma sair caro"
+    categoria: "Video Production"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: o-que-leva-um-manual-de-marca
+    tema: "O que leva um manual de marca"
+    angulo: "Secção a secção: o que é mesmo preciso para a marca ser usável por terceiros, e o que é enchimento de apresentação"
+    categoria: "Branding & Visual Identity"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-tempo-demora-um-rebranding
+    tema: "Quanto tempo demora um rebranding"
+    angulo: "As fases reais e onde o calendário costuma escorregar — quase sempre nas decisões do lado do cliente, não no design"
+    categoria: "Branding & Visual Identity"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-custa-um-site
+    tema: "Quanto custa fazer um site"
+    angulo: "Porque é que o mesmo briefing recebe orçamentos que diferem cinco vezes, e o que está a mais ou a menos em cada um"
+    categoria: "Web Design"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: o-que-e-preciso-antes-de-uma-rodagem
+    tema: "O que é preciso ter pronto antes de uma rodagem"
+    angulo: "A lista que o cliente tem de fechar — guião, locais, autorizações, pessoas — e o que acontece a cada dia de rodagem quando falta"
+    categoria: "Video Production"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: como-escolher-agencia-criativa
+    tema: "Como escolher uma agência criativa"
+    angulo: "O que perguntar numa primeira reunião, e os sinais de que a proposta é boa a vender e fraca a executar"
+    categoria: "Branding & Visual Identity"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: quanto-custa-um-podcast-de-marca
+    tema: "Quanto custa produzir um podcast de marca"
+    angulo: "Estúdio, edição, publicação e o custo que quase ninguém orçamenta: manter o ritmo depois do primeiro mês"
+    categoria: "Podcasts"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: fotografia-de-produto-quantas-imagens
+    tema: "Quantas fotografias de produto são precisas para uma loja online"
+    angulo: "Por referência, por variante e por contexto de uso — e como isso muda o orçamento de uma sessão"
+    categoria: "Photography & Events"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: o-que-entregar-a-um-designer
+    tema: "O que tens de entregar a um designer para o trabalho arrancar"
+    angulo: "Ficheiros, textos, acessos e decisões — e porque é que o briefing incompleto é o que mais atrasa projetos"
+    categoria: "Graphic Design"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: video-para-redes-vs-institucional
+    tema: "Vídeo para redes sociais ou vídeo de marca: qual é que precisas"
+    angulo: "Servem objetivos diferentes e têm custos por peça muito diferentes. Como decidir sem fazer os dois mal"
+    categoria: "Video Production"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: quanto-tempo-dura-um-site
+    tema: "Quanto tempo dura um site antes de precisar de ser refeito"
+    angulo: "O que envelhece primeiro — tecnologia, conteúdo ou posicionamento — e como adiar o refazer sem o negar"
+    categoria: "Web Design"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: fotografo-de-evento-o-que-pedir
+    tema: "O que pedir a um fotógrafo de evento antes do dia"
+    angulo: "Alinhar expectativas sobre momentos obrigatórios, prazos de entrega e direitos de uso, antes e não depois"
+    categoria: "Photography & Events"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: quanto-custa-um-logotipo
+    tema: "Quanto custa criar um logótipo"
+    angulo: "A faixa de preços vai de dezenas a milhares de euros pela mesma palavra — o que separa um logótipo feito em horas de um construído a partir de uma estratégia de marca"
+    categoria: "Branding & Visual Identity"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-custa-uma-identidade-visual
+    tema: "Quanto custa uma identidade visual completa"
+    angulo: "Logótipo, paleta, tipografia, aplicações — o que entra no orçamento além do símbolo, e porque um preço muito abaixo da média costuma significar um trabalho incompleto"
+    categoria: "Branding & Visual Identity"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: o-que-e-branding
+    tema: "O que é branding, afinal"
+    angulo: "A confusão entre branding, marketing e design gráfico explicada sem jargão — e onde cada um começa e acaba"
+    categoria: "Branding & Visual Identity"
+    prioridade: 3
+    estado: por-escrever
+
+  - slug: como-saber-se-preciso-de-rebranding
+    tema: "Como saber se a minha empresa precisa de um rebranding"
+    angulo: "Os sinais que costumam preceder a decisão — de uma identidade que já não representa o negócio a uma que nunca representou bem nada"
+    categoria: "Branding & Visual Identity"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: que-ficheiros-recebo-com-um-logotipo
+    tema: "Que ficheiros recebo depois de encomendar um logótipo"
+    angulo: "Vetorial, variantes, versões para fundo escuro — a lista do que devia vir na entrega, e o que falta quando o trabalho foi feito à pressa"
+    categoria: "Branding & Visual Identity"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-tempo-demora-uma-identidade-visual
+    tema: "Quanto tempo demora a criar uma identidade visual"
+    angulo: "Das primeiras conversas à entrega final, fase a fase — e porque é a definição da estratégia, não o desenho, que ocupa mais tempo"
+    categoria: "Branding & Visual Identity"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: vale-a-pena-branding-pequena-empresa
+    tema: "Vale a pena investir em branding sendo uma empresa pequena"
+    angulo: "O argumento contra esperar por seres «grande o suficiente» — e o que custa mais tarde corrigir uma identidade feita à pressa"
+    categoria: "Branding & Visual Identity"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: quanto-tempo-demora-um-video-de-marca
+    tema: "Quanto tempo demora a produção de um vídeo de marca"
+    angulo: "Da pré-produção à entrega final: quantas semanas cada fase costuma levar, e o que é impossível de acelerar sem perder qualidade"
+    categoria: "Video Production"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-custa-um-dia-de-filmagem
+    tema: "Quanto custa um dia de filmagem"
+    angulo: "Equipa, equipamento, local — o que compõe o valor de um dia de rodagem, e porque dois orçamentos para o mesmo dia podem diferir tanto"
+    categoria: "Video Production"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: como-escolher-produtora-de-video
+    tema: "Como escolher uma produtora de vídeo"
+    angulo: "O que pedir para ver antes de decidir — portefólio completo, não só o melhor plano de cada projeto — e as perguntas que separam profissionais de amadores com boa câmara"
+    categoria: "Video Production"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: o-que-corre-mal-numa-rodagem
+    tema: "O que costuma correr mal numa rodagem e como evitar"
+    angulo: "Dos erros de agenda aos de som, os problemas mais comuns e o que uma boa pré-produção já resolveu antes de a câmara ligar"
+    categoria: "Video Production"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: quanto-custa-um-video-para-redes-sociais
+    tema: "Quanto custa um vídeo para redes sociais"
+    angulo: "Muito mais barato do que um vídeo de marca — mas só quando é pensado para o formato desde o início, não cortado de outra coisa"
+    categoria: "Video Production"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: um-video-de-marca-ou-varios-videos-curtos
+    tema: "É melhor um vídeo de marca ou vários vídeos curtos para redes sociais"
+    angulo: "Servem fins diferentes e não competem pelo mesmo orçamento — como decidir o que fazer primeiro consoante o objetivo"
+    categoria: "Video Production"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: porque-e-que-um-video-de-marca-demora-tanto
+    tema: "Porque é que um vídeo de marca bem feito demora tanto tempo a produzir"
+    angulo: "O que acontece fora dos dias de rodagem — guião, casting, pós-produção — e porque a maior parte do tempo não se vê no resultado final"
+    categoria: "Video Production"
+    prioridade: 3
+    estado: por-escrever
+
+  - slug: quanto-tempo-demora-a-fazer-um-site
+    tema: "Quanto tempo demora a fazer um site"
+    angulo: "Da estrutura ao lançamento, semana a semana — e a fase onde a maioria dos projetos atrasa: à espera de conteúdos do próprio cliente"
+    categoria: "Web Design"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: o-que-esta-incluido-no-preco-de-um-site
+    tema: "O que está incluído no preço de um site"
+    angulo: "Design, desenvolvimento, conteúdos, formação — o que separa um orçamento completo de um que deixa custos escondidos para depois"
+    categoria: "Web Design"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: como-escolher-agencia-para-o-site
+    tema: "Como escolher uma agência para fazer o site"
+    angulo: "Portefólio, processo e o que perguntar sobre manutenção depois do lançamento — a parte do contrato que quase ninguém lê antes de assinar"
+    categoria: "Web Design"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: agencia-ou-template-vale-a-pena-pagar-mais
+    tema: "Vale a pena pagar mais por um site feito por uma agência em vez de um template"
+    angulo: "O que um template não resolve — estrutura pensada para o negócio, performance, e um site que não parece igual a mil outros"
+    categoria: "Web Design"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: quanto-custa-manter-um-site
+    tema: "Quanto custa manter um site depois de lançado"
+    angulo: "Alojamento, atualizações, pequenas alterações — os custos recorrentes que raramente entram no orçamento inicial"
+    categoria: "Web Design"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: porque-o-meu-site-nao-aparece-no-google
+    tema: "Porque é que o meu site não aparece no Google"
+    angulo: "As razões mais comuns, da técnica à falta de conteúdo — e porque um site bonito não é sinónimo de um site visível"
+    categoria: "Web Design"
+    prioridade: 3
+    estado: por-escrever
+
+  - slug: quanto-custa-design-para-redes-sociais
+    tema: "Quanto custa design gráfico para redes sociais"
+    angulo: "Por publicação, por pacote mensal ou por sistema de templates — os três modelos de preço e quando cada um compensa"
+    categoria: "Graphic Design"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-custa-um-catalogo-ou-brochura
+    tema: "Quanto custa criar um catálogo ou uma brochura"
+    angulo: "O que pesa mais no orçamento — número de páginas, fotografia própria ou impressão — e onde há margem para poupar sem perder qualidade"
+    categoria: "Graphic Design"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: como-escolher-um-designer-grafico
+    tema: "Como escolher um designer gráfico freelancer"
+    angulo: "O que ver num portefólio além do estilo — consistência entre projetos, e se o trabalho resolveu o problema do cliente ou só ficou bonito"
+    categoria: "Graphic Design"
+    prioridade: 2
+    estado: por-escrever
+
+  - slug: designer-ou-canva-que-diferenca-faz
+    tema: "Que diferença faz contratar um designer em vez de usar o Canva"
+    angulo: "Onde as ferramentas de template chegam e onde param — e o custo invisível de uma marca que se parece com muitas outras"
+    categoria: "Graphic Design"
+    prioridade: 3
+    estado: por-escrever
+
+  - slug: quanto-tempo-demora-material-grafico-campanha
+    tema: "Quanto tempo demora a criar o material gráfico de uma campanha"
+    angulo: "Do briefing às artes finais em todos os formatos — e porque o número de suportes pesa mais no prazo do que a complexidade de cada peça"
+    categoria: "Graphic Design"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: o-que-e-design-editorial
+    tema: "O que é design editorial e quando é preciso"
+    angulo: "Da revista ao relatório anual: onde a disciplina de organizar texto e imagem numa página faz diferença mensurável"
+    categoria: "Graphic Design"
+    prioridade: 3
+    estado: por-escrever
+
+  - slug: quanto-custa-fotografia-de-produto
+    tema: "Quanto custa uma sessão de fotografia de produto"
+    angulo: "Por referência ou por dia de estúdio — os dois modelos de preço mais comuns, e qual compensa consoante o tamanho do catálogo"
+    categoria: "Photography & Events"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-custa-fotografo-para-evento-de-empresa
+    tema: "Quanto custa contratar um fotógrafo para um evento de empresa"
+    angulo: "O que faz variar o preço — duração, número de fotógrafos, prazo de entrega — e o que perguntar antes de fechar a reserva"
+    categoria: "Photography & Events"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-tempo-demora-a-entrega-das-fotografias
+    tema: "Quanto tempo depois do evento recebo as fotografias"
+    angulo: "O prazo real de edição e seleção, e porque pedir tudo em 24 horas costuma sair caro ou sair mal"
+    categoria: "Photography & Events"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: o-que-e-preciso-para-comecar-um-podcast
+    tema: "O que é preciso para uma marca começar um podcast"
+    angulo: "Equipamento, formato, calendário editorial — o mínimo para arrancar bem, sem gastar num estúdio que a maioria das marcas não precisa"
+    categoria: "Podcasts"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: quanto-tempo-demora-a-editar-um-episodio-de-podcast
+    tema: "Quanto tempo demora a gravar e editar um episódio de podcast"
+    angulo: "Da gravação à publicação, hora a hora — e porque a edição de som costuma demorar mais do que a própria gravação"
+    categoria: "Podcasts"
+    prioridade: 1
+    estado: por-escrever
+
+  - slug: vale-a-pena-uma-marca-ter-podcast
+    tema: "Vale a pena uma marca ter um podcast"
+    angulo: "Nem todo o negócio tem conversa para um formato longo — como perceber se o teu tem, antes de investires no equipamento"
+    categoria: "Podcasts"
+    prioridade: 3
+    estado: por-escrever
+
+  - slug: como-escolher-quem-produz-o-podcast
+    tema: "Como escolher quem produz o podcast da empresa"
+    angulo: "A diferença entre alguém que grava e edita bem e alguém que ajuda a pensar o formato — e porque só a segunda opção sustenta um podcast a longo prazo"
+    categoria: "Podcasts"
+    prioridade: 2
+    estado: por-escrever

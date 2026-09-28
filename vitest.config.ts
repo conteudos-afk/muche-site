@@ -8,5 +8,5 @@ export default defineConfig({
      por isso o esbuild recorre ao transform clássico (React.createElement) e
      falha em componentes que não importam o React. */
   esbuild: { jsx: 'automatic' },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  test: { environment: 'node', include: ['src/**/*.test.ts', 'scripts/**/*.test.mjs'] },
 })
