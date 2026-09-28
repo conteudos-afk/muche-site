@@ -89,3 +89,30 @@ test('o bloco de referências alarga a vedação quando o corpo já tem crases',
   expect(p).toContain('````')
   expect(p).toContain('```js\nconst x = 1\n```\n\nDepois.')
 })
+
+test('o artigo a expandir escapa aspas duplas e alarga a vedação quando tem crases', () => {
+  const original = {
+    ...REF, slug: 'original',
+    frontmatter: { ...REF.frontmatter, title: 'Um título "citado" a expandir' },
+    corpo: 'Antes.\n\n```js\nconst y = 2\n```\n\nDepois.',
+  }
+  const p = promptExpandir({ artigo: original, referencias: [REF] })
+  expect(p).toContain('title: "Um título \\"citado\\" a expandir"')
+  expect(p).toContain('````')
+  expect(p).toContain('```js\nconst y = 2\n```\n\nDepois.')
+})
+
+test('o artigo português em promptIngles alarga a vedação quando tem crases', () => {
+  const artigoPt = 'Antes.\n\n```js\nconst z = 3\n```\n\nDepois.'
+  const refEn = { ...REF, lang: 'en', corpo: 'An approved English article.' }
+  const p = promptIngles({ artigoPt, referenciaEn: refEn })
+  expect(p).toContain('````')
+  expect(p).toContain('```js\nconst z = 3\n```\n\nDepois.')
+})
+
+test('a referência inglesa em promptIngles alarga a vedação quando tem crases', () => {
+  const refEnComCrases = { ...REF, lang: 'en', corpo: 'Before.\n\n```js\nconst w = 4\n```\n\nAfter.' }
+  const p = promptIngles({ artigoPt: 'Texto simples em português.', referenciaEn: refEnComCrases })
+  expect(p).toContain('````')
+  expect(p).toContain('```js\nconst w = 4\n```\n\nAfter.')
+})

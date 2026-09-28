@@ -52,10 +52,13 @@ Regras do frontmatter, sem excepção:
 
 A seguir ao frontmatter vem o corpo, em Markdown: parágrafos, \`##\` para subtítulos, listas com \`-\`. Sem \`#\` de nível 1 — o título já está no frontmatter.`
 
-/* Os artigos de referência vêm de disco — o título ou o corpo podem trazer
-   aspas duplas ou os seus próprios blocos de código. Sem tratamento, isso
-   parte a sintaxe `chave: "valor"` do frontmatter simulado, ou fecha a
-   vedação exterior mais cedo do que devia. */
+/* Artigos e referências vêm de disco — o título, o corpo, ou o artigo em
+   português já gerado (em promptIngles) podem trazer aspas duplas ou os
+   seus próprios blocos de código. Sem tratamento, isso parte a sintaxe
+   `chave: "valor"` do frontmatter simulado, ou fecha a vedação exterior
+   mais cedo do que devia. Os três sítios do ficheiro que embrulham texto de
+   artigo numa vedação (as referências, o artigo a expandir, e os dois
+   corpos de promptIngles) partilham esta lógica em vez de a duplicarem. */
 function escaparAspas(valor) {
   return String(valor ?? '').replace(/"/g, '\\"')
 }
@@ -65,28 +68,34 @@ function maiorSequenciaDeCrases(texto) {
   return corridas ? Math.max(...corridas.map(c => c.length)) : 0
 }
 
-function blocoReferencias(referencias) {
-  return referencias.map((ref, i) => {
-    const conteudo = `---
-title: "${escaparAspas(ref.frontmatter.title)}"
-excerpt: "${escaparAspas(ref.frontmatter.excerpt)}"
-category: "${escaparAspas(ref.frontmatter.category)}"
-date: "${escaparAspas(ref.frontmatter.date)}"
-readTime: "${escaparAspas(ref.frontmatter.readTime)}"
----
+/* Uma vedação de N crases só fecha com N crases ou mais (a regra normal do
+   Markdown). Por isso a vedação que envolve um texto tem de ser sempre mais
+   comprida do que a maior sequência de crases que aparece lá dentro. Serve
+   tanto para um bloco com frontmatter simulado como para texto solto. */
+function vedar(texto) {
+  const vedacao = '`'.repeat(Math.max(3, maiorSequenciaDeCrases(texto) + 1))
+  return `${vedacao}\n${texto}\n${vedacao}`
+}
 
-${ref.corpo}`
-    /* Uma vedação de N crases só fecha com N crases ou mais (a regra normal
-       do Markdown). Por isso a vedação exterior tem de ser sempre mais
-       comprida do que a maior sequência de crases que aparece cá dentro. */
-    const vedacao = '`'.repeat(Math.max(3, maiorSequenciaDeCrases(conteudo) + 1))
-    return `
+function blocoFrontmatter(frontmatter) {
+  return `---
+title: "${escaparAspas(frontmatter.title)}"
+excerpt: "${escaparAspas(frontmatter.excerpt)}"
+category: "${escaparAspas(frontmatter.category)}"
+date: "${escaparAspas(frontmatter.date)}"
+readTime: "${escaparAspas(frontmatter.readTime)}"
+---`
+}
+
+function blocoArtigoVedado(frontmatter, corpo) {
+  return vedar(`${blocoFrontmatter(frontmatter)}\n\n${corpo}`)
+}
+
+function blocoReferencias(referencias) {
+  return referencias.map((ref, i) => `
 ### Referência ${i + 1} — ${ref.slug}
 
-${vedacao}
-${conteudo}
-${vedacao}`
-  }).join('\n')
+${blocoArtigoVedado(ref.frontmatter, ref.corpo)}`).join('\n')
 }
 
 const DIMENSAO = `O corpo tem de ter entre ${MIN_PALAVRAS} e ${MAX_PALAVRAS} palavras. Não é uma sugestão: um artigo de 900 palavras não serve, e um de 2500 também não.`
@@ -124,17 +133,7 @@ ${DIMENSAO}
 
 ## Artigo a expandir
 
-\`\`\`
----
-title: "${artigo.frontmatter.title ?? ''}"
-excerpt: "${artigo.frontmatter.excerpt ?? ''}"
-category: "${artigo.frontmatter.category ?? ''}"
-date: "${artigo.frontmatter.date ?? ''}"
-readTime: "${artigo.frontmatter.readTime ?? ''}"
----
-
-${artigo.corpo}
-\`\`\`
+${blocoArtigoVedado(artigo.frontmatter, artigo.corpo)}
 
 ## Artigos de referência para a voz
 
@@ -155,15 +154,11 @@ Não é uma tradução literal: é o mesmo artigo escrito em inglês, com o mesm
 
 ## Artigo português
 
-\`\`\`
-${artigoPt}
-\`\`\`
+${vedar(artigoPt)}
 
 ## Referência de voz em inglês, já aprovada
 
-\`\`\`
-${referenciaEn.corpo}
-\`\`\`
+${vedar(referenciaEn.corpo)}
 
 Responde só com o ficheiro Markdown em inglês.`
 }
