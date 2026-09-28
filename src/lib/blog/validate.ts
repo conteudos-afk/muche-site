@@ -17,7 +17,7 @@ import type { PostMeta } from './types'
    Devolve a lista de problemas, um por linha, em vez de lançar no primeiro:
    quem corrige o frontmatter quer ver tudo o que está mal de uma vez, não
    descobrir um problema por cada build. ──────────────────────────────────── */
-const OBRIGATORIOS = ['title', 'excerpt', 'category', 'date', 'readTime'] as const
+export const OBRIGATORIOS = ['title', 'excerpt', 'category', 'date', 'readTime'] as const
 
 const CATEGORIAS: readonly string[] = BLOG_CATEGORIES
 

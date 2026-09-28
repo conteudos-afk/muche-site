@@ -21,6 +21,11 @@ test('trata palavras com hífen como uma só', () => {
   expect(contarPalavras('pré-produção é uma palavra')).toBe(4)
 })
 
+test('não conta comentários HTML, incluindo em várias linhas', () => {
+  const md = 'Uma frase real.\n\n<!--\npalavra palavra palavra palavra\npalavra palavra\n-->\n\nOutra frase real.'
+  expect(contarPalavras(md)).toBe(6)
+})
+
 test('o intervalo é o do spec', () => {
   expect([MIN_PALAVRAS, MAX_PALAVRAS]).toEqual([1200, 1800])
   expect(dentroDoIntervalo(1199)).toBe(false)

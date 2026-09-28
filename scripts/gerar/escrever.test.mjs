@@ -23,6 +23,11 @@ test('tira um preâmbulo antes do frontmatter', () => {
   expect(limparResposta('Aqui está o artigo:\n\n---\ntitle: "A"\n---\n\nCorpo.')).toBe('---\ntitle: "A"\n---\n\nCorpo.')
 })
 
+test('tira um bloco de código mesmo quando vem com preâmbulo à frente', () => {
+  const entrada = 'Aqui está o artigo:\n\n```markdown\n---\ntitle: "A"\n---\n\nCorpo.\n```'
+  expect(limparResposta(entrada)).toBe('---\ntitle: "A"\n---\n\nCorpo.')
+})
+
 test('deixa em paz uma resposta já limpa', () => {
   expect(limparResposta(BOM)).toBe(BOM)
 })
@@ -46,6 +51,14 @@ test('acusa um artigo curto de mais', () => {
   expect(verificarArtigo({ markdown: curto, slug: 'teste', lang: 'pt' }).join(' ')).toContain('400')
 })
 
+test('não deixa um comentário HTML preencher um artigo curto até ao mínimo', () => {
+  const real = 'palavra '.repeat(1100).trim()
+  const comentario = `<!-- ${'palavra '.repeat(300).trim()} -->`
+  const curtoDisfarcado = BOM.replace(CORPO_LONGO, `${real}\n\n${comentario}`)
+  const problemas = verificarArtigo({ markdown: curtoDisfarcado, slug: 'teste', lang: 'pt' })
+  expect(problemas.join(' ')).toContain('1100')
+})
+
 test('acusa um artigo sem frontmatter nenhum', () => {
   expect(verificarArtigo({ markdown: 'Só corpo.', slug: 'teste', lang: 'pt' }).join(' ')).toContain('frontmatter')
 })
@@ -55,11 +68,37 @@ test('acusa um título de nível 1 no corpo', () => {
   expect(verificarArtigo({ markdown: comH1, slug: 'teste', lang: 'pt' }).join(' ')).toContain('#')
 })
 
+test('acusa um aviso do leitor de frontmatter, não só um campo em falta', () => {
+  const comAvisoDoLeitor = BOM.replace(
+    'readTime: "7 min de leitura"\n---',
+    'readTime: "7 min de leitura"\numa linha sem dois pontos\n---'
+  )
+  expect(verificarArtigo({ markdown: comAvisoDoLeitor, slug: 'teste', lang: 'pt' }).join(' ')).toContain('[blog]')
+})
+
+test('acusa um segundo bloco de frontmatter que vazou para o corpo', () => {
+  const comSegundo = `${BOM}\n\n---\ntitle: "Outro"\nexcerpt: "Outro excerto."\ncategory: "Podcasts"\ndate: "September 2026"\nreadTime: "1 min de leitura"\n---\n\nMais texto a seguir.`
+  expect(verificarArtigo({ markdown: comSegundo, slug: 'teste', lang: 'pt' }).join(' ')).toContain('segundo bloco de frontmatter')
+})
+
+test('não acusa um separador horizontal comum como se fosse um segundo frontmatter', () => {
+  const comSeparador = BOM.replace(CORPO_LONGO, `${CORPO_LONGO}\n\n---\n\nMais texto depois do separador.`)
+  expect(verificarArtigo({ markdown: comSeparador, slug: 'teste', lang: 'pt' }).join(' ')).not.toContain('segundo bloco de frontmatter')
+})
+
 test('escreve o ficheiro no sítio certo, com newline final', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'escrever-'))
   const caminho = escreverArtigo({ contentDir: dir, slug: 'teste', lang: 'pt', markdown: BOM })
   expect(caminho).toBe(path.join(dir, 'teste', 'pt.md'))
   expect(fs.readFileSync(caminho, 'utf-8')).toBe(BOM + '\n')
+})
+
+test('recusa um slug que tente escrever fora da pasta de destino', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'escrever-'))
+  expect(() => escreverArtigo({ contentDir: dir, slug: '..', lang: 'pt', markdown: BOM }))
+    .toThrow(/slug inválido/)
+  expect(() => escreverArtigo({ contentDir: dir, slug: '../outside', lang: 'pt', markdown: BOM }))
+    .toThrow(/slug inválido/)
 })
 
 test('recusa escrever por cima de um artigo que já existe', () => {
