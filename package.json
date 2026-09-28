@@ -6,6 +6,7 @@
   "scripts": {
     "build": "vite build && vite build --ssr src/entry-server.tsx --outDir dist-ssr && node scripts/prerender.mjs",
     "dev": "vite",
+    "gerar": "node scripts/gerar/index.mjs",
     "test": "vitest run"
   },
   "dependencies": {
