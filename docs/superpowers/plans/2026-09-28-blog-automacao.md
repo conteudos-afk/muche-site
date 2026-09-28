@@ -414,7 +414,7 @@ test('não conta o frontmatter', () => {
 })
 
 test('não conta URLs de ligações, só o texto', () => {
-  expect(contarPalavras('Vê [a nossa página](https://www.muche.pt/servicos/) agora.')).toBe(6)
+  expect(contarPalavras('Vê [a nossa página](https://www.muche.pt/servicos/) agora.')).toBe(5)
 })
 
 test('trata palavras com hífen como uma só', () => {
