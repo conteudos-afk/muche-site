@@ -1,4 +1,4 @@
-import { BLOG_CATEGORIES } from './categories'
+import { BLOG_CATEGORIES } from './categories.ts'
 import type { PostMeta } from './types'
 
 /* ─── Validação do frontmatter ───────────────────────────────────────────────
