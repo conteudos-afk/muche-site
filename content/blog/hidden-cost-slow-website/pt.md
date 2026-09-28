@@ -8,9 +8,9 @@ readTime: "4 min de leitura"
 
 A velocidade é invisível quando existe e insuportável quando não existe. Um website rápido não se nota — limita-se a deixar que a experiência comece. Um website lento nota-se de imediato, e o juízo que provoca é desproporcionadamente duro: se esta empresa não se dá ao trabalho de tornar o website rápido, o que é que isso diz sobre a forma como trata os outros pormenores?
 
-## Os números são crus
+## Ninguém espera
 
-Os dados da Google mostram de forma consistente que um atraso de um segundo no tempo de carregamento de uma página pode reduzir as conversões até 20%. Para os utilizadores em telemóvel — hoje a maioria do tráfego web — a tolerância é ainda menor. Uma página que demora mais de três segundos a carregar no telemóvel perde mais de metade dos visitantes antes de estes verem uma única palavra de conteúdo.
+Cada segundo de espera custa visitantes, e o efeito é cumulativo: quanto mais demora, maior a fatia de pessoas que desiste antes de ver o que quer que seja. Em telemóvel — hoje a maioria do tráfego — a tolerância é ainda menor, e é precisamente aí que as condições de rede são piores. A pessoa que fecha um separador lento não regista que o site era lento: regista que não valia a pena.
 
 ## A performance é um valor de marca
 

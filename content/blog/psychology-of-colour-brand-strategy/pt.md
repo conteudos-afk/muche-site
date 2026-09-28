@@ -10,7 +10,7 @@ A cor é uma das ferramentas mais imediatas e mais poderosas no arsenal de uma m
 
 ## A emoção antes da lógica
 
-Os estudos mostram que até 90% dos juízos instantâneos sobre produtos podem assentar apenas na cor. Tons quentes como o dourado e o âmbar sugerem calor, qualidade e tradição. Os azuis frios comunicam confiança e precisão. Os verdes profundos evocam natureza e ética. Nada disto é acidental nas marcas que admiras — é projetado.
+A cor chega antes da forma e muito antes das palavras: é o primeiro sinal que o olho processa e o último que se esquece. Tons quentes como o dourado e o âmbar sugerem calor, qualidade e tradição. Os azuis frios comunicam confiança e precisão. Os verdes profundos evocam natureza e ética. Nada disto é acidental nas marcas que admiras — é projetado.
 
 ## Ser dono de uma cor
 

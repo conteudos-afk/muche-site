@@ -20,4 +20,4 @@ O espaço em que filmas comunica com tanta força como as palavras que são dita
 
 Uma shot list é a tradução do argumento em instruções concretas de câmara. Uma call sheet diz a cada pessoa da produção a que horas tem de estar onde, o que levar e o que acontece por que ordem. Não são documentos burocráticos — são a diferença entre um dia concentrado e eficiente e um dia caótico e caro.
 
-O investimento numa pré-produção minuciosa devolve sempre mais do que custa. Reduz o risco de refilmagens caras, dá confiança aos clientes e cria as condições para a equipa criativa fazer o seu melhor trabalho. Os bons filmes são planeados até existirem. Não são improvisados.
+O investimento numa pré-produção minuciosa devolve sempre mais do que custa. Reduz o risco de refilmagens caras, dá confiança aos clientes e cria as condições para a equipa criativa fazer o seu melhor trabalho. Os bons vídeos são planeados até existirem. Não são improvisados.
