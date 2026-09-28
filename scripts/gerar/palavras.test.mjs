@@ -17,6 +17,10 @@ test('não conta URLs de ligações, só o texto', () => {
   expect(contarPalavras('Vê [a nossa página](https://www.muche.pt/servicos/) agora.')).toBe(5)
 })
 
+test('tira uma imagem por inteiro, sem contar o texto alternativo como palavras', () => {
+  expect(contarPalavras('Vê ![texto alternativo da imagem](https://x.pt/a.png) agora.')).toBe(2)
+})
+
 test('trata palavras com hífen como uma só', () => {
   expect(contarPalavras('pré-produção é uma palavra')).toBe(4)
 })
@@ -29,6 +33,11 @@ test('não conta comentários HTML, incluindo em várias linhas', () => {
 test('não conta um comentário HTML sem fecho, até ao fim do texto', () => {
   const md = 'Uma frase real.\n\n<!-- palavra palavra palavra palavra palavra palavra'
   expect(contarPalavras(md)).toBe(3)
+})
+
+test('um `<!--` por fechar dentro de um bloco de código não come o resto do artigo', () => {
+  const md = 'Prosa real antes do bloco.\n\n```\nexemplo de código <!-- comentário nunca fechado\n```\n\nProsa real depois do bloco, e esta continua a contar.'
+  expect(contarPalavras(md)).toBe(15)
 })
 
 test('o intervalo é o do spec', () => {
