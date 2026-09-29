@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 import { SISTEMA, promptEscrever, promptExpandir, promptIngles } from './prompt.mjs'
+import { BLOG_CATEGORIES } from '../../src/lib/blog/categories.ts'
 
 const REF = {
   slug: 'referencia', lang: 'pt', categoria: 'Podcasts',
@@ -160,4 +161,80 @@ test('nenhum dos três prompts instrui o modelo sobre o readTime', () => {
     expect(p).not.toContain('dividir por 200')
     expect(p).not.toContain('min read')
   }
+})
+
+test('o sistema diz ao modelo que o readTime é calculado depois e que qualquer valor plausível serve', () => {
+  expect(SISTEMA).toContain('qualquer valor plausível')
+  expect(SISTEMA).toContain('calculado depois, por código')
+})
+
+/* ─── Nenhuma grafia anterior ao Acordo nos prompts ─────────────────────────
+   O `SISTEMA` manda escrever no novo Acordo; se ele próprio estiver escrito
+   no antigo, contradiz-se, e o modelo tende a copiar o que vê mais do que o
+   que lhe mandam. Este teste apanha as sequências que o Acordo tirou —
+   consoante muda antes de outra (`c` ou `p` antes de `c`, `ç`, `t`) — e os
+   nomes dos meses com maiúscula.
+
+   A LISTA DE EXCEPÇÕES É PARTE DO TESTE, e tem de estar certa: um teste que
+   dispara numa palavra legítima é apagado pelo primeiro que tropeçar nele, e
+   a partir daí não protege nada. Por isso está em duas partes:
+   - `LEGITIMAS`: palavras (ou raízes) em que a consoante se pronuncia e por
+     isso se mantém no Acordo — facto, contacto, adaptar, opção, espectador,
+     ficção, corrupção, impacto… Se uma palavra correcta for apanhada, é aqui
+     que se acrescenta (com a razão), não no teste que a apanhou.
+   - `INGLES`: palavras inglesas que aparecem nos prompts (chaves do
+     frontmatter, o mês do exemplo de data).
+   Fica de fora, de propósito, o que está dentro de «nunca «…»»: o `SISTEMA`
+   cita a grafia antiga para a proibir, e isso tem de poder continuar. ─── */
+const LEGITIMAS = [
+  /^fact(o|os)$/, /^artefact/, /^contact/, /^impact/, /^pact/, /^compact/, /^intact/, /^tact(o|os)$/, /^cact/,
+  /^espect/, /^pict/, /^intelect/, /^oct(o|a)/,
+  /^adapt/, /^apt(o|a|os|as|idão|idões)$/, /^capt/, /^opç/, /^opt(ar|ou|am|a|e|ei|amos|ando|ado|ados|ativ)/,
+  /^rupt/, /^ruptur/, /^abrupt/, /^corrupç/, /^erupç/, /^interrupç/, /^disrupt/, /^inept/,
+  /^ficç/, /^ficc/, /^fricç/, /^occip/,
+]
+/* `production` vem do nome da categoria «Video Production», que entra nos prompts à letra. */
+const INGLES = new Set(['excerpt', 'september', 'production', 'accept', 'except', 'script', 'receipt'])
+const MESES = /\b(Janeiro|Fevereiro|Março|Abril|Maio|Junho|Julho|Agosto|Setembro|Outubro|Novembro|Dezembro)\b/g
+
+function grafiasAntigas(texto) {
+  /* O que vem depois de «nunca» é a grafia antiga citada para ser proibida. */
+  const semProibidas = String(texto).replace(/nunca\s+«[^»]*»/g, ' ')
+  const palavras = semProibidas.match(/\p{L}+/gu) ?? []
+  const suspeitas = palavras.filter(pal => {
+    const p = pal.toLowerCase()
+    return /c[cçt]|p[tç]/.test(p) && !INGLES.has(p) && !LEGITIMAS.some(re => re.test(p))
+  })
+  return [...suspeitas, ...(semProibidas.match(MESES) ?? [])]
+}
+
+test('grafiasAntigas apanha as formas do Acordo antigo', () => {
+  for (const velha of ['directo', 'exactamente', 'actuais', 'percepção', 'excepção', 'objectivo', 'colectivo', 'projecto', 'carácter', 'Outubro']) {
+    expect(grafiasAntigas(`Uma frase com ${velha} lá dentro.`), velha).toContain(velha)
+  }
+})
+
+test('grafiasAntigas deixa passar as palavras em que a consoante se pronuncia', () => {
+  const legitimo = 'O facto e o contacto com o espectador: adaptar, opção, ficção, corrupção, impacto, egípcio, pictórico, intelectual, exatamente, diretor, atuais, exceção, outubro.'
+  expect(grafiasAntigas(legitimo)).toEqual([])
+})
+
+test('grafiasAntigas deixa passar a grafia antiga citada depois de «nunca», e só aí', () => {
+  expect(grafiasAntigas('«ativo», nunca «activo». «diretor», nunca «director».')).toEqual([])
+  expect(grafiasAntigas('Escreve director, nunca «director».')).toEqual(['director'])
+})
+
+test('nenhum prompt tem grafia anterior ao Acordo Ortográfico', () => {
+  const refEn = { ...REF, lang: 'en', corpo: 'An approved English article.' }
+  /* Todas as categorias reais, porque entram nos prompts à letra. */
+  const escrever = BLOG_CATEGORIES.map(categoria => promptEscrever({ tema: { ...TEMA, categoria }, referencias: [REF] }))
+  const montados = [
+    SISTEMA,
+    ...escrever,
+    promptExpandir({ artigo: { ...REF, slug: 'original' }, referencias: [REF] }),
+    promptIngles({ artigoPt: 'Texto em português.', referenciaEn: refEn }),
+  ].join('\n\n')
+
+  const encontradas = [...new Set(grafiasAntigas(montados))]
+  expect(encontradas, `grafia antiga nos prompts: ${encontradas.join(', ')}. Se a palavra estiver certa no Acordo, acrescenta-a a LEGITIMAS`).toEqual([])
 })

@@ -19,7 +19,7 @@ Escreves artigos para o blog da agência. O objetivo é serem encontrados em pes
 - **Novo Acordo Ortográfico** (o de 1990). «ativo», nunca «activo». «perceção», nunca «percepção». «diretor», nunca «director». Os meses escrevem-se com minúscula: «outubro», nunca «Outubro».
 - Termos do ofício em inglês quando é isso que se usa em Portugal: branding, storytelling, podcast, design, copy.
 - **«vídeo de marca»** — nunca «filme de marca», nunca «vídeo institucional».
-- Frases directas. Sem superlativos de brochura, sem «no mundo de hoje», sem «na era digital».
+- Frases diretas. Sem superlativos de brochura, sem «no mundo de hoje», sem «na era digital».
 - Afirma o que sabes e assume o que não sabes. Não vendes: explicas.
 
 ## Proibições
@@ -32,7 +32,7 @@ Escreves artigos para o blog da agência. O objetivo é serem encontrados em pes
 
 Devolves **um ficheiro Markdown completo e mais nada** — sem preâmbulo, sem explicação, sem blocos de código à volta. A resposta acaba na última linha do artigo: a seguir não vem nota de fecho, nem oferta para ajustar, nem comentário sobre o próprio artigo.
 
-O ficheiro começa por frontmatter entre \`---\`, com exactamente estas cinco chaves, cada uma numa linha, com o valor entre aspas duplas:
+O ficheiro começa por frontmatter entre \`---\`, com exatamente estas cinco chaves, cada uma numa linha, com o valor entre aspas duplas:
 
 \`\`\`
 ---
@@ -44,12 +44,13 @@ readTime: "…"
 ---
 \`\`\`
 
-Regras do frontmatter, sem excepção:
+Regras do frontmatter, sem exceção:
 
 - Nenhum valor pode ter aspas duplas por dentro. Usa aspas angulares «» se precisares de citar.
 - Nenhum valor ocupa mais do que uma linha.
 - \`category\` é copiada à letra da que te for indicada.
 - \`excerpt\` tem uma ou duas frases.
+- \`readTime\` leva qualquer valor plausível: o verdadeiro é calculado depois, por código, a partir da contagem real de palavras. Não gastes tempo a contá-las.
 
 A seguir ao frontmatter vem o corpo, em Markdown: parágrafos, \`##\` para subtítulos, listas com \`-\`. Sem \`#\` de nível 1 — o título já está no frontmatter.`
 
@@ -112,8 +113,8 @@ export function promptEscrever({ tema, referencias }) {
 ${DIMENSAO}
 
 No frontmatter:
-- \`category\` é exactamente \`${tema.categoria}\`.
-- \`date\` é o mês e ano actuais em inglês, no formato \`"September 2026"\`.
+- \`category\` é exatamente \`${tema.categoria}\`.
+- \`date\` é o mês e ano atuais em inglês, no formato \`"September 2026"\`.
 
 Abaixo estão artigos já aprovados deste blog. **Escreve como eles.** Repara no comprimento das frases, em como abrem, em como usam subtítulos e em como acabam sem vender.
 
@@ -148,8 +149,8 @@ export function promptIngles({ artigoPt, referenciaEn }) {
 Não é uma tradução literal: é o mesmo artigo escrito em inglês, com o mesmo argumento e a mesma estrutura. Onde a expressão portuguesa não tiver equivalente, escreve o que ela quer dizer.
 
 - Inglês britânico: \`colour\`, \`organisation\`, \`programme\`.
-- Tratamento directo por \`you\`.
-- \`category\` e \`date\` ficam **exactamente iguais** às do artigo português — são chaves partilhadas pelas duas versões.
+- Tratamento direto por \`you\`.
+- \`category\` e \`date\` ficam **exatamente iguais** às do artigo português — são chaves partilhadas pelas duas versões.
 
 ${DIMENSAO}
 
