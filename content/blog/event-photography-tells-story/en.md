@@ -2,7 +2,7 @@
 title: "Event photography that tells the story, not just the moment"
 excerpt: "Good event photography captures faces. Great event photography captures meaning. Here is the briefing process we use to ensure every shoot delivers narrative value."
 category: "Photography & Events"
-date: "June 2026"
+date: "2026-06-08"
 readTime: "1 min read"
 ---
 

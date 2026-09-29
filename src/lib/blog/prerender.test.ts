@@ -3,7 +3,7 @@ import { buildHead, buildListHead, isoDate, revealInitialState } from '../../../
 
 const base = {
   title: 'Um título', excerpt: 'Um excerto', lang: 'pt' as const,
-  slug: 'teste', category: 'Branding & Visual Identity', date: 'September 2026',
+  slug: 'teste', category: 'Branding & Visual Identity', date: '2026-09-29',
 }
 
 test('gera metadados próprios por artigo', () => {
@@ -71,13 +71,10 @@ test('a página inglesa nunca aponta o canónico para outro lado', () => {
 
 /* ─── datePublished ───────────────────────────────────────────────────────── */
 
-test('a data do frontmatter sai em ISO 8601, que é o que o schema.org exige', () => {
-  expect(isoDate('July 2026')).toBe('2026-07')
-  expect(isoDate('December 2025')).toBe('2025-12')
-  /* Já em ISO, passa como está. */
-  expect(isoDate('2026-07')).toBe('2026-07')
+test('a data do frontmatter passa como está, que já é ISO 8601 e é o que o schema.org exige', () => {
   expect(isoDate('2026-07-15')).toBe('2026-07-15')
-  expect(buildHead({ ...base, date: 'July 2026' })).toContain('"datePublished":"2026-07"')
+  expect(isoDate(' 2025-12-01 ')).toBe('2025-12-01')
+  expect(buildHead({ ...base, date: '2026-07-15' })).toContain('"datePublished":"2026-07-15"')
 })
 
 /* Um campo recomendado ausente é melhor do que um inválido: com o valor
@@ -85,6 +82,9 @@ test('a data do frontmatter sai em ISO 8601, que é o que o schema.org exige', (
    dados estruturados na página. */
 test('uma data que não parseia deixa a propriedade de fora', () => {
   expect(isoDate('brevemente')).toBeNull()
+  /* O que o frontmatter escrevia antes de a data levar o dia. */
+  expect(isoDate('July 2026')).toBeNull()
+  expect(isoDate('2026-07')).toBeNull()
   expect(isoDate('')).toBeNull()
   expect(isoDate(undefined)).toBeNull()
   expect(buildHead({ ...base, date: 'brevemente' })).not.toContain('datePublished')

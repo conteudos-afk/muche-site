@@ -2,7 +2,7 @@
 title: "Fazer rebranding sem perder o teu público"
 excerpt: "Evolução versus revolução: como modernizar uma identidade de marca mantendo a confiança e a familiaridade que os teus clientes já associam a ti."
 category: "Branding & Visual Identity"
-date: "March 2026"
+date: "2026-03-24"
 readTime: "2 min de leitura"
 ---
 

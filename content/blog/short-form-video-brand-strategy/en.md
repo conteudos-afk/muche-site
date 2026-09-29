@@ -2,7 +2,7 @@
 title: "Why short-form video is now a brand strategy tool"
 excerpt: "Reels, Shorts, TikToks — the format has matured. We look at how brands are using short-form video not just for reach, but for positioning and loyalty."
 category: "Video Production"
-date: "May 2026"
+date: "2026-05-14"
 readTime: "1 min read"
 ---
 

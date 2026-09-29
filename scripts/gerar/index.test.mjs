@@ -6,19 +6,26 @@ import { gerarUm, gerarLote, lerArgumentos, resolverAlvos } from './index.mjs'
 import { lerTemas } from './temas.mjs'
 
 const corpo = n => 'palavra '.repeat(n)
+/* Como o modelo responde: quatro chaves, sem `date`. */
 const artigo = (titulo, palavras) => `---
 title: "${titulo}"
 excerpt: "Um excerto."
 category: "Podcasts"
-date: "September 2026"
 readTime: "7 min de leitura"
 ---
 
 ${corpo(palavras)}`
 
+/* Como o modelo responderia se teimasse em pôr uma data. */
+const artigoComData = (titulo, palavras, data) =>
+  artigo(titulo, palavras).replace('readTime:', `date: "${data}"\nreadTime:`)
+
+const dataDe = (contentDir, slug, lang) =>
+  fs.readFileSync(path.join(contentDir, slug, `${lang}.md`), 'utf-8').match(/^date: "(.*)"$/m)?.[1]
+
 const REF = {
   slug: 'ref', lang: 'pt', categoria: 'Podcasts',
-  frontmatter: { title: 'Ref', excerpt: 'E.', category: 'Podcasts', date: 'July 2026', readTime: '5 min de leitura' },
+  frontmatter: { title: 'Ref', excerpt: 'E.', category: 'Podcasts', date: '2026-07-15', readTime: '5 min de leitura' },
   corpo: 'Corpo.', palavras: 1,
 }
 const REF_EN = { ...REF, lang: 'en' }
@@ -212,11 +219,82 @@ test('no modo expandir escreve por cima do artigo que já existe', async () => {
   fs.writeFileSync(path.join(contentDir, 'antigo', 'pt.md'), artigo('Antigo', 300))
   fs.writeFileSync(path.join(contentDir, 'antigo', 'en.md'), artigo('Old', 300))
 
-  const alvo = { slug: 'antigo', lang: 'pt', categoria: 'Podcasts', frontmatter: { title: 'Antigo', category: 'Podcasts' }, corpo: corpo(300), palavras: 300 }
+  const alvo = { slug: 'antigo', lang: 'pt', categoria: 'Podcasts', frontmatter: { title: 'Antigo', category: 'Podcasts', date: '2026-03-10' }, corpo: corpo(300), palavras: 300 }
   const cliente = clienteFalso([artigo('Expandido', 1400), artigo('Expanded', 1400)])
 
   await gerarUm({ cliente, modo: 'expandir', alvo, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir })
   expect(fs.readFileSync(path.join(contentDir, 'antigo', 'pt.md'), 'utf-8')).toContain('Expandido')
+})
+
+/* Republicar um artigo não o pode fazer parecer novo: o blog ordena por data,
+   e um artigo expandido com a data de hoje saltava para o topo da lista. */
+test('no modo expandir a data do artigo não muda, nem que o modelo ponha outra', async () => {
+  const contentDir = dirTemp()
+  const alvo = { slug: 'antigo', lang: 'pt', categoria: 'Podcasts', frontmatter: { title: 'Antigo', category: 'Podcasts', date: '2026-03-10' }, corpo: corpo(300), palavras: 300 }
+  const cliente = clienteFalso([artigoComData('Expandido', 1400, '2030-01-01'), artigoComData('Expanded', 1400, '2031-02-02')])
+
+  await gerarUm({
+    cliente, modo: 'expandir', alvo, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir,
+    agora: new Date('2026-09-29T10:00:00Z'),
+  })
+
+  expect(dataDe(contentDir, 'antigo', 'pt')).toBe('2026-03-10')
+  expect(dataDe(contentDir, 'antigo', 'en')).toBe('2026-03-10')
+})
+
+test('no modo expandir a data do artigo mantém-se mesmo quando o modelo não põe nenhuma', async () => {
+  const contentDir = dirTemp()
+  const alvo = { slug: 'antigo', lang: 'pt', categoria: 'Podcasts', frontmatter: { title: 'Antigo', category: 'Podcasts', date: '2026-03-10' }, corpo: corpo(300), palavras: 300 }
+  const cliente = clienteFalso([artigo('Expandido', 1400), artigo('Expanded', 1400)])
+
+  await gerarUm({
+    cliente, modo: 'expandir', alvo, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir,
+    agora: new Date('2026-09-29T10:00:00Z'),
+  })
+
+  expect(dataDe(contentDir, 'antigo', 'pt')).toBe('2026-03-10')
+  expect(dataDe(contentDir, 'antigo', 'en')).toBe('2026-03-10')
+})
+
+test('no modo expandir, um artigo sem data válida não se escreve: não se inventa uma', async () => {
+  for (const date of [undefined, '', 'July 2026', '2026-02-30']) {
+    const contentDir = dirTemp()
+    fs.mkdirSync(path.join(contentDir, 'antigo'), { recursive: true })
+    fs.writeFileSync(path.join(contentDir, 'antigo', 'pt.md'), 'original pt')
+    const alvo = { slug: 'antigo', lang: 'pt', categoria: 'Podcasts', frontmatter: { title: 'Antigo', category: 'Podcasts', date }, corpo: corpo(300), palavras: 300 }
+    const cliente = clienteFalso([artigo('Expandido', 1400), artigo('Expanded', 1400)])
+
+    await expect(gerarUm({
+      cliente, modo: 'expandir', alvo, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir,
+    }), String(date)).rejects.toThrow(/data/)
+    expect(fs.readFileSync(path.join(contentDir, 'antigo', 'pt.md'), 'utf-8')).toBe('original pt')
+  }
+})
+
+test('no modo escrever a data é a de hoje, escrita pelo código, igual nas duas línguas', async () => {
+  const contentDir = dirTemp()
+  const cliente = clienteFalso([artigo('Português', 1400), artigo('English', 1400)])
+
+  await gerarUm({
+    cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir,
+    agora: new Date('2026-10-03T23:30:00Z'),
+  })
+
+  expect(dataDe(contentDir, 'tema-novo', 'pt')).toBe('2026-10-03')
+  expect(dataDe(contentDir, 'tema-novo', 'en')).toBe('2026-10-03')
+})
+
+test('no modo escrever a data do modelo, se a houver, é substituída pela de hoje', async () => {
+  const contentDir = dirTemp()
+  const cliente = clienteFalso([artigoComData('Português', 1400, 'September 2026'), artigoComData('English', 1400, '2020-01-01')])
+
+  await gerarUm({
+    cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir,
+    agora: new Date('2026-10-03T08:00:00Z'),
+  })
+
+  expect(dataDe(contentDir, 'tema-novo', 'pt')).toBe('2026-10-03')
+  expect(dataDe(contentDir, 'tema-novo', 'en')).toBe('2026-10-03')
 })
 
 const ficheiroTemasTemp = () => {
@@ -262,4 +340,25 @@ test('gerarLote marca cada tema como usado assim que o artigo é escrito, não s
   const temasDepois = lerTemas(temasPath)
   expect(temasDepois.find(t => t.slug === 'um').estado).toBe('publicado')
   expect(temasDepois.find(t => t.slug === 'dois').estado).toBe('por-escrever')
+})
+
+/* Um lote passa o mesmo instante a todos os artigos: não é um relógio por
+   artigo, que um lote a cavalo da meia-noite espalharia por dois dias. */
+test('gerarLote dá a mesma data, a do seu instante, a todos os artigos do lote', async () => {
+  const contentDir = dirTemp()
+  const temasPath = ficheiroTemasTemp()
+  const alvos = [
+    { slug: 'um', tema: 'Primeiro tema', angulo: 'Um ângulo', categoria: 'Podcasts', prioridade: 1, estado: 'por-escrever' },
+    { slug: 'dois', tema: 'Segundo tema', angulo: 'Outro ângulo', categoria: 'Podcasts', prioridade: 2, estado: 'por-escrever' },
+  ]
+  const cliente = clienteFalso([artigo('Um PT', 1400), artigo('Um EN', 1400), artigo('Dois PT', 1400), artigo('Dois EN', 1400)])
+
+  await gerarLote({
+    cliente, modo: 'escrever', alvos, artigosPt: [REF], artigosEn: [REF_EN], contentDir, temasPath,
+    agora: new Date('2026-11-05T12:00:00Z'),
+  })
+
+  for (const slug of ['um', 'dois']) {
+    for (const lang of ['pt', 'en']) expect(dataDe(contentDir, slug, lang), `${slug}/${lang}`).toBe('2026-11-05')
+  }
 })

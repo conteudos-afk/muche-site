@@ -2,7 +2,7 @@
 title: "Rebranding without losing your audience"
 excerpt: "Evolution versus revolution: how to modernise a brand identity while keeping the trust and familiarity your customers already associate with you."
 category: "Branding & Visual Identity"
-date: "March 2026"
+date: "2026-03-24"
 readTime: "2 min read"
 ---
 

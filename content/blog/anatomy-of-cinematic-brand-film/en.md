@@ -2,7 +2,7 @@
 title: "The anatomy of a cinematic brand video"
 excerpt: "What separates a memorable brand video from footage that looks good but says nothing — and how to prepare the brief, the casting and the music so the result actually belongs to your brand."
 category: "Video Production"
-date: "July 2026"
+date: "2026-07-06"
 readTime: "8 min read"
 ---
 

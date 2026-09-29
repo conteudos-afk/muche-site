@@ -2,7 +2,7 @@
 title: "The psychology of colour in brand strategy"
 excerpt: "Colours are not decorative — they are decisions. We break down how leading brands use colour to trigger emotion, build recognition, and command premium positioning."
 category: "Branding & Visual Identity"
-date: "May 2026"
+date: "2026-05-26"
 readTime: "1 min read"
 ---
 

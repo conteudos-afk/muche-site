@@ -2,7 +2,7 @@
 title: "Estratégia de podcast antes da produção: definir o teu público e formato"
 excerpt: "Antes de gravares um único episódio, as decisões que tomares sobre formato, cadência e posicionamento vão determinar se o teu podcast cresce ou estagna."
 category: "Podcasts"
-date: "January 2026"
+date: "2026-01-20"
 readTime: "2 min de leitura"
 ---
 

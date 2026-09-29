@@ -2,7 +2,7 @@
 title: "A anatomia de um vídeo de marca cinematográfico"
 excerpt: "O que separa um vídeo de marca memorável de imagens bonitas mas genéricas — e como preparar o briefing, o casting e a música para que o resultado seja mesmo o da tua marca."
 category: "Video Production"
-date: "July 2026"
+date: "2026-07-06"
 readTime: "8 min de leitura"
 ---
 

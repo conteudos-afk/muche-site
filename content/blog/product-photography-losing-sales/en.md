@@ -2,7 +2,7 @@
 title: "Why your product photography might be losing you sales"
 excerpt: "In e-commerce, photography is the product experience. We look at the lighting, styling, and context decisions that convert browsers into buyers."
 category: "Photography & Events"
-date: "April 2026"
+date: "2026-04-07"
 readTime: "1 min read"
 ---
 

@@ -2,7 +2,7 @@
 title: "Pre-production is where great videos are made"
 excerpt: "Most video failures happen before the camera rolls. A look at the planning, scripting, and casting decisions that determine whether a production succeeds."
 category: "Video Production"
-date: "February 2026"
+date: "2026-02-17"
 readTime: "1 min read"
 ---
 

@@ -2,7 +2,7 @@
 title: "Typography as personality: choosing typefaces that speak"
 excerpt: "Every typeface carries a voice. Here is how to match type to tone — and avoid the most common pairing mistakes we see from brands every week."
 category: "Graphic Design"
-date: "April 2026"
+date: "2026-04-21"
 readTime: "1 min read"
 ---
 

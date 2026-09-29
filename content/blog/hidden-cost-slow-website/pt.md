@@ -2,7 +2,7 @@
 title: "O custo escondido de um website lento"
 excerpt: "Cada segundo de tempo de carregamento custa conversões. Analisamos o que a performance realmente significa para a perceção da marca — e as mudanças simples que fazem a maior diferença."
 category: "Web Design"
-date: "March 2026"
+date: "2026-03-10"
 readTime: "1 min de leitura"
 ---
 

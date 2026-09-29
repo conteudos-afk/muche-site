@@ -2,7 +2,7 @@
 title: "The hidden cost of a slow website"
 excerpt: "Every second of load time costs conversions. We examine what performance really means for brand perception — and the simple changes that make the biggest difference."
 category: "Web Design"
-date: "March 2026"
+date: "2026-03-10"
 readTime: "1 min read"
 ---
 

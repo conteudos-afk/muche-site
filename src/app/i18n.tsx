@@ -211,17 +211,25 @@ export function translateCategory(category: string, lang: Lang): string {
   return lang === "pt" ? CATEGORY_PT[category] ?? category : category
 }
 
-const MONTHS_PT: Record<string, string> = {
-  January: "janeiro", February: "fevereiro", March: "março", April: "abril",
-  May: "maio", June: "junho", July: "julho", August: "agosto",
-  September: "setembro", October: "outubro", November: "novembro", December: "dezembro",
-}
+const MONTHS_EN = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+]
 
+const MONTHS_PT = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+]
+
+/* A data do artigo é `AAAA-MM-DD`; o leitor vê só o mês e o ano, como sempre
+   viu: «julho de 2026» em português e «July 2026» em inglês. O dia serve para
+   ordenar a lista, não para mostrar. Um texto que não seja uma data ISO passa
+   como está — melhor mostrar o que lá está do que uma página sem data. */
 export function translateDate(date: string, lang: Lang): string {
-  if (lang !== "pt") return date
-  const [month, year] = date.split(" ")
-  const pt = MONTHS_PT[month]
-  return pt ? `${pt} de ${year}` : date
+  const m = /^(\d{4})-(\d{2})-\d{2}$/.exec(date)
+  const mes = m ? Number(m[2]) - 1 : -1
+  if (!m || mes < 0 || mes > 11) return date
+  return lang === "pt" ? `${MONTHS_PT[mes]} de ${m[1]}` : `${MONTHS_EN[mes]} ${m[1]}`
 }
 
 export function translateReadTime(readTime: string, lang: Lang): string {

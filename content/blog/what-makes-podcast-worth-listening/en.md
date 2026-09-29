@@ -2,7 +2,7 @@
 title: "What makes a podcast worth listening to?"
 excerpt: "Audio storytelling is having a moment. Here is what the best brand podcasts get right — and the production and editorial choices that separate the memorable from the forgettable."
 category: "Podcasts"
-date: "May 2026"
+date: "2026-05-05"
 readTime: "1 min read"
 ---
 

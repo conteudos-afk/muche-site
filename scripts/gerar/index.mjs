@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { lerTemas, proximosTemas, marcarUsados, validarTemas } from './temas.mjs'
 import { lerArtigosMarkdown, escolherReferencias } from './referencias.mjs'
 import { promptEscrever, promptExpandir, promptIngles } from './prompt.mjs'
-import { limparResposta, verificarArtigo, escreverArtigo, aplicarReadTime } from './escrever.mjs'
+import { limparResposta, verificarArtigo, escreverArtigo, aplicarReadTime, aplicarData } from './escrever.mjs'
 import { criarCliente } from './cliente.mjs'
 import { contarPalavras, MIN_PALAVRAS, MAX_PALAVRAS } from './palavras.mjs'
 
@@ -145,20 +145,33 @@ async function pedirComRetentativa(cliente, prompt, slug, lang) {
   return { markdown: ultimo.markdown, custo: total, avisos: ultimo.problemas.map(p => p.mensagem) }
 }
 
-export async function gerarUm({ cliente, modo, alvo, referenciasPt, referenciasEn, contentDir }) {
+/* O que o código decide num artigo, por cima do que o modelo escreveu. */
+const fechar = (markdown, lang, data) =>
+  aplicarData({ markdown: aplicarReadTime({ markdown, lang }), data })
+
+export async function gerarUm({ cliente, modo, alvo, referenciasPt, referenciasEn, contentDir, agora = new Date() }) {
   const slug = alvo.slug
   const substituir = modo === 'expandir'
+
+  /* A data também não é do modelo, e não é a mesma nos dois modos. Um artigo
+     novo tem a de hoje (o dia em UTC, que é o do runner). Um artigo expandido
+     já existe e a data dele **não muda**: republicá-lo com a data de hoje
+     fazia-o passar por novo e subia-o ao topo da lista. Sai do ficheiro que
+     já lá está, nunca do modelo — o prompt de `expandir` nem a menciona. É a
+     mesma para o pt e para o en: são um só artigo. */
+  const data = modo === 'expandir' ? alvo.frontmatter.date : agora.toISOString().slice(0, 10)
 
   const promptPt = modo === 'escrever'
     ? promptEscrever({ tema: alvo, referencias: referenciasPt })
     : promptExpandir({ artigo: alvo, referencias: referenciasPt })
 
-  /* O `readTime` não é decidido pelo modelo: depois de cada artigo passar a
-     verificação, calcula-se a partir da contagem real e escreve-se por cima
-     do que o modelo pôs. O português é corrigido antes de seguir para o
-     pedido inglês, para que o modelo veja o artigo tal como vai ficar. */
+  /* O `readTime` e a `date` não são decididos pelo modelo: depois de cada
+     artigo passar a verificação, calculam-se a partir da contagem real e do
+     dia (ver `data`, acima) e escrevem-se por cima do que o modelo pôs. O
+     português é corrigido antes de seguir para o pedido inglês, para que o
+     modelo veja o artigo tal como vai ficar. */
   const ptBruto = await pedirComRetentativa(cliente, promptPt, slug, 'pt')
-  const pt = { ...ptBruto, markdown: aplicarReadTime({ markdown: ptBruto.markdown, lang: 'pt' }) }
+  const pt = { ...ptBruto, markdown: fechar(ptBruto.markdown, 'pt', data) }
 
   const enBruto = await pedirComRetentativa(
     cliente,
@@ -166,7 +179,7 @@ export async function gerarUm({ cliente, modo, alvo, referenciasPt, referenciasE
     slug,
     'en',
   )
-  const en = { ...enBruto, markdown: aplicarReadTime({ markdown: enBruto.markdown, lang: 'en' }) }
+  const en = { ...enBruto, markdown: fechar(enBruto.markdown, 'en', data) }
 
   const caminhos = [
     escreverArtigo({ contentDir, slug, lang: 'pt', markdown: pt.markdown, substituir }),
@@ -195,7 +208,7 @@ export async function gerarUm({ cliente, modo, alvo, referenciasPt, referenciasE
    lote já foram marcados nas suas próprias iterações e não sofrem o
    mesmo problema — é isto que faz uma falha a meio do lote continuável,
    e não bloqueante, numa segunda execução. */
-export async function gerarLote({ cliente, modo, alvos, artigosPt, artigosEn, contentDir, temasPath }) {
+export async function gerarLote({ cliente, modo, alvos, artigosPt, artigosEn, contentDir, temasPath, agora = new Date() }) {
   const feitos = []
   let custo = 0
 
@@ -210,6 +223,7 @@ export async function gerarLote({ cliente, modo, alvos, artigosPt, artigosEn, co
       referenciasPt: escolherReferencias(artigosPt, categoria, REFERENCIAS, alvo.slug),
       referenciasEn: escolherReferencias(artigosEn, categoria, REFERENCIAS, alvo.slug),
       contentDir,
+      agora,
     })
 
     custo += r.custo

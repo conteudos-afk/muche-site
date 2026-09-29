@@ -2,7 +2,7 @@
 title: "Less is more — the discipline of editorial design"
 excerpt: "White space, hierarchy, and restraint. The principles that separate design that communicates from design that merely decorates."
 category: "Graphic Design"
-date: "June 2026"
+date: "2026-06-24"
 readTime: "1 min read"
 ---
 

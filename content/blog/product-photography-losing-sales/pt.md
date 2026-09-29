@@ -2,7 +2,7 @@
 title: "Porque é que a tua fotografia de produto pode estar a fazer-te perder vendas"
 excerpt: "No e-commerce, a fotografia é a experiência do produto. Analisamos as decisões de iluminação, styling e contexto que convertem visitantes em compradores."
 category: "Photography & Events"
-date: "April 2026"
+date: "2026-04-07"
 readTime: "2 min de leitura"
 ---
 

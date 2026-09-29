@@ -2,7 +2,7 @@
 title: "Designing for emotion, not just function"
 excerpt: "The best websites don't just work — they feel right. A look at the micro-decisions that shape that feeling: motion, spacing, contrast, and tone."
 category: "Web Design"
-date: "June 2026"
+date: "2026-06-16"
 readTime: "1 min read"
 ---
 

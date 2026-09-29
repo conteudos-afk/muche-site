@@ -2,7 +2,7 @@
 title: "Podcast strategy before production: defining your audience and format"
 excerpt: "Before you record a single episode, the decisions you make about format, cadence, and positioning will determine whether your podcast grows or stalls."
 category: "Podcasts"
-date: "January 2026"
+date: "2026-01-20"
 readTime: "2 min read"
 ---
 

@@ -16,7 +16,7 @@ Escreves artigos para o blog da agência. O objetivo é serem encontrados em pes
 
 - Tratamento por **tu**, incluindo nos títulos.
 - **Português europeu.** «ecrã», nunca «tela». «telemóvel», nunca «celular». «a gravar», nunca «gravando».
-- **Novo Acordo Ortográfico** (o de 1990). «ativo», nunca «activo». «perceção», nunca «percepção». «diretor», nunca «director». Em português, os meses escrevem-se com minúscula: «outubro», nunca «Outubro». O \`date\` do frontmatter não conta: é sempre em inglês.
+- **Novo Acordo Ortográfico** (o de 1990). «ativo», nunca «activo». «perceção», nunca «percepção». «diretor», nunca «director». Em português, os meses escrevem-se com minúscula: «outubro», nunca «Outubro».
 - Termos do ofício em inglês quando é isso que se usa em Portugal: branding, storytelling, podcast, design, copy.
 - **«vídeo de marca»** — nunca «filme de marca», nunca «vídeo institucional».
 - Frases diretas. Sem superlativos de brochura, sem «no mundo de hoje», sem «na era digital».
@@ -32,14 +32,13 @@ Escreves artigos para o blog da agência. O objetivo é serem encontrados em pes
 
 Devolves **um ficheiro Markdown completo e mais nada** — sem preâmbulo, sem explicação, sem blocos de código à volta. A resposta acaba na última linha do artigo: a seguir não vem nota de fecho, nem oferta para ajustar, nem comentário sobre o próprio artigo.
 
-O ficheiro começa por frontmatter entre \`---\`, com exatamente estas cinco chaves, cada uma numa linha, com o valor entre aspas duplas:
+O ficheiro começa por frontmatter entre \`---\`, com exatamente estas quatro chaves, cada uma numa linha, com o valor entre aspas duplas:
 
 \`\`\`
 ---
 title: "…"
 excerpt: "…"
 category: "…"
-date: "…"
 readTime: "…"
 ---
 \`\`\`
@@ -84,7 +83,6 @@ function blocoFrontmatter(frontmatter) {
 title: "${escaparAspas(frontmatter.title)}"
 excerpt: "${escaparAspas(frontmatter.excerpt)}"
 category: "${escaparAspas(frontmatter.category)}"
-date: "${escaparAspas(frontmatter.date)}"
 readTime: "${escaparAspas(frontmatter.readTime)}"
 ---`
 }
@@ -114,7 +112,6 @@ ${DIMENSAO}
 
 No frontmatter:
 - \`category\` é exatamente \`${tema.categoria}\`.
-- \`date\` é o mês e ano atuais em inglês, no formato \`"September 2026"\`.
 
 Abaixo estão artigos já aprovados deste blog. **Escreve como eles.** Repara no comprimento das frases, em como abrem, em como usam subtítulos e em como acabam sem vender.
 
@@ -126,7 +123,7 @@ Responde só com o ficheiro Markdown.`
 export function promptExpandir({ artigo, referencias }) {
   return `Este artigo já está publicado, mas é curto de mais para responder bem a quem procura o assunto. Desenvolve-o.
 
-**O que manter:** o slug \`${artigo.slug}\`, a categoria \`${artigo.frontmatter.category ?? ''}\`, a tese e a posição do artigo. Mantém a data. O leitor que já o leu tem de reconhecer o mesmo texto, mais desenvolvido.
+**O que manter:** o slug \`${artigo.slug}\`, a categoria \`${artigo.frontmatter.category ?? ''}\`, a tese e a posição do artigo. O leitor que já o leu tem de reconhecer o mesmo texto, mais desenvolvido.
 
 **O que mudar:** desenvolve cada ponto que hoje está resumido num parágrafo. Acrescenta subtítulos onde ajudam a percorrer. Dá exemplos concretos do ofício. Podes reescrever o \`title\` e o \`excerpt\` se o artigo mudar de dimensão.
 
@@ -150,7 +147,7 @@ Não é uma tradução literal: é o mesmo artigo escrito em inglês, com o mesm
 
 - Inglês britânico: \`colour\`, \`organisation\`, \`programme\`.
 - Tratamento direto por \`you\`.
-- \`category\` e \`date\` ficam **exatamente iguais** às do artigo português — são chaves partilhadas pelas duas versões.
+- \`category\` fica **exatamente igual** à do artigo português — é uma chave partilhada pelas duas versões.
 
 ${DIMENSAO}
 
