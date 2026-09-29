@@ -854,10 +854,14 @@ function PortfolioSection() {
   }, [])
   const vpw = vp.w
 
-  // Cobre também os tablets — os vídeos verticais só fazem sentido com o
-  // carrossel vertical de um cartão de cada vez, por isso os dois (layout +
-  // fonte do vídeo) mudam juntos neste limite.
+  // isMobile decide o LAYOUT (pilha vertical vs carrossel horizontal do
+  // desktop) — cobre tablet também, já que o efeito de scroll/push-back
+  // faz sentido nos dois. isPhone é uma distinção mais fina, só para
+  // decidir o ENQUADRAMENTO do vídeo dentro dessa pilha: telemóvel usa o
+  // recorte vertical (vídeo 9:16 + caixa larga do Teentac); tablet usa
+  // exatamente o mesmo enquadramento 16:9 do desktop, só redimensionado.
   const isMobile = vpw < 1024
+  const isPhone  = vpw < 640
 
   // Desktop (scroll-jacked horizontal carousel) — inalterado, exceto o limite
   // de largura abaixo. A caixa de média é 16:9, por isso a altura do cartão
@@ -878,10 +882,10 @@ function PortfolioSection() {
   // no site (o mesmo efeito do Hero/Manifesto): ao avançar para o seguinte,
   // o projeto atual encolhe, desfoca e esbate — como se fosse empurrado
   // para trás — em vez de simplesmente desaparecer.
-  //
-  // Todos os projetos (vídeo ou imagem) usam o MESMO tamanho de caixa —
-  // como referência, o tamanho que o cartão do Teentac já tinha (a única
-  // imagem do conjunto, mais larga que os vídeos 9:16).
+
+  // ── Telemóvel: todos os projetos (vídeo ou imagem) usam o MESMO tamanho
+  // de caixa — como referência, o tamanho que o cartão do Teentac já tinha
+  // (a única imagem do conjunto, mais larga que os vídeos 9:16).
   const mMediaH = vp.h * 0.60
   // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — bem mais larga que
   // alta do que a proporção 9:16 dos vídeos. À mesma altura (mMediaH), a
@@ -895,6 +899,20 @@ function PortfolioSection() {
     ? Math.max(0, Math.min(100, ((TEENTAC_SCREEN_CENTER_X - teentacCropW / 2) / teentacTotalCrop) * 100))
     : 50
 
+  // ── Tablet: os vídeos ficavam demasiado cortados com o recorte vertical
+  // do telemóvel. Aqui a caixa é 16:9 — o MESMO enquadramento do desktop
+  // (fonte `video`, não `videoMobile`) — só redimensionada para caber no
+  // ecrã do tablet. A altura vem de um orçamento em vh; a largura seria
+  // altura*16/9, mas se isso ultrapassar o ecrã, a largura fica limitada e
+  // a altura recalculada a partir dela — mantém sempre o 16:9 exato (o
+  // mesmo enquadramento do desktop), nunca corta mais por causa do limite.
+  const tabletMediaHRaw = vp.h * 0.55
+  const tabletCardW     = Math.min(tabletMediaHRaw * (16 / 9), vpw - 64)
+  const tabletMediaH    = tabletCardW * (9 / 16)
+
+  const boxW = isPhone ? teentacW : tabletCardW
+  const boxH = isPhone ? mMediaH : tabletMediaH
+
   if (isMobile) {
     return (
       <div id="work">
@@ -903,11 +921,11 @@ function PortfolioSection() {
           return (
             <ScrollBlock key={i} height="150vh">
               <div className="size-full flex flex-col items-center justify-center" style={{ padding: "72px 16px 0" }}>
-                <div style={{ width: `${teentacW}px` }}>
-                  <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${mMediaH}px`, background: "#060f13" }}>
+                <div style={{ width: `${boxW}px` }}>
+                  <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${boxH}px`, background: "#060f13" }}>
                     {"video" in item
-                      ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
-                      : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
+                      ? <LazyVideo src={isPhone ? item.videoMobile : item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
+                      : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={isPhone && item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
                     }
                   </div>
                   <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
