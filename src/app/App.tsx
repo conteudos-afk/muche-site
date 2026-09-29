@@ -466,7 +466,7 @@ function SiteNav() {
 }
 
 /* ─── Push-to-background scroll block ───────────────────────────────────── */
-function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
+function ScrollBlock({ children, height = "250vh", holdUntil = 0, doneBy = 1 }: { children: ReactNode; height?: string; holdUntil?: number; doneBy?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const rawProgress = useScrollProgress(ref, "end-start")
   // Pausa curta (bem mais curta que as versões anteriores): quando a secção
@@ -484,7 +484,14 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
     const obs = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && !armed) {
         armed = true
-        timer = setTimeout(() => { readyRef.current = true }, SHORT_PAUSE_MS)
+        // Quando já há um holdUntil (recorte por posição de scroll, não por
+        // tempo), a pausa por tempo fica redundante — e pior: se o
+        // utilizador continuar a fazer scroll durante os 180ms, o progresso
+        // "salta" de repente para o valor real assim que a pausa acaba, em
+        // vez de subir suavemente a partir do holdUntil. Por isso só se usa
+        // a pausa por tempo quando NÃO há holdUntil (uso original).
+        if (holdUntil > 0) readyRef.current = true
+        else timer = setTimeout(() => { readyRef.current = true }, SHORT_PAUSE_MS)
       }
     }, { threshold: 0 })
     obs.observe(el)
@@ -496,9 +503,18 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
       unsubscribe()
       if (timer) clearTimeout(timer)
     }
-  }, [rawProgress, gatedProgress])
+  }, [rawProgress, gatedProgress, holdUntil])
 
-  const scrollYProgress = gatedProgress
+  // holdUntil/doneBy (0-1, opcionais) recomprimem a curva de scroll: fica
+  // trancada a 0 (nítido, sem blur/encolher) até holdUntil, depois percorre
+  // a curva normal abaixo (que não muda) inteira entre holdUntil e doneBy,
+  // ficando trancada em 1 (transição completa) daí em diante. Serve para
+  // dar tempo ao conteúdo ficar parado e legível antes de sair de cena, e
+  // para blocos mais baixos (menos "vh" de altura, logo menos scroll ainda
+  // pinned) conseguirem terminar a transição antes de deixar de estar
+  // fixos. Por omissão (0, 1) o comportamento é exactamente o mesmo de
+  // sempre.
+  const scrollYProgress = useTransform(gatedProgress, [holdUntil, doneBy], [0, 1])
   const scale        = useTransform(scrollYProgress, [0, 0.55], [1, 0.84])
   const borderRadius = useTransform(scrollYProgress, [0, 0.55], ["0px", "22px"])
   const blur         = useTransform(scrollYProgress, [0.12, 0.55], ["blur(0px)", "blur(10px)"])
@@ -919,7 +935,7 @@ function PortfolioSection() {
         {PORTFOLIO.map((item, i) => {
           const { services, concept } = portfolioText(item, lang)
           return (
-            <ScrollBlock key={i} height="150vh">
+            <ScrollBlock key={i} height="150vh" holdUntil={0.12} doneBy={0.30}>
               <div className="size-full flex flex-col items-center justify-center" style={{ padding: "72px 16px 0" }}>
                 <div style={{ width: `${boxW}px` }}>
                   <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${boxH}px`, background: "#060f13" }}>
