@@ -3,7 +3,7 @@ title: "Fazer rebranding sem perder o teu público"
 excerpt: "Evolução versus revolução: como modernizar uma identidade de marca mantendo a confiança e a familiaridade que os teus clientes já associam a ti."
 category: "Branding & Visual Identity"
 date: "March 2026"
-readTime: "6 min de leitura"
+readTime: "2 min de leitura"
 ---
 
 Todas as marcas chegam a um momento em que a sua identidade visual já não reflete aquilo em que se tornaram. O design que parecia fresco há cinco anos parece agora datado. O logótipo que funcionava no lançamento não escala para um novo contexto digital. A paleta de cores que fazia sentido para um mercado já não serve um público mais alargado. A questão não é se deves evoluir — é como fazê-lo sem afastar as pessoas que já confiam em ti.

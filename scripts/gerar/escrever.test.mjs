@@ -2,6 +2,9 @@ import { expect, test } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { splitFrontmatter } from '../../src/lib/blog/parsePost.ts'
+import { contarPalavras } from './palavras.mjs'
 import { limparResposta, verificarArtigo, escreverArtigo, calcularReadTime, aplicarReadTime } from './escrever.mjs'
 
 const CORPO_LONGO = 'palavra '.repeat(1400).trim()
@@ -136,6 +139,22 @@ test('calcularReadTime: 200 palavras por minuto, arredondado ao inteiro mais pr�
 test('calcularReadTime: nunca devolve zero minutos e recusa uma língua que não conhece', () => {
   expect(calcularReadTime(10, 'pt')).toBe('1 min de leitura')
   expect(() => calcularReadTime(1500, 'fr')).toThrow(/fr/)
+})
+
+/* O `readTime` que o leitor vê tem de ser o que o gerador calcularia. Os
+   artigos escritos à mão diziam 4 a 7 minutos para 200 a 400 palavras e
+   ficaram meses assim, no site, sem que nada o notasse. */
+test('o readTime de cada artigo real corresponde à contagem do seu corpo', () => {
+  const contentDir = fileURLToPath(new URL('../../content/blog', import.meta.url))
+  const slugs = fs.readdirSync(contentDir, { withFileTypes: true })
+    .filter(e => e.isDirectory() && !e.name.startsWith('_')).map(e => e.name)
+  expect(slugs.length).toBeGreaterThanOrEqual(14)
+  for (const slug of slugs) {
+    for (const lang of ['pt', 'en']) {
+      const { data, content } = splitFrontmatter(fs.readFileSync(path.join(contentDir, slug, `${lang}.md`), 'utf-8'), `${slug}/${lang}.md`)
+      expect(data.readTime, `${slug}/${lang}`).toBe(calcularReadTime(contarPalavras(content.trim()), lang))
+    }
+  }
 })
 
 const comCorpo = (n, readTime) => BOM.replace(CORPO_LONGO, 'palavra '.repeat(n).trim()).replace('7 min de leitura', readTime)

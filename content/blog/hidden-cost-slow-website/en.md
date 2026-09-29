@@ -3,7 +3,7 @@ title: "The hidden cost of a slow website"
 excerpt: "Every second of load time costs conversions. We examine what performance really means for brand perception — and the simple changes that make the biggest difference."
 category: "Web Design"
 date: "March 2026"
-readTime: "4 min read"
+readTime: "1 min read"
 ---
 
 Speed is invisible when it is there and unbearable when it is not. A fast website is not noticed — it simply allows the experience to begin. A slow website is noticed immediately, and the judgment it provokes is disproportionately harsh: if this company cannot be bothered to make their website fast, what does that say about how they treat other details?

@@ -3,7 +3,7 @@ title: "Porque é que o vídeo curto é agora uma ferramenta de estratégia de m
 excerpt: "Reels, Shorts, TikToks — o formato amadureceu. Analisamos como as marcas usam o vídeo curto não só para alcance, mas para posicionamento e fidelização."
 category: "Video Production"
 date: "May 2026"
-readTime: "5 min de leitura"
+readTime: "1 min de leitura"
 ---
 
 O vídeo curto começou como formato de entretenimento e tornou-se um canal primário de construção de marca. As marcas que perceberam isto cedo — que trataram os seus Reels e Shorts como expressões genuínas da marca e não como conteúdo longo reaproveitado — construíram públicos e relações que a publicidade tradicional não consegue replicar.

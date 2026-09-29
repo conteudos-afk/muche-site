@@ -3,7 +3,7 @@ title: "Less is more — the discipline of editorial design"
 excerpt: "White space, hierarchy, and restraint. The principles that separate design that communicates from design that merely decorates."
 category: "Graphic Design"
 date: "June 2026"
-readTime: "4 min read"
+readTime: "1 min read"
 ---
 
 The hardest thing to do in design is also the most powerful: leave space. Not because you have run out of ideas, but because you understand that space is not empty — it is active. It gives elements room to breathe, directs the eye, and signals confidence. Cluttered design is almost always the product of insecurity.

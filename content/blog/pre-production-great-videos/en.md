@@ -3,7 +3,7 @@ title: "Pre-production is where great videos are made"
 excerpt: "Most video failures happen before the camera rolls. A look at the planning, scripting, and casting decisions that determine whether a production succeeds."
 category: "Video Production"
 date: "February 2026"
-readTime: "6 min read"
+readTime: "1 min read"
 ---
 
 The most persistent myth in video production is that great results come from great execution on the day. In reality, the day of the shoot is where you either harvest or lose what you built in pre-production. By the time the camera rolls, a well-run production is simply executing a plan that has already solved most of the problems.

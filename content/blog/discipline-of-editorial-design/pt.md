@@ -3,7 +3,7 @@ title: "Menos é mais — a disciplina do design editorial"
 excerpt: "Espaço em branco, hierarquia e contenção. Os princípios que separam o design que comunica do design que apenas decora."
 category: "Graphic Design"
 date: "June 2026"
-readTime: "4 min de leitura"
+readTime: "1 min de leitura"
 ---
 
 A coisa mais difícil de fazer em design é também a mais poderosa: deixar espaço. Não por teres ficado sem ideias, mas porque percebes que o espaço não está vazio — está ativo. Dá aos elementos lugar para respirar, dirige o olhar e comunica segurança. O design atulhado é quase sempre produto de insegurança.

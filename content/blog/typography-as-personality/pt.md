@@ -3,7 +3,7 @@ title: "A tipografia como personalidade: escolher tipos de letra que falam"
 excerpt: "Cada tipo de letra tem uma voz. Aqui explicamos como fazer corresponder o tipo ao tom — e evitar os erros de combinação mais comuns que vemos todas as semanas nas marcas."
 category: "Graphic Design"
 date: "April 2026"
-readTime: "5 min de leitura"
+readTime: "2 min de leitura"
 ---
 
 A tipografia é uma das decisões de marca mais subestimadas que uma empresa toma. A maioria dos negócios escolhe um tipo de letra com base no que fica bonito num ecrã, numa apresentação. Muito poucos fazem a pergunta mais profunda: o que é que este tipo de letra diz sobre nós? Cada tipo de letra carrega uma personalidade, uma história e um conjunto de conotações — e, quer seja essa a tua intenção ou não, essas conotações transferem-se para a tua marca.

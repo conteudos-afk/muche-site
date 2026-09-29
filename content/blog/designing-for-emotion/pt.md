@@ -3,7 +3,7 @@ title: "Desenhar para a emoção, não só para a função"
 excerpt: "Os melhores websites não se limitam a funcionar — têm de parecer certos. Um olhar sobre as micro-decisões que moldam essa sensação: movimento, espaçamento, contraste e tom."
 category: "Web Design"
 date: "June 2026"
-readTime: "5 min de leitura"
+readTime: "1 min de leitura"
 ---
 
 Um website pode ser tecnicamente excelente — rápido, acessível, estruturado com lógica — e mesmo assim deixar os visitantes indiferentes. A função é o chão, não o teto. Os websites que convertem e retêm visitantes fazem algo para além de funcionar corretamente: criam uma sensação alinhada com aquilo que a marca promete. Essa sensação é desenhada, não é acidental.

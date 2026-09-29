@@ -3,7 +3,7 @@ title: "Why visual identity is your most underrated business asset"
 excerpt: "A great logo is the start, not the finish. We explore what a truly cohesive brand identity means for growth — and why companies that invest in it outperform those that don't."
 category: "Branding & Visual Identity"
 date: "July 2026"
-readTime: "5 min read"
+readTime: "1 min read"
 ---
 
 Most companies treat their visual identity as a one-time expense. They commission a logo, pick a colour palette, and consider the job done. What they're missing is that identity is not a deliverable — it is a living system that, when managed with discipline, becomes one of the most powerful drivers of commercial value they have.

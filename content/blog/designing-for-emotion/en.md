@@ -3,7 +3,7 @@ title: "Designing for emotion, not just function"
 excerpt: "The best websites don't just work — they feel right. A look at the micro-decisions that shape that feeling: motion, spacing, contrast, and tone."
 category: "Web Design"
 date: "June 2026"
-readTime: "5 min read"
+readTime: "1 min read"
 ---
 
 A website can be technically excellent — fast, accessible, logically structured — and still leave visitors cold. Function is the floor, not the ceiling. The websites that convert and retain visitors do something beyond working correctly: they create a feeling that aligns with what the brand promises. That feeling is designed, not accidental.

@@ -3,7 +3,7 @@ title: "O custo escondido de um website lento"
 excerpt: "Cada segundo de tempo de carregamento custa conversões. Analisamos o que a performance realmente significa para a perceção da marca — e as mudanças simples que fazem a maior diferença."
 category: "Web Design"
 date: "March 2026"
-readTime: "4 min de leitura"
+readTime: "1 min de leitura"
 ---
 
 A velocidade é invisível quando existe e insuportável quando não existe. Um website rápido não se nota — limita-se a deixar que a experiência comece. Um website lento nota-se de imediato, e o juízo que provoca é desproporcionadamente duro: se esta empresa não se dá ao trabalho de tornar o website rápido, o que é que isso diz sobre a forma como trata os outros pormenores?
