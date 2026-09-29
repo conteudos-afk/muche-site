@@ -171,3 +171,20 @@ test('aplicarReadTime: lança se o cabeçalho não tem readTime', () => {
   const semLinha = BOM.replace('readTime: "7 min de leitura"\n', '')
   expect(() => aplicarReadTime({ markdown: semLinha, lang: 'pt' })).toThrow(/readTime/)
 })
+
+const COM_READTIME_REPETIDO = BOM.replace('readTime: "7 min de leitura"', 'readTime: "7 min de leitura"\nreadTime: "3 min de leitura"')
+
+test('verificarArtigo: uma chave repetida no cabeçalho é um problema fatal', () => {
+  const problemas = verificarArtigo({ markdown: COM_READTIME_REPETIDO, slug: 'teste', lang: 'pt' })
+  expect(problemas.map(p => p.tipo)).toEqual(['chave-repetida'])
+  expect(problemas[0].mensagem).toContain('readTime')
+})
+
+test('verificarArtigo: o mesmo texto de chave no corpo não é uma chave repetida', () => {
+  const noCorpo = BOM + '\n\nreadTime: "3 min de leitura"'
+  expect(verificarArtigo({ markdown: noCorpo, slug: 'teste', lang: 'pt' })).toEqual([])
+})
+
+test('aplicarReadTime: recusa um cabeçalho com readTime repetido, em vez de adivinhar', () => {
+  expect(() => aplicarReadTime({ markdown: COM_READTIME_REPETIDO, lang: 'pt' })).toThrow(/repetida/)
+})

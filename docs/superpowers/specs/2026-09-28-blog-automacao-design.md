@@ -128,13 +128,13 @@ Foi uma decisão consciente da equipa, depois de discutida a alternativa de apli
 |---|---|
 | Por artigo (PT + EN, Opus 5) | **$0,37** — medido, não estimado |
 | Fase A, uma vez | ~$5,20 |
-| Fase B, um ano a 2/semana | ~$37 |
+| Fase B, um ano a 2/semana (104 artigos × $0,37) | ~$38 |
+| GitHub Actions | $0 — repositório público, minutos ilimitados |
+| Cloudflare Pages | $0 — dentro do plano gratuito |
 
 O primeiro artigo real custou $0,37, contra os $0,30 estimados. Os valores acima
 já são os corrigidos. O gerador calcula o custo a partir dos tokens que a API
 devolve, por isso cada execução diz o que gastou.
-| GitHub Actions | $0 — repositório público, minutos ilimitados |
-| Cloudflare Pages | $0 — dentro do plano gratuito |
 
 Requer `ANTHROPIC_API_KEY` como secret do repositório, criada pelo dono do site.
 

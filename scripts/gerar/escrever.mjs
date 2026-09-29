@@ -104,6 +104,7 @@ export function limparResposta(texto) {
      cabeçalho a não fazer sentido nenhum.
    - 'validacao': o que o `validatePosts` do build já verifica (campo em
      falta, categoria desconhecida).
+   - 'chave-repetida': a mesma chave duas vezes no cabeçalho.
    - 'dimensao': fora do intervalo de palavras — o único tipo retentável.
    - 'titulo-duplicado': um `#` de nível 1 no corpo.
    - 'frontmatter-duplicado': um segundo bloco de frontmatter a vazar para
@@ -124,6 +125,14 @@ export function verificarArtigo({ markdown, slug, lang }) {
   problemas.push(...avisos.map(mensagem => ({ tipo: 'aviso-leitura', mensagem })))
 
   const corpo = content.trim()
+
+  const repetidas = chavesRepetidas(markdown.match(CABECALHO)?.[0] ?? '')
+  if (repetidas.length) {
+    problemas.push({
+      tipo: 'chave-repetida',
+      mensagem: `${slug}/${lang}.md: o cabeçalho repete a chave ${repetidas.join(', ')} — o leitor fica com a última e o resto do gerador com a primeira`,
+    })
+  }
 
   problemas.push(...validatePosts([{ slug, lang, ...data }]).map(mensagem => ({ tipo: 'validacao', mensagem })))
 
@@ -150,6 +159,22 @@ export function verificarArtigo({ markdown, slug, lang }) {
   }
 
   return problemas
+}
+
+/* O cabeçalho é lido com a mesma expressão que o `splitFrontmatter` usa. */
+const CABECALHO = /^﻿?---[ \t]*\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/
+
+/* As chaves que aparecem mais do que uma vez no cabeçalho. */
+function chavesRepetidas(cabecalho) {
+  const vistas = new Set()
+  const repetidas = new Set()
+  for (const linha of cabecalho.split(/\r?\n/)) {
+    const chave = linha.match(/^([A-Za-z0-9_-]+)[ \t]*:/)?.[1]
+    if (!chave) continue
+    if (vistas.has(chave)) repetidas.add(chave)
+    vistas.add(chave)
+  }
+  return [...repetidas]
 }
 
 /* ─── O tempo de leitura ─────────────────────────────────────────────────────
@@ -181,10 +206,16 @@ export function calcularReadTime(palavras, lang) {
    cabeçalho não a tiver, porque um artigo sem `readTime` já devia ter
    reprovado em `verificarArtigo`. */
 export function aplicarReadTime({ markdown, lang }) {
-  const cabecalho = markdown.match(/^﻿?---[ \t]*\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/)
+  const cabecalho = markdown.match(CABECALHO)
   const LINHA = /^readTime[ \t]*:[^\r\n]*/m
   if (!cabecalho || !LINHA.test(cabecalho[0])) {
     throw new Error('o cabeçalho não tem a linha readTime para atualizar')
+  }
+  /* O `splitFrontmatter` fica com a ÚLTIMA ocorrência de uma chave repetida;
+     reescrever só a primeira deixava o valor errado a ser publicado. Em vez
+     de adivinhar qual das duas era a certa, recusa-se. */
+  if (chavesRepetidas(cabecalho[0]).includes('readTime')) {
+    throw new Error('o cabeçalho tem a chave readTime repetida — não se adivinha qual é a certa')
   }
 
   const { resultado: { content } } = comAvisosApanhados(() => splitFrontmatter(markdown))
