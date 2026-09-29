@@ -30,27 +30,22 @@ jobs:
   gerar:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      # Versão 24 e não 22: os módulos do gerador importam `.ts` a partir de
-      # `.mjs`, e o Node só o faz sozinho a partir da 24. Na 22 isto falha com
-      # `Unknown file extension ".ts"`.
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - run: npm ci
-
       # Um `expandir` disparado à mão dentro da janela das 48 horas voltaria a
       # escolher um artigo que já está num PR por juntar — o `main` ainda o vê
       # curto. A automação não deve gastar dinheiro a reescrever o que já está
       # à espera de revisão.
+      #
+      # A guarda vem primeiro: quem lê o workflow de cima para baixo vê a decisão
+      # de não fazer nada antes de qualquer trabalho. Não precisa do repositório
+      # em disco. O `gh` não lê `GITHUB_REPOSITORY`: sem `--repo` descobre o
+      # repositório pelo `git remote` da pasta atual, e fora de um checkout
+      # falha com «not a git repository». Por isso o `--repo` é explícito.
       - name: Saltar se já houver um PR de artigos por juntar
         id: guarda
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          abertos=$(gh pr list --state open --label artigo-automatico --limit 50 --json number --jq 'length')
+          abertos=$(gh pr list --repo "${{ github.repository }}" --state open --label artigo-automatico --limit 50 --json number --jq 'length')
           if [ "$abertos" != "0" ]; then
             # Não é uma falha: é a guarda a fazer o que deve. O passo acaba
             # verde, os seguintes não correm, e o motivo fica escrito no
@@ -67,6 +62,20 @@ jobs:
             } >> "$GITHUB_STEP_SUMMARY"
             echo "::notice::geração saltada: há $abertos PR(s) de artigos por juntar"
           fi
+
+      - uses: actions/checkout@v4
+        if: steps.guarda.outputs.saltar != 'true'
+
+      # Versão 24 e não 22: os módulos do gerador importam `.ts` a partir de
+      # `.mjs`, e o Node só o faz sozinho a partir da 24. Na 22 isto falha com
+      # `Unknown file extension ".ts"`.
+      - uses: actions/setup-node@v4
+        if: steps.guarda.outputs.saltar != 'true'
+        with:
+          node-version: '24'
+
+      - run: npm ci
+        if: steps.guarda.outputs.saltar != 'true'
 
       - name: Gerar
         id: gerar
