@@ -23,7 +23,7 @@ import { execFileSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { decidir, ARTIGOS_ANTES_DO_AUTOMATICO } from './decidir.mjs'
-import { contarArtigos, foraDoAmbito, MARCA_AVISO, ETIQUETA, ehBot } from './contador.mjs'
+import { contarArtigos, artigosPublicados, foraDoAmbito, MARCA_AVISO, ETIQUETA, BASE, ehBot } from './contador.mjs'
 
 /* O `gh` não lê `GITHUB_REPOSITORY`: descobre o repositório pelo `git remote`
    da pasta atual. No workflow a pasta é o checkout e daria certo, mas é uma
@@ -35,7 +35,6 @@ import { contarArtigos, foraDoAmbito, MARCA_AVISO, ETIQUETA, ehBot } from './con
    O stderr do `gh` é capturado para entrar na mensagem do erro: sem isso o
    registo dizia «Command failed: gh …» e perdia a razão. */
 const REPO = process.env.GITHUB_REPOSITORY
-const BASE = 'main'
 const CAMINHO_REPO = REPO ?? '{owner}/{repo}'
 
 function gh(args) {
@@ -211,20 +210,6 @@ export function avaliar(numero, buildVerde, publicados, agora) {
   return { ...resultado, commit: lido.commit }
 }
 
-/* Lê `path` e `changeType`, e conta só os `ADDED` — ver o `contador.mjs`. Se
-   isto voltar a pedir só `files` sem o `changeType`, a contagem passa a incluir
-   edições e apagamentos, e a rampa avança sem artigos novos. */
-function artigosPublicados() {
-  const juntados = ghJson([
-    'pr', 'list', '--state', 'merged', '--label', ETIQUETA,
-    '--limit', '100', '--json', 'number',
-  ])
-  return juntados.reduce((soma, pr) => {
-    const { files } = ghJson(['pr', 'view', String(pr.number), '--json', 'files'])
-    return soma + contarArtigos(files)
-  }, 0)
-}
-
 function abertos() {
   return ghJson([
     'pr', 'list', '--state', 'open', '--label', ETIQUETA,
@@ -274,7 +259,7 @@ export function planear() {
     return
   }
 
-  const publicados = artigosPublicados()
+  const publicados = artigosPublicados(ghJson)
   registar(`${publicados} artigos publicados por esta via; ${numeros.length} PR(s) abertos`)
 
   const agora = new Date()
@@ -296,7 +281,7 @@ export function planear() {
 }
 
 export function aplicar(numero) {
-  const publicados = artigosPublicados()
+  const publicados = artigosPublicados(ghJson)
   const verde = process.env.BUILD_VERDE === 'true' ? true
     : process.env.BUILD_VERDE === 'false' ? false
     : null

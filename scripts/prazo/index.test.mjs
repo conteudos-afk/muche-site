@@ -19,6 +19,7 @@ import { MARCA_AVISO } from './contador.mjs'
 const GH_FALSO = `#!/usr/bin/env node
 const fs = require('fs')
 const a = process.argv.slice(2)
+if (process.env.FALSO_GH_LOG) require('fs').appendFileSync(process.env.FALSO_GH_LOG, JSON.stringify(a) + '\\n')
 const estado = process.env.FALSO_GH_ESTADO
 const ler = () => JSON.parse(fs.readFileSync(estado, 'utf8'))
 const escrever = e => fs.writeFileSync(estado, JSON.stringify(e))
@@ -27,17 +28,14 @@ const horas = n => new Date(Date.now() - n * 3600e3).toISOString()
 const artigos = n => Array.from({ length: n }, (_, i) => ({ path: 'content/blog/a' + i + '/pt.md', changeType: 'ADDED' }))
 
 if (a[0] === 'pr' && a[1] === 'list') {
-  return saida(a.includes('open') ? [{ number: 1 }] : [{ number: 2 }])
-}
-if (a[0] === 'pr' && a[1] === 'view' && a[2] === '2') {
-  return saida({ files: artigos(ler().publicados) })
+  return saida(a.includes('open') ? [{ number: 1 }] : [{ number: 2, files: artigos(ler().publicados) }])
 }
 if (a[0] === 'pr' && a[1] === 'view' && a[2] === '1') {
   const e = ler()
   return saida({
     number: 1, state: 'OPEN', baseRefName: 'main', isCrossRepository: false,
     headRefOid: 'a'.repeat(40), createdAt: horas(e.horas), isDraft: false,
-    files: artigos(1), reviews: [], comments: e.comentarios,
+    files: e.ficheiros || artigos(1), reviews: [], comments: e.comentarios,
   })
 }
 if (a[0] === 'pr' && a[1] === 'comment' && a[2] === '1') {
@@ -66,6 +64,11 @@ const comentarios = () => JSON.parse(fs.readFileSync(estadoFicheiro, 'utf8')).co
 const fusoes = () => JSON.parse(fs.readFileSync(estadoFicheiro, 'utf8')).fusoes
 const definir = (horas, coments = [], publicados = 12) =>
   fs.writeFileSync(estadoFicheiro, JSON.stringify({ horas, comentarios: coments, publicados, fusoes: [] }))
+const comFicheiros = ficheiros => {
+  const e = JSON.parse(fs.readFileSync(estadoFicheiro, 'utf8'))
+  fs.writeFileSync(estadoFicheiro, JSON.stringify({ ...e, ficheiros }))
+}
+const registoDeErros = () => console.error.mock.calls.map(c => String(c[0]))
 const publicar = n => {
   const e = JSON.parse(fs.readFileSync(estadoFicheiro, 'utf8'))
   fs.writeFileSync(estadoFicheiro, JSON.stringify({ ...e, publicados: n }))
@@ -229,3 +232,61 @@ test('não junta quando a ponta do PR já não é o commit construído', () => {
 })
 
 afterEach(() => { delete process.env.COMMIT_CONSTRUIDO })
+
+const alterado = (path, changeType) => ({ path, changeType, additions: 1, deletions: 0 })
+
+test('um PR de expandir (tudo MODIFIED) fica fora do portão e avisa, em vez de calar', () => {
+  definir(72)
+  comFicheiros([
+    alterado('content/blog/um/pt.md', 'MODIFIED'),
+    alterado('content/blog/um/en.md', 'MODIFIED'),
+    alterado('content/blog/_temas.yml', 'MODIFIED'),
+  ])
+  const { acao, motivo } = avaliar(1, null, 12, new Date())
+  expect(acao).toBe('nada')
+  expect(motivo).toContain('fora do âmbito')
+
+  aplicar(1)
+  const avisos = registoDeErros().filter(l => l.startsWith('::warning'))
+  expect(avisos.length).toBeGreaterThan(0)
+  expect(avisos.at(-1)).toContain('content/blog/um/pt.md')
+  expect(comentarios()).toHaveLength(0)
+  expect(fusoes()).toHaveLength(0)
+})
+
+test('um artigo novo (ADDED) mais a lista de temas passa o portão', () => {
+  definir(30)
+  comFicheiros([
+    alterado('content/blog/novo/pt.md', 'ADDED'),
+    alterado('content/blog/novo/en.md', 'ADDED'),
+    alterado('content/blog/_temas.yml', 'MODIFIED'),
+  ])
+  expect(avaliar(1, null, 12, new Date()).acao).toBe('avisar')
+})
+
+test('um artigo novo com a edição de um publicado ao lado é recusado', () => {
+  definir(72)
+  comFicheiros([
+    alterado('content/blog/novo/pt.md', 'ADDED'),
+    alterado('content/blog/novo/en.md', 'ADDED'),
+    alterado('content/blog/publicado/pt.md', 'MODIFIED'),
+  ])
+  const { acao, motivo } = avaliar(1, null, 12, new Date())
+  expect(acao).toBe('nada')
+  expect(motivo).toContain('content/blog/publicado/pt.md [MODIFIED]')
+  process.env.BUILD_VERDE = 'true'
+  process.env.COMMIT_CONSTRUIDO = 'a'.repeat(40)
+  aplicar(1)
+  expect(fusoes()).toHaveLength(0)
+})
+
+test('o número de artigos publicados sai de uma só chamada ao gh', () => {
+  const log = path.join(pasta, 'chamadas.log')
+  fs.writeFileSync(log, '')
+  process.env.FALSO_GH_LOG = log
+  aplicar(1)
+  const chamadas = fs.readFileSync(log, 'utf8').trim().split('\n').map(l => JSON.parse(l))
+  expect(chamadas.filter(c => c.includes('merged'))).toHaveLength(1)
+  expect(chamadas.filter(c => c[1] === 'view' && c[2] !== '1')).toHaveLength(0)
+  delete process.env.FALSO_GH_LOG
+})

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { contarArtigos, foraDoAmbito, ehBot, MARCA_AVISO, ETIQUETA } from './contador.mjs'
+import { contarArtigos, artigosPublicados, foraDoAmbito, ehBot, MARCA_AVISO, ETIQUETA } from './contador.mjs'
 
 /* O que o `gh pr view --json files` devolve por ficheiro (mais additions e
    deletions, que aqui não interessam). */
@@ -143,12 +143,11 @@ test('a comparação ignora maiúsculas, como o GitHub', () => {
   expect(ehBot('GitHub-Actions[bot]')).toBe(true)
 })
 
-test('âmbito: artigos nas duas línguas e a lista de temas passam', () => {
+test('âmbito: artigos novos nas duas línguas e a lista de temas passam', () => {
   expect(foraDoAmbito([
     add('content/blog/um/pt.md'),
     add('content/blog/um/en.md'),
     com('content/blog/_temas.yml', 'MODIFIED'),
-    com('content/blog/velho/pt.md', 'MODIFIED'),
   ])).toBeNull()
 })
 
@@ -208,4 +207,55 @@ test('âmbito: nomeia até três caminhos e conta os restantes', () => {
   expect(motivo).toContain('src/c.ts')
   expect(motivo).not.toContain('src/d.ts')
   expect(motivo).toContain('e mais 2')
+})
+
+test('âmbito: um PR de expandir (tudo MODIFIED) fica de fora, com a razão', () => {
+  const motivo = foraDoAmbito([
+    com('content/blog/um/pt.md', 'MODIFIED'),
+    com('content/blog/um/en.md', 'MODIFIED'),
+    com('content/blog/_temas.yml', 'MODIFIED'),
+  ])
+  expect(motivo).toContain('fora do âmbito')
+  expect(motivo).toContain('content/blog/um/pt.md [MODIFIED]')
+  expect(motivo).toContain('alterar um que já existe é com uma pessoa')
+})
+
+test('âmbito: um artigo novo com a edição de um publicado ao lado fica de fora', () => {
+  const motivo = foraDoAmbito([
+    add('content/blog/novo/pt.md'),
+    add('content/blog/novo/en.md'),
+    com('content/blog/publicado/pt.md', 'MODIFIED'),
+  ])
+  expect(motivo).toContain('content/blog/publicado/pt.md [MODIFIED]')
+  expect(motivo).not.toContain('content/blog/novo/')
+})
+
+test('âmbito: a lista de temas pode ser editada mas não apagada nem renomeada', () => {
+  expect(foraDoAmbito([com('content/blog/_temas.yml', 'MODIFIED')])).toBeNull()
+  expect(foraDoAmbito([com('content/blog/_temas.yml', 'DELETED')])).toContain('DELETED')
+  expect(foraDoAmbito([com('content/blog/_temas.yml', 'RENAMED')])).toContain('RENAMED')
+})
+
+test('âmbito: uma alteração de artigo que não seja edição não leva a dica do expandir', () => {
+  expect(foraDoAmbito([com('src/a.ts', 'MODIFIED')])).not.toContain('com uma pessoa')
+})
+
+test('artigosPublicados: uma só chamada, ficheiros incluídos, só conta os ADDED', () => {
+  const chamadas = []
+  const ghJson = args => {
+    chamadas.push(args)
+    return [
+      { number: 1, files: [add('content/blog/a/pt.md'), add('content/blog/a/en.md')] },
+      { number: 2, files: [com('content/blog/b/pt.md', 'MODIFIED'), add('content/blog/c/pt.md')] },
+    ]
+  }
+  expect(artigosPublicados(ghJson)).toBe(2)
+  expect(chamadas).toHaveLength(1)
+  expect(chamadas[0].join(' ')).toContain('--state merged')
+  expect(chamadas[0].join(' ')).toContain(`--label ${ETIQUETA}`)
+  expect(chamadas[0][chamadas[0].length - 1]).toBe('number,files')
+})
+
+test('artigosPublicados: sem lista de ficheiros rebenta em vez de contar zero', () => {
+  expect(() => artigosPublicados(() => [{ number: 1 }])).toThrow()
 })
