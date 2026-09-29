@@ -135,6 +135,7 @@ jobs:
           SLUGS: ${{ steps.gerar.outputs.slugs }}
           CUSTO: ${{ steps.gerar.outputs.custo }}
           AVISOS: ${{ steps.gerar.outputs.avisos }}
+          MODO: ${{ inputs.modo || 'escrever' }}
         run: |
           set -euo pipefail
 
@@ -159,10 +160,27 @@ jobs:
           # somar aqui prometia um merge automático que nunca chegava.
           publicados=$(node scripts/prazo/contar.mjs)
 
-          if [ "$publicados" -le 10 ]; then
-            rampa="Vão **$publicados artigos publicados** por esta via. Enquanto forem 10 ou menos, nada é publicado sem alguém carregar em *Merge* — este PR incluído."
+          # Os números do prazo vêm do `decidir.mjs` e não se repetem aqui: este
+          # texto é o que as pessoas leem, e se alguém mudasse a rampa ou as
+          # horas só lá, cada PR passava a mentir sobre quando as coisas
+          # acontecem. Sai `limite horas-do-aviso horas-do-merge`.
+          constantes=$(node --input-type=module -e "import { ARTIGOS_ANTES_DO_AUTOMATICO as a, HORAS_AVISO as b, HORAS_MERGE as c } from './scripts/prazo/decidir.mjs'; console.log(a, b, c)")
+          read -r limite horas_aviso horas_merge <<< "$constantes"
+          for n in "$limite" "$horas_aviso" "$horas_merge"; do
+            case "$n" in ''|*[!0-9]*) echo "::error::constantes do prazo ilegíveis: '$constantes'"; exit 1 ;; esac
+          done
+
+          # Um `expandir` altera artigos que já existem e nunca traz um artigo
+          # novo, por isso o `decidir` nunca o junta sozinho, seja qual for a
+          # rampa (e o portão de âmbito do prazo recusa-o, com um aviso). Dizer
+          # o contrário prometia um merge que não chega e deixava o PR aberto a
+          # parar a geração sem ninguém saber porquê.
+          if [ "$MODO" = "expandir" ]; then
+            rampa="**Este PR não se junta sozinho.** Altera artigos que já existem, e só os artigos novos entram no prazo automático de $horas_merge horas. Precisa de uma pessoa que leia a pré-visualização e carregue em *Merge*. Enquanto estiver aberto, a geração de artigos novos fica parada."
+          elif [ "$publicados" -le "$limite" ]; then
+            rampa="Vão **$publicados artigos publicados** por esta via. Enquanto forem $limite ou menos, nada é publicado sem alguém carregar em *Merge* — este PR incluído."
           else
-            rampa="Vão $publicados artigos publicados. **Este PR é juntado automaticamente ao fim de 48 horas** se ninguém escrever nada aqui. Recebes um aviso às 24 horas."
+            rampa="Vão $publicados artigos publicados. **Este PR é juntado automaticamente ao fim de $horas_merge horas** se ninguém escrever nada aqui. Recebes um aviso às $horas_aviso horas."
           fi
 
           lista=$(echo "$SLUGS" | tr ',' '\n' | sed 's|^|- `content/blog/|; s|$|/`|')
@@ -179,8 +197,8 @@ jobs:
           git push -u origin "$ramo"
 
           # A etiqueta só entra em PRs que a automação abre. Se alguém a puser à
-          # mão num PR que apenas edita um artigo já publicado, o contador
-          # conta-o como artigo novo e a rampa avança mais depressa do que devia.
+          # mão num PR que mexe noutra coisa (ou que edita um artigo já
+          # publicado), o portão de âmbito do prazo recusa-o e assinala-o.
           gh pr create \
             --label artigo-automatico \
             --title "Artigos: $(echo "$SLUGS" | tr ',' ' ')" \
