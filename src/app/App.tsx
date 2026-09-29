@@ -890,7 +890,14 @@ function PortfolioSection() {
   const targetX  = -(3 * (cardW + gap))
   const rawProgress    = useScrollProgress(ref, "end-end")
   const smoothProgress = useSpring(rawProgress, { stiffness: 55, damping: 22, restDelta: 0.0005 })
-  const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
+  // Zonas de espera no início e no fim: enquanto o progresso do scroll está
+  // dentro destas margens, o carrossel fica exatamente parado no primeiro ou
+  // no último cartão — dá margem para soltar o scroll sem ter de acertar num
+  // pixel exato, e evita que se veja o meio de uma transição ao entrar/sair
+  // da secção.
+  const START_HOLD     = 0.07
+  const END_HOLD       = 0.07
+  const x               = useTransform(smoothProgress, [START_HOLD, 1 - END_HOLD], [0, targetX])
   const hintOpacity    = useTransform(rawProgress, [0, 0.06], [1, 0])
 
   // Mobile/tablet — projetos empilhados na VERTICAL (scroll normal para
@@ -961,7 +968,7 @@ function PortfolioSection() {
   }
 
   return (
-    <div ref={ref} id="work" style={{ height: "560vh", position: "relative" }}>
+    <div ref={ref} id="work" style={{ height: "760vh", position: "relative" }}>
       <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center" style={{ paddingTop: "9vh" }}>
         <motion.div
           style={{ x, gap: `${gap}px`, paddingLeft: "56px" }}
