@@ -965,17 +965,20 @@ function PortfolioSection() {
   // o projeto atual encolhe, desfoca e esbate — como se fosse empurrado
   // para trás — em vez de simplesmente desaparecer.
 
-  // ── Telemóvel: todos os projetos (vídeo ou imagem) usam o MESMO tamanho
-  // de caixa — como referência, o tamanho que o cartão do Teentac já tinha
-  // (a única imagem do conjunto, mais larga que os vídeos 9:16).
-  const mMediaH = vp.h * 0.60
-  // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — bem mais larga que
-  // alta do que a proporção 9:16 dos vídeos. À mesma altura (mMediaH), a
-  // largura em 4:3 passaria a caixa para lá da largura do próprio ecrã em
-  // telemóveis, por isso fica limitada ao ecrã (com margem).
-  const teentacW = Math.min(mMediaH * (4 / 3), vpw - 32)
+  // ── Telemóvel: caixa em formato vertical exato 9:16 — o mesmo formato dos
+  // vídeos verticais (videoMobile) — para que não fiquem cortados. A altura
+  // vem de um orçamento em vh (0.60vh, deixa espaço por cima para o ícone
+  // fixo da mosca e por baixo para o texto); a largura seria altura*9/16,
+  // mas se ultrapassar o ecrã, a largura fica limitada e a altura
+  // recalculada a partir dela — mantém sempre o 9:16 exato.
+  const phoneMediaHRaw = vp.h * 0.60
+  const phoneMediaW    = Math.min(phoneMediaHRaw * (9 / 16), vpw - 32)
+  const phoneMediaH    = phoneMediaW * (16 / 9)
+  // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — mais larga do que a
+  // caixa 9:16, por isso usa object-fit: cover com o object-position
+  // calculado para centrar o ecrã do laptop em vez de cortar arbitrariamente.
   const TEENTAC_IMG_W = 1920, TEENTAC_IMG_H = 1440, TEENTAC_SCREEN_CENTER_X = 1030
-  const teentacCropW = (teentacW / mMediaH) * TEENTAC_IMG_H
+  const teentacCropW = (phoneMediaW / phoneMediaH) * TEENTAC_IMG_H
   const teentacTotalCrop = Math.max(0, TEENTAC_IMG_W - teentacCropW)
   const teentacObjX = teentacTotalCrop > 0
     ? Math.max(0, Math.min(100, ((TEENTAC_SCREEN_CENTER_X - teentacCropW / 2) / teentacTotalCrop) * 100))
@@ -992,8 +995,8 @@ function PortfolioSection() {
   const tabletCardW     = Math.min(tabletMediaHRaw * (16 / 9), vpw - 64)
   const tabletMediaH    = tabletCardW * (9 / 16)
 
-  const boxW = isPhone ? teentacW : tabletCardW
-  const boxH = isPhone ? mMediaH : tabletMediaH
+  const boxW = isPhone ? phoneMediaW : tabletCardW
+  const boxH = isPhone ? phoneMediaH : tabletMediaH
 
   // Mobile/tablet: um único percurso de scroll partilhado por todos os
   // cartões (ver MobilePortfolioCard) — sem sticky/unstick por projeto —
