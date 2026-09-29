@@ -82,6 +82,19 @@ test('o prompt inglês leva o artigo português e uma referência inglesa', () =
   expect(p).toContain('An approved English article.')
 })
 
+/* Regressão: o inglês não pode ser instruído a imitar a dimensão do
+   artigo português — quando o português sai fora do intervalo e é aceite
+   com aviso (ver index.mjs), isso pediria ao inglês, na primeira
+   tentativa, para reproduzir a mesma dimensão errada. O intervalo tem de
+   vir explícito, como em promptEscrever e promptExpandir. */
+test('o prompt inglês pede o intervalo de palavras explícito, e não a dimensão do português', () => {
+  const refEn = { ...REF, lang: 'en', corpo: 'An approved English article.' }
+  const p = promptIngles({ artigoPt: 'Artigo em português.', referenciaEn: refEn })
+  expect(p).toContain('1200')
+  expect(p).toContain('1800')
+  expect(p.toLowerCase()).not.toContain('a mesma dimensão')
+})
+
 test('o bloco de referências escapa aspas duplas no frontmatter', () => {
   const refComAspas = { ...REF, frontmatter: { ...REF.frontmatter, title: 'Um título com "aspas" dentro' } }
   const p = promptEscrever({ tema: TEMA, referencias: [refComAspas] })

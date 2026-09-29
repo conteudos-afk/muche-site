@@ -40,11 +40,48 @@ export function lerArgumentos(argv) {
     throw new Error(`modo "${modo}" não existe — usa ${MODOS.join(' ou ')}`)
   }
 
+  /* `Number('abc')` é `NaN`, e `NaN` a passar por `slice(0, NaN)` mais
+     abaixo dá `[]` — o mesmo resultado de uma lista de temas genuinamente
+     esgotada, e o mesmo `exit(2)`, que no workflow abre uma issue a dizer
+     "não há mais temas". Um erro de digitação num `--lote` não pode
+     produzir essa afirmação, confiante e errada, sobre o estado do blog:
+     tem de rebentar aqui, com o valor que recebeu, antes de chegar a
+     qualquer decisão sobre o que fazer. */
+  const loteTexto = valor('lote') ?? '3'
+  const lote = Number(loteTexto)
+  if (!Number.isInteger(lote) || lote <= 0) {
+    throw new Error(`--lote "${loteTexto}" não é um número inteiro positivo`)
+  }
+
   return {
     modo,
-    lote: Number(valor('lote') ?? 3),
+    lote,
     slugs: (valor('slugs') ?? '').split(',').map(s => s.trim()).filter(Boolean),
   }
+}
+
+/* Decide o que gerar nesta execução. Distinto de `lerArgumentos`: aqui o
+   erro não está na sintaxe do argumento, está em o pedido não corresponder
+   a nada — um `--slugs` a nomear um slug que não existe na lista de temas
+   (modo "escrever") ou entre os artigos curtos (modo "expandir"). Isso é
+   um erro do pedido, não uma lista esgotada: só devolve `[]` quando
+   `slugs` está vazio e não sobra mesmo nada por fazer, para que o
+   `exit(2)` de `principal()` continue a significar só essa coisa. */
+export function resolverAlvos({ modo, lote, slugs, temas, curtos }) {
+  const candidatos = modo === 'escrever' ? temas : curtos
+  const contexto = modo === 'escrever' ? 'na lista de temas' : 'entre os artigos curtos por expandir'
+
+  if (slugs.length) {
+    const alvos = candidatos.filter(c => slugs.includes(c.slug))
+    const encontrados = new Set(alvos.map(a => a.slug))
+    const emFalta = slugs.filter(s => !encontrados.has(s))
+    if (emFalta.length) {
+      throw new Error(`slug(s) não encontrado(s) ${contexto}: ${emFalta.join(', ')}`)
+    }
+    return alvos
+  }
+
+  return modo === 'escrever' ? proximosTemas(temas, lote) : curtos.slice(0, lote)
 }
 
 /* Uma tentativa: pede, limpa, verifica. Devolve o Markdown ou os problemas. */
@@ -112,6 +149,52 @@ export async function gerarUm({ cliente, modo, alvo, referenciasPt, referenciasE
   return { slug, caminhos, custo: pt.custo + en.custo, avisos: [...pt.avisos, ...en.avisos] }
 }
 
+/* Corre o lote todo: para cada alvo, gera os dois artigos e, assim que os
+   ficheiros estão escritos, marca o tema como usado — dentro do ciclo, e
+   não uma vez só no fim do lote como antes.
+
+   A ordem dentro de cada iteração importa. `gerarUm` só devolve depois de
+   `escreverArtigo` já ter posto os dois ficheiros em disco; só depois
+   disso é que `marcarUsados` corre aqui. Ao contrário — marcar antes de
+   escrever — uma falha a meio da escrita deixava o tema como "publicado"
+   sem nenhum artigo em disco: perdido por completo, e sem forma de o notar
+   numa segunda execução, que já não voltaria a escolher esse tema.
+
+   Com a ordem escolhida, o que resta é uma janela pequena e de um só
+   artigo: entre `escreverArtigo` terminar e `marcarUsados` correr, um
+   crash deixa esse artigo em disco mas o tema ainda "por-escrever" — a
+   próxima execução tenta escrevê-lo outra vez e tropeça no "já existe" de
+   `escreverArtigo`, só para esse artigo. Os artigos anteriores do mesmo
+   lote já foram marcados nas suas próprias iterações e não sofrem o
+   mesmo problema — é isto que faz uma falha a meio do lote continuável,
+   e não bloqueante, numa segunda execução. */
+export async function gerarLote({ cliente, modo, alvos, artigosPt, artigosEn, contentDir, temasPath }) {
+  const feitos = []
+  let custo = 0
+
+  for (const alvo of alvos) {
+    const categoria = modo === 'escrever' ? alvo.categoria : alvo.frontmatter.category
+    console.log(`[gerar] ${modo}: ${alvo.slug}`)
+
+    const r = await gerarUm({
+      cliente,
+      modo,
+      alvo,
+      referenciasPt: escolherReferencias(artigosPt, categoria, REFERENCIAS, alvo.slug),
+      referenciasEn: escolherReferencias(artigosEn, categoria, REFERENCIAS, alvo.slug),
+      contentDir,
+    })
+
+    custo += r.custo
+    feitos.push(r)
+    for (const aviso of r.avisos) console.warn(`[gerar] aviso: ${aviso}`)
+
+    if (modo === 'escrever') marcarUsados(temasPath, [r.slug])
+  }
+
+  return { feitos, custo }
+}
+
 async function principal() {
   const { modo, lote, slugs } = lerArgumentos(process.argv.slice(2))
   const cliente = criarCliente(process.env.ANTHROPIC_API_KEY)
@@ -128,7 +211,7 @@ async function principal() {
       process.exit(1)
     }
 
-    alvos = slugs.length ? temas.filter(t => slugs.includes(t.slug)) : proximosTemas(temas, lote)
+    alvos = resolverAlvos({ modo, lote, slugs, temas })
     if (alvos.length === 0) {
       console.error('[gerar] LISTA_ESGOTADA')
       process.exit(2)
@@ -137,35 +220,16 @@ async function principal() {
     const curtos = artigosPt
       .filter(a => a.palavras < MIN_PALAVRAS)
       .sort((a, b) => a.slug.localeCompare(b.slug))
-    alvos = slugs.length ? curtos.filter(a => slugs.includes(a.slug)) : curtos.slice(0, lote)
+    alvos = resolverAlvos({ modo, lote, slugs, curtos })
     if (alvos.length === 0) {
       console.error('[gerar] não há artigos curtos por expandir')
       process.exit(2)
     }
   }
 
-  const feitos = []
-  let custo = 0
-
-  for (const alvo of alvos) {
-    const categoria = modo === 'escrever' ? alvo.categoria : alvo.frontmatter.category
-    console.log(`[gerar] ${modo}: ${alvo.slug}`)
-
-    const r = await gerarUm({
-      cliente,
-      modo,
-      alvo,
-      referenciasPt: escolherReferencias(artigosPt, categoria, REFERENCIAS, alvo.slug),
-      referenciasEn: escolherReferencias(artigosEn, categoria, REFERENCIAS, alvo.slug),
-      contentDir: CONTENT_DIR,
-    })
-
-    custo += r.custo
-    feitos.push(r)
-    for (const aviso of r.avisos) console.warn(`[gerar] aviso: ${aviso}`)
-  }
-
-  if (modo === 'escrever') marcarUsados(TEMAS, feitos.map(f => f.slug))
+  const { feitos, custo } = await gerarLote({
+    cliente, modo, alvos, artigosPt, artigosEn, contentDir: CONTENT_DIR, temasPath: TEMAS,
+  })
 
   const avisos = feitos.flatMap(f => f.avisos)
   console.log(`[gerar] ${feitos.length} artigos, $${custo.toFixed(2)}`)

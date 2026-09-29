@@ -145,12 +145,14 @@ Responde só com o ficheiro Markdown.`
 export function promptIngles({ artigoPt, referenciaEn }) {
   return `Adapta este artigo para inglês.
 
-Não é uma tradução literal: é o mesmo artigo escrito em inglês, com o mesmo argumento, a mesma estrutura e a mesma dimensão. Onde a expressão portuguesa não tiver equivalente, escreve o que ela quer dizer.
+Não é uma tradução literal: é o mesmo artigo escrito em inglês, com o mesmo argumento e a mesma estrutura. Onde a expressão portuguesa não tiver equivalente, escreve o que ela quer dizer.
 
 - Inglês britânico: \`colour\`, \`organisation\`, \`programme\`.
 - Tratamento directo por \`you\`.
 - \`category\` e \`date\` ficam **exactamente iguais** às do artigo português — são chaves partilhadas pelas duas versões.
 - \`readTime\` fica em inglês: \`"5 min read"\`.
+
+${DIMENSAO}
 
 ## Artigo português
 
