@@ -208,6 +208,87 @@ test.each([
   expect(d.motivo).toContain('inválida')
 })
 
+/* O `new Date(texto)` do JavaScript perdoa demasiado. Cada uma destas entradas
+   é lida por ele como uma data válida, quase sempre antiga, e portanto juntava.
+   O relógio (`AGORA`) está a 2026-10-05, por isso qualquer data destas que
+   passasse teria mais de 48 horas. */
+test.each([
+  ['30 de fevereiro (passaria a 2 de março)', '2026-02-30T00:00:00Z'],
+  ['31 de abril (passaria a 1 de maio)', '2026-04-31T00:00:00Z'],
+  ['29 de fevereiro num ano que não é bissexto', '2026-02-29T00:00:00Z'],
+  ['dia zero', '2026-03-00T00:00:00Z'],
+  ['hora 24', '2026-09-01T24:00:00Z'],
+  ['hora 25', '2026-09-01T25:00:00Z'],
+  ['minuto 60', '2026-09-01T10:60:00Z'],
+  ['segundo 60', '2026-09-01T10:00:60Z'],
+  ['fuso com hora 24', '2026-09-01T10:00:00+24:00'],
+  ['fuso com minuto 60', '2026-09-01T10:00:00+01:60'],
+  ['«1» (lido como o ano 2001)', '1'],
+  ['«2026» (lido como 1 de janeiro)', '2026'],
+  ['«1970»', '1970'],
+  ['fragmento «abc 1»', 'abc 1'],
+  ['fragmento «Oct 1»', 'Oct 1'],
+  ['«1/1/2020»', '1/1/2020'],
+  ['hora sem fuso (lida como hora local: o resultado dependia do relógio da máquina)', '2026-10-01T00:00:00'],
+  ['hora sem fuso, com frações', '2026-10-01T00:00:00.000'],
+  ['só a data (lida como meia-noite UTC)', '2026-10-01'],
+  ['só a data e a hora, sem segundos', '2026-10-01T00:00Z'],
+  ['espaço em vez de T', '2026-10-01 00:00:00Z'],
+  ['espaço no fim', '2026-10-01T00:00:00Z '],
+  ['espaço no início', ' 2026-10-01T00:00:00Z'],
+  ['fuso sem os dois pontos', '2026-10-01T00:00:00+0100'],
+  ['lixo depois do Z', '2026-10-01T00:00:00Zx'],
+  ['mudança de linha no fim', '2026-10-01T00:00:00Z\n'],
+  ['ponto sem dígitos nas frações', '2026-10-01T00:00:00.Z'],
+  ['ano com dois dígitos', '26-10-01T00:00:00Z'],
+  ['ano zero, anterior a qualquer PR possível', '0000-10-01T00:00:00Z'],
+  ['ano 1999, anterior à GitHub', '1999-12-31T23:59:59Z'],
+  ['ano com cinco dígitos', '12026-10-01T00:00:00Z'],
+  ['mês zero', '2026-00-10T00:00:00Z'],
+  ['mês 13', '2026-13-10T00:00:00Z'],
+  ['objeto String com um instante válido dentro (não é texto)', new String('2026-09-01T10:00:00Z')],
+])('criadoEm %s: não é um instante ISO completo, logo não junta', (_, criadoEm) => {
+  const d = decidir({ pr: pr({ criadoEm }), artigosPublicados: 20, agora: AGORA })
+  expect(d.acao).toBe('nada')
+  expect(d.motivo).toContain('inválida')
+})
+
+test.each([
+  ['com Z', '2026-09-01T10:00:00Z'],
+  ['com frações de segundo', '2026-09-01T10:00:00.123Z'],
+  ['com fuso positivo', '2026-09-01T11:00:00+01:00'],
+  ['com fuso negativo', '2026-09-01T05:00:00-05:00'],
+  ['com fuso de meia hora', '2026-09-01T15:30:00+05:30'],
+  ['29 de fevereiro num ano bissexto', '2024-02-29T12:00:00Z'],
+  ['ano 2000, o primeiro aceite', '2000-01-01T00:00:00Z'],
+])('criadoEm %s: um instante ISO completo válido continua a ser aceite', (_, criadoEm) => {
+  // Em todos os casos há mais de 48 horas até AGORA e o build está verde: junta.
+  expect(acao({ criadoEm })).toBe('juntar')
+})
+
+test('o fuso é respeitado: -05:00 são 5 horas atrás do UTC', () => {
+  // 10:00 em -05:00 são 15:00Z de 3 de outubro, 45 horas antes de AGORA: só avisa.
+  // Se o fuso fosse ignorado leria-se 10:00Z (50 horas) e juntava.
+  expect(acao({ criadoEm: '2026-10-03T10:00:00-05:00' })).toBe('avisar')
+})
+
+test('o fuso é respeitado no sentido contrário: +05:00 são 5 horas à frente do UTC', () => {
+  // 16:00 em +05:00 são 11:00Z de 3 de outubro, 49 horas antes de AGORA: junta.
+  // Se o fuso fosse ignorado leria-se 16:00Z (44 horas) e só avisava.
+  expect(acao({ criadoEm: '2026-10-03T16:00:00+05:00' })).toBe('juntar')
+})
+
+test('os minutos do fuso contam: +05:30', () => {
+  // 17:15 em +05:30 são 11:45Z, 48,25 horas antes de AGORA: junta.
+  // Sem os 30 minutos leria-se 12:15Z (47,75 horas) e só avisava.
+  expect(acao({ criadoEm: '2026-10-03T17:15:00+05:30' })).toBe('juntar')
+})
+
+test('as frações de segundo não mudam o resultado nas fronteiras', () => {
+  expect(acao({ criadoEm: '2026-10-03T12:00:00.000Z' })).toBe('juntar')
+  expect(acao({ criadoEm: '2026-10-03T12:00:00.999Z' })).toBe('avisar')
+})
+
 test.each([
   ['ausente', undefined],
   ['nulo', null],
@@ -246,11 +327,6 @@ test.each([
   const d = decidir({ pr: pr({ artigos, criadoEm: haHoras(500) }), artigosPublicados: 20, agora: AGORA })
   expect(d.acao).toBe('nada')
   expect(d.motivo).toContain('inválid')
-})
-
-test('um número negativo de artigos não é uma forma de furar a rampa', () => {
-  // 20 publicados e -3 dava 17, acima de 10; o que deve pesar é que -3 não existe
-  expect(acao({ artigos: -3, criadoEm: haHoras(500) })).toBe('nada')
 })
 
 test.each([
@@ -355,6 +431,15 @@ test('a decisão vem sempre com um motivo em texto', () => {
     expect(['nada', 'avisar', 'juntar', 'precisa-build']).toContain(d.acao)
     expect(typeof d.motivo).toBe('string')
     expect(d.motivo.length).toBeGreaterThan(5)
+  }
+})
+
+test('decidir(null) e decidir() comportam-se da mesma maneira: nada, sem rebentar', () => {
+  // Quem varre vários PRs num ciclo não pode abortar porque um veio mal formado
+  for (const entrada of [undefined, null, {}, 5, 'x', []]) {
+    const d = decidir(entrada)
+    expect(d.acao).toBe('nada')
+    expect(d.motivo).toContain('inválid')
   }
 })
 
