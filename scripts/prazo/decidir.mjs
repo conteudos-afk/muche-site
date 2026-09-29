@@ -4,7 +4,7 @@
    poder escrever todos os casos num teste sem tocar no GitHub. Não lê ficheiros,
    não chama o `gh`, não pergunta as horas: recebe tudo, devolve uma decisão.
 
-   Quatro decisões que valem a pena explicar.
+   Cinco decisões que valem a pena explicar.
 
    **A rampa vem primeiro.** Até 10 artigos publicados, nada acontece sozinho,
    aconteça o que acontecer. É a travagem que não depende de nenhuma das
@@ -25,6 +25,20 @@
    passam a ser 12: o PR depois desse já é automático. A rampa acaba nos 12 em
    vez de exatamente nos 10, o que não custa nada. Quem for tentado a «acertar»
    isto somando `pr.artigos` está a repor o buraco descrito acima.
+
+   **O aviso das 24 horas é condição para juntar, não um extra.** A promessa é
+   «aviso às 24 horas, merge às 48 se ninguém reagiu», e o aviso é o que dá a
+   uma pessoa a hipótese de reagir. Sem ele, as 48 horas cumprem a letra e
+   desfazem o motivo. E não é um caso teórico: o GitHub desliga os workflows
+   agendados após 60 dias sem atividade no repositório, e um blog parado no
+   verão é o caso típico. Quando o workflow volta, encontra PRs com mais de 48
+   horas que nunca foram avisados, e juntá-los na hora seria surpreender toda a
+   gente. Por isso, passadas as 48 horas sem aviso, a decisão é `avisar`; na
+   execução seguinte `jaAvisado` já é `true` e o PR pode ser juntado. Custa,
+   no máximo, uma hora a mais. Não há o risco de avisar para sempre: com
+   `jaAvisado === true` esta função nunca devolve `avisar`, só `nada`,
+   `precisa-build` ou `juntar`. Quem achar que a espera de uma hora é
+   redundante está a ler o «48 horas» sem ler o «aviso».
 
    **O `buildVerde` pode ser `null`.** Correr um build custa três minutos, e
    esta função é chamada de hora a hora sobre todos os PRs abertos. Devolver
@@ -141,19 +155,29 @@ export function decidir(entrada) {
   const horas = (agora.getTime() - criado) / 3600_000
   if (horas < 0) return nada('o PR diz ter sido criado no futuro — data suspeita')
 
-  if (horas >= HORAS_MERGE) {
+  if (horas >= HORAS_AVISO) {
+    /* Sem o aviso enviado nunca se junta, por muitas horas que tenham passado.
+       Faltando-o, avisa-se agora e junta-se numa execução seguinte. Só
+       `false` avisa e só `true` deixa avançar: um valor em falta ou de outro
+       tipo não autoriza nem uma coisa nem outra. */
+    if (pr.jaAvisado === false) {
+      const semAviso = horas >= HORAS_MERGE
+      return {
+        acao: 'avisar',
+        motivo: semAviso
+          ? `${Math.floor(horas)} horas sem resposta e o aviso das ${HORAS_AVISO} horas nunca foi enviado — avisa-se agora e junta-se numa execução seguinte`
+          : `${Math.floor(horas)} horas sem resposta`,
+      }
+    }
+    if (pr.jaAvisado !== true) return nada('não se sabe se o aviso já foi enviado')
+    if (horas < HORAS_MERGE) return nada('já foi avisado, à espera das 48 horas')
+
     if (pr.buildVerde === null || pr.buildVerde === undefined) {
-      return { acao: 'precisa-build', motivo: `${Math.floor(horas)} horas sem resposta — falta saber do build` }
+      return { acao: 'precisa-build', motivo: `${Math.floor(horas)} horas sem resposta, avisado — falta saber do build` }
     }
     /* `=== true`: só o booleano verdadeiro autoriza. `1` ou `'true'` não. */
     if (pr.buildVerde !== true) return nada('passaram as 48 horas, mas o build não está verde')
-    return { acao: 'juntar', motivo: `${Math.floor(horas)} horas sem resposta, e o build está verde` }
-  }
-
-  if (horas >= HORAS_AVISO) {
-    /* Só avisa com a certeza de que ainda não avisou. */
-    if (pr.jaAvisado !== false) return nada('já foi avisado, ou não se sabe se foi')
-    return { acao: 'avisar', motivo: `${Math.floor(horas)} horas sem resposta` }
+    return { acao: 'juntar', motivo: `${Math.floor(horas)} horas sem resposta, avisado, e o build está verde` }
   }
 
   return nada(`só passaram ${Math.floor(horas)} horas`)
