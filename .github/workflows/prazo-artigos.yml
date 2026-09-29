@@ -1,0 +1,127 @@
+name: Prazo dos artigos
+
+on:
+  schedule:
+    # Aos 17 de cada hora — fora do minuto zero, onde o GitHub tem fila.
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: prazo-artigos
+  cancel-in-progress: false
+
+jobs:
+  prazo:
+    # Este workflow junta código ao `main` sem ninguém carregar em nada, e o
+    # `scripts/prazo/` que corre é o do checkout. Um disparo à mão pode escolher
+    # outro ramo (`gh workflow run --ref`), e então correriam regras que não
+    # passaram por revisão. Só corre a partir do `main`. Num disparo agendado o
+    # GitHub usa sempre o ramo por omissão, por isso aí a condição é sempre
+    # verdadeira.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      # `persist-credentials: false`: o token não fica escrito no `.git/config`.
+      # As árvores de trabalho partilham esse ficheiro com o checkout, e o
+      # `npm ci` e o build de um PR são código do PR a correr nesta máquina.
+      # O repositório é público, por isso os `git fetch` abaixo não precisam de
+      # credenciais; se algum dia deixar de ser, falham em voz alta (o passo
+      # fica vermelho) e não em silêncio.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      # Versão 24, tal como no `gerar-artigos.yml`.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # Só lê. Cada linha do plano (decisão e motivo, de todos os PRs, mesmo os
+      # que ficam em `nada`) vai para o registo e para o resumo da execução: é
+      # o único rasto quando o `decidir` recusa um dado com a forma errada.
+      - name: Planear
+        id: plano
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          plano=$(node scripts/prazo/index.mjs --planear)
+          echo "$plano" | jq .
+          echo "avisar=$(echo "$plano" | jq -r '[.prs[] | select(.acao=="avisar") | .numero] | join(" ")')" >> "$GITHUB_OUTPUT"
+          echo "construir=$(echo "$plano" | jq -r '[.prs[] | select(.acao=="precisa-build") | .numero] | join(" ")')" >> "$GITHUB_OUTPUT"
+
+      # Os números vêm do `gh`, mas passam por variáveis de ambiente e nunca
+      # são escritos dentro do script.
+      - name: Avisar às 24 horas
+        if: steps.plano.outputs.avisar != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          AVISAR: ${{ steps.plano.outputs.avisar }}
+        run: |
+          falhas=0
+          for numero in $AVISAR; do
+            node scripts/prazo/index.mjs --aplicar "$numero" || falhas=1
+          done
+          exit "$falhas"
+
+      # Só os PRs a quem falta mesmo o build. Cada um é construído numa árvore
+      # de trabalho à parte, para o `scripts/prazo/` que decide o merge ser
+      # sempre o do `main` (o checkout, aqui em cima) e nunca o que vem dentro
+      # do PR — um PR não deve poder mudar as regras pelas quais é juntado.
+      #
+      # O build corre sem `GH_TOKEN`: o código do PR não recebe o token que
+      # pode juntar PRs. E, antes de decidir, confirma-se que esse código não
+      # mexeu no `scripts/` do checkout (está tudo no mesmo disco); se mexeu,
+      # não se junta mais nada nesta execução.
+      #
+      # O commit construído segue para o `--aplicar`, que só junta se a ponta
+      # do PR continuar a ser esse commit.
+      - name: Construir e juntar
+        if: steps.plano.outputs.construir != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CONSTRUIR: ${{ steps.plano.outputs.construir }}
+        run: |
+          set -uo pipefail
+          falhas=0
+          for numero in $CONSTRUIR; do
+            echo "::group::PR #$numero"
+
+            if ! git fetch --depth=1 origin "pull/$numero/head"; then
+              echo "::error::não foi possível obter o PR #$numero"
+              falhas=1
+              echo "::endgroup::"
+              continue
+            fi
+            commit=$(git rev-parse FETCH_HEAD)
+            arvore="../pr-$numero"
+
+            if ! git worktree add --detach "$arvore" "$commit"; then
+              echo "::error::não foi possível criar a árvore de trabalho do PR #$numero"
+              falhas=1
+              echo "::endgroup::"
+              continue
+            fi
+
+            verde=false
+            if (cd "$arvore" && unset GH_TOKEN GITHUB_TOKEN && npm ci && npm run build); then verde=true; fi
+            echo "build do PR #$numero ($commit): verde=$verde"
+
+            git worktree remove --force "$arvore"
+
+            if [ -n "$(git status --porcelain --untracked-files=all -- scripts .github package.json package-lock.json)" ]; then
+              echo "::error::o build do PR #$numero alterou ficheiros do checkout — nada mais é decidido nesta execução"
+              git status --short
+              falhas=1
+              echo "::endgroup::"
+              break
+            fi
+
+            BUILD_VERDE=$verde COMMIT_CONSTRUIDO=$commit node scripts/prazo/index.mjs --aplicar "$numero" || falhas=1
+            echo "::endgroup::"
+          done
+          exit "$falhas"
