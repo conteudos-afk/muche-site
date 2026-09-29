@@ -148,17 +148,21 @@ jobs:
           git add content/blog/
 
           # Antes de qualquer push: se o contador falhar, não fica um ramo
-          # órfão no repositório. Conta os artigos NOVOS deste PR (um `pt.md`
-          # acrescentado), o mesmo critério do contador. Um `expandir` só altera
-          # artigos que já existiam e por isso soma zero.
+          # órfão no repositório.
+          #
+          # `publicados` conta só os artigos que uma pessoa já juntou ao `main`,
+          # e é o mesmo número que o `decidir.mjs` compara com 10. Os artigos
+          # deste PR ficam de fora de propósito: se entrassem na conta, um PR
+          # podia passar a rampa com os próprios artigos que a rampa existe para
+          # proteger (com 9 publicados, um lote de 3 dava 12 e juntava-se
+          # sozinho). E o texto tem de dizer o que o `decidir` vai mesmo fazer;
+          # somar aqui prometia um merge automático que nunca chegava.
           publicados=$(node scripts/prazo/contar.mjs)
-          neste=$(git diff --cached --name-only --diff-filter=A | grep -cE '^content/blog/[^_/][^/]*/pt\.md$' || true)
-          depois=$((publicados + neste))
 
-          if [ "$depois" -le 10 ]; then
-            rampa="Este PR leva o blog a **$depois de 10 artigos** antes de o prazo automático entrar. Até lá, nada é publicado sem alguém carregar em *Merge*."
+          if [ "$publicados" -le 10 ]; then
+            rampa="Vão **$publicados artigos publicados** por esta via. Enquanto forem 10 ou menos, nada é publicado sem alguém carregar em *Merge* — este PR incluído."
           else
-            rampa="A rampa já terminou ($publicados artigos publicados). **Este PR é juntado automaticamente ao fim de 48 horas** se ninguém escrever nada aqui. Recebes um aviso às 24 horas."
+            rampa="Vão $publicados artigos publicados. **Este PR é juntado automaticamente ao fim de 48 horas** se ninguém escrever nada aqui. Recebes um aviso às 24 horas."
           fi
 
           lista=$(echo "$SLUGS" | tr ',' '\n' | sed 's|^|- `content/blog/|; s|$|/`|')
