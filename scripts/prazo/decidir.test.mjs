@@ -11,7 +11,8 @@ const pr = (extra = {}) => ({
   comentariosHumanos: 0,
   revisoes: 0,
   buildVerde: true,
-  jaAvisado: false,
+  // Por omissão o aviso já foi enviado: é o estado normal de quem chega às 48 horas
+  jaAvisado: true,
   rascunho: false,
   ...extra,
 })
@@ -45,7 +46,7 @@ test('não faz nada antes das 24 horas', () => {
 })
 
 test('avisa às 24 horas', () => {
-  expect(acao({ criadoEm: haHoras(25) })).toBe('avisar')
+  expect(acao({ criadoEm: haHoras(25), jaAvisado: false })).toBe('avisar')
 })
 
 test('não avisa duas vezes', () => {
@@ -67,7 +68,7 @@ test('uma revisão também trava, mesmo que seja uma aprovação', () => {
 })
 
 test('um comentário trava também a fase do aviso', () => {
-  expect(acao({ criadoEm: haHoras(25), comentariosHumanos: 1 })).toBe('nada')
+  expect(acao({ criadoEm: haHoras(25), jaAvisado: false, comentariosHumanos: 1 })).toBe('nada')
 })
 
 test('um rascunho nunca é juntado', () => {
@@ -106,7 +107,7 @@ test('nem a quem já tem um comentário', () => {
 /* Os limites */
 
 test('às 24 horas em ponto já avisa', () => {
-  expect(acao({ criadoEm: haHoras(24) })).toBe('avisar')
+  expect(acao({ criadoEm: haHoras(24), jaAvisado: false })).toBe('avisar')
 })
 
 test('um segundo antes das 24 horas ainda não avisa', () => {
@@ -120,19 +121,114 @@ test('às 48 horas em ponto já junta', () => {
 
 test('um segundo antes das 48 horas ainda só avisa', () => {
   const criadoEm = new Date(AGORA.getTime() - 48 * 3600_000 + 1000).toISOString()
-  expect(acao({ criadoEm })).toBe('avisar')
+  expect(acao({ criadoEm, jaAvisado: false })).toBe('avisar')
 })
 
 test('entre as 24 e as 48 horas o build não é pedido: só se avisa', () => {
-  expect(acao({ criadoEm: haHoras(30), buildVerde: null })).toBe('avisar')
+  expect(acao({ criadoEm: haHoras(30), jaAvisado: false, buildVerde: null })).toBe('avisar')
 })
 
 test('passadas as 48 horas, quem já foi avisado é juntado na mesma', () => {
   expect(acao({ criadoEm: haHoras(60), jaAvisado: true })).toBe('juntar')
 })
 
-test('passadas as 48 horas, quem nunca foi avisado (o workflow esteve parado) é juntado', () => {
-  expect(acao({ criadoEm: haHoras(200), jaAvisado: false })).toBe('juntar')
+/* O aviso das 24 horas é condição para juntar. Um PR que passou as 48 horas sem
+   nunca o ter recebido (etiquetado tarde, ou o workflow esteve parado — o GitHub
+   desliga os agendados ao fim de 60 dias sem atividade) é avisado agora e
+   juntado numa execução seguinte. */
+
+test('48 horas sem aviso enviado: avisa, não junta', () => {
+  const d = decidir({ pr: pr({ criadoEm: haHoras(49), jaAvisado: false }), artigosPublicados: 20, agora: AGORA })
+  expect(d.acao).toBe('avisar')
+  expect(d.motivo).toContain('nunca foi enviado')
+})
+
+test('48 horas com o aviso enviado: junta', () => {
+  expect(acao({ criadoEm: haHoras(49), jaAvisado: true })).toBe('juntar')
+})
+
+test('72 horas sem aviso enviado: avisa, não junta', () => {
+  expect(acao({ criadoEm: haHoras(72), jaAvisado: false })).toBe('avisar')
+})
+
+test('muito tempo depois (o workflow esteve parado), sem aviso: continua a avisar primeiro', () => {
+  expect(acao({ criadoEm: haHoras(24 * 90), jaAvisado: false })).toBe('avisar')
+})
+
+test('às 48 horas em ponto sem aviso: avisa, não junta, e diz que o aviso nunca foi enviado', () => {
+  const d = decidir({ pr: pr({ criadoEm: haHoras(48), jaAvisado: false }), artigosPublicados: 20, agora: AGORA })
+  expect(d.acao).toBe('avisar')
+  expect(d.motivo).toContain('nunca foi enviado')
+})
+
+test('entre as 24 e as 48 horas o aviso é o normal e não diz que «nunca foi enviado»', () => {
+  const d = decidir({ pr: pr({ criadoEm: haHoras(30), jaAvisado: false }), artigosPublicados: 20, agora: AGORA })
+  expect(d.acao).toBe('avisar')
+  expect(d.motivo).not.toContain('nunca foi enviado')
+})
+
+test('passadas as 48 horas sem aviso, avisa mesmo que o build seja vermelho ou desconhecido', () => {
+  // O aviso não depende do build, e não se gasta um build num PR que ainda não pode ser juntado
+  expect(acao({ criadoEm: haHoras(72), jaAvisado: false, buildVerde: false })).toBe('avisar')
+  expect(acao({ criadoEm: haHoras(72), jaAvisado: false, buildVerde: null })).toBe('avisar')
+  expect(acao({ criadoEm: haHoras(72), jaAvisado: false, buildVerde: true })).toBe('avisar')
+})
+
+test('sequência: avisa numa execução e junta na seguinte', () => {
+  // Execução 1: 72 horas, nunca avisado, build ainda por saber
+  const um = decidir({ pr: pr({ criadoEm: haHoras(72), jaAvisado: false, buildVerde: null }), artigosPublicados: 20, agora: AGORA })
+  expect(um.acao).toBe('avisar')
+  // Execução 2: uma hora depois o chamador vê o aviso, `jaAvisado` é true; pede o build
+  const depois = new Date(AGORA.getTime() + 3600_000)
+  const dois = decidir({ pr: pr({ criadoEm: haHoras(72), jaAvisado: true, buildVerde: null }), artigosPublicados: 20, agora: depois })
+  expect(dois.acao).toBe('precisa-build')
+  // Execução 3: o build está verde; junta
+  const tres = decidir({ pr: pr({ criadoEm: haHoras(72), jaAvisado: true, buildVerde: true }), artigosPublicados: 20, agora: depois })
+  expect(tres.acao).toBe('juntar')
+})
+
+test('não há estado em que avisa para sempre: com o aviso enviado, nunca devolve `avisar`', () => {
+  for (let h = 0; h <= 24 * 120; h += 0.5) {
+    for (const buildVerde of [true, false, null]) {
+      const d = decidir({ pr: pr({ criadoEm: haHoras(h), jaAvisado: true, buildVerde }), artigosPublicados: 20, agora: AGORA })
+      expect(d.acao).not.toBe('avisar')
+    }
+  }
+})
+
+test('sem o aviso enviado, a partir das 24 horas nunca junta nem pede build', () => {
+  for (let h = 24; h <= 24 * 120; h += 0.5) {
+    for (const buildVerde of [true, false, null]) {
+      const d = decidir({ pr: pr({ criadoEm: haHoras(h), jaAvisado: false, buildVerde }), artigosPublicados: 20, agora: AGORA })
+      expect(d.acao).toBe('avisar')
+    }
+  }
+})
+
+test.each([
+  ['comentário', { comentariosHumanos: 1 }],
+  ['revisão', { revisoes: 1 }],
+  ['rascunho', { rascunho: true }],
+])('passadas as 48 horas sem aviso, um PR com %s não é avisado: quem lá está já reagiu', (_, extra) => {
+  expect(acao({ criadoEm: haHoras(72), jaAvisado: false, ...extra })).toBe('nada')
+})
+
+test('passadas as 48 horas sem aviso, a rampa continua a mandar', () => {
+  expect(acao({ criadoEm: haHoras(72), jaAvisado: false }, 5)).toBe('nada')
+})
+
+test.each([
+  ['ausente', undefined],
+  ['nulo', null],
+  ['texto «true»', 'true'],
+  ['texto «false»', 'false'],
+  ['1', 1],
+  ['0', 0],
+  ['objeto', {}],
+])('passadas as 48 horas, jaAvisado %s não é nem verdadeiro nem falso: nada', (_, jaAvisado) => {
+  const d = decidir({ pr: pr({ criadoEm: haHoras(72), jaAvisado }), artigosPublicados: 20, agora: AGORA })
+  expect(d.acao).toBe('nada')
+  expect(d.motivo).toContain('não se sabe')
 })
 
 /* A rampa */
@@ -165,7 +261,7 @@ test('a rampa manda mesmo quando tudo o resto está pronto para juntar', () => {
 })
 
 test('a rampa trava também o aviso e o pedido de build', () => {
-  expect(acao({ criadoEm: haHoras(30) }, 0)).toBe('nada')
+  expect(acao({ criadoEm: haHoras(30), jaAvisado: false }, 0)).toBe('nada')
   expect(acao({ criadoEm: haHoras(60), buildVerde: null }, 0)).toBe('nada')
 })
 
@@ -269,7 +365,7 @@ test.each([
 test('o fuso é respeitado: -05:00 são 5 horas atrás do UTC', () => {
   // 10:00 em -05:00 são 15:00Z de 3 de outubro, 45 horas antes de AGORA: só avisa.
   // Se o fuso fosse ignorado leria-se 10:00Z (50 horas) e juntava.
-  expect(acao({ criadoEm: '2026-10-03T10:00:00-05:00' })).toBe('avisar')
+  expect(acao({ criadoEm: '2026-10-03T10:00:00-05:00', jaAvisado: false })).toBe('avisar')
 })
 
 test('o fuso é respeitado no sentido contrário: +05:00 são 5 horas à frente do UTC', () => {
@@ -286,7 +382,7 @@ test('os minutos do fuso contam: +05:30', () => {
 
 test('as frações de segundo não mudam o resultado nas fronteiras', () => {
   expect(acao({ criadoEm: '2026-10-03T12:00:00.000Z' })).toBe('juntar')
-  expect(acao({ criadoEm: '2026-10-03T12:00:00.999Z' })).toBe('avisar')
+  expect(acao({ criadoEm: '2026-10-03T12:00:00.999Z', jaAvisado: false })).toBe('avisar')
 })
 
 test.each([
@@ -362,7 +458,7 @@ test.each([
 })
 
 test('um rascunho não é avisado nem pede build', () => {
-  expect(acao({ rascunho: true, criadoEm: haHoras(30) })).toBe('nada')
+  expect(acao({ rascunho: true, criadoEm: haHoras(30), jaAvisado: false })).toBe('nada')
   expect(acao({ rascunho: true, buildVerde: null })).toBe('nada')
 })
 
@@ -386,9 +482,17 @@ test.each([
   expect(acao({ criadoEm: haHoras(30), jaAvisado })).toBe('nada')
 })
 
-test('jaAvisado só interessa à fase das 24 horas: depois das 48 já não conta', () => {
-  // O aviso só interessa à fase das 24 horas. Depois das 48 já não conta.
-  expect(acao({ criadoEm: haHoras(60), jaAvisado: undefined })).toBe('juntar')
+test('jaAvisado também tem de ser exatamente booleano a partir das 24 horas: «true» em texto não avisa nem junta', () => {
+  expect(acao({ criadoEm: haHoras(30), jaAvisado: 'true' })).toBe('nada')
+  expect(acao({ criadoEm: haHoras(60), jaAvisado: 'true' })).toBe('nada')
+})
+
+test('antes das 24 horas jaAvisado não interessa: um valor estranho não muda nada, nem o motivo', () => {
+  for (const jaAvisado of [undefined, null, 'true', false, true]) {
+    const d = decidir({ pr: pr({ criadoEm: haHoras(3), jaAvisado }), artigosPublicados: 20, agora: AGORA })
+    expect(d.acao).toBe('nada')
+    expect(d.motivo).toContain('só passaram')
+  }
 })
 
 /* Combinações */
@@ -414,14 +518,14 @@ test('rascunho e comentário e build vermelho: nada', () => {
 })
 
 test('build vermelho na janela do aviso: o aviso é sobre o prazo, não sobre o build, por isso avisa', () => {
-  expect(acao({ criadoEm: haHoras(30), buildVerde: false })).toBe('avisar')
+  expect(acao({ criadoEm: haHoras(30), jaAvisado: false, buildVerde: false })).toBe('avisar')
 })
 
 test('a decisão vem sempre com um motivo em texto', () => {
   const casos = [
     pr(),
     pr({ criadoEm: haHoras(3) }),
-    pr({ criadoEm: haHoras(30) }),
+    pr({ criadoEm: haHoras(30), jaAvisado: false }),
     pr({ buildVerde: null }),
     pr({ buildVerde: false }),
     pr({ comentariosHumanos: 1 }),
