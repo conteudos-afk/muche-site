@@ -45,18 +45,32 @@ jobs:
       # escolher um artigo que já está num PR por juntar — o `main` ainda o vê
       # curto. A automação não deve gastar dinheiro a reescrever o que já está
       # à espera de revisão.
-      - name: Recusar se já houver um PR de artigos por juntar
+      - name: Saltar se já houver um PR de artigos por juntar
+        id: guarda
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           abertos=$(gh pr list --state open --label artigo-automatico --limit 50 --json number --jq 'length')
           if [ "$abertos" != "0" ]; then
-            echo "::error::há $abertos PR(s) de artigos por juntar — junta ou fecha antes de gerar mais"
-            exit 1
+            # Não é uma falha: é a guarda a fazer o que deve. O passo acaba
+            # verde, os seguintes não correm, e o motivo fica escrito no
+            # resumo da execução para quem se perguntar porque não apareceu
+            # nada. Uma falha a sério (o `gh` a rebentar) continua a ser
+            # vermelha, porque o `-e` do shell interrompe o passo antes daqui.
+            echo "saltar=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Geração saltada"
+              echo
+              echo "Há **$abertos** Pull Request(s) de artigos por juntar, e a automação não gera mais enquanto houver algum à espera de revisão."
+              echo
+              echo "Junta ou fecha esse(s) PR(s) e a próxima execução avança sozinha."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::geração saltada: há $abertos PR(s) de artigos por juntar"
           fi
 
       - name: Gerar
         id: gerar
+        if: steps.guarda.outputs.saltar != 'true'
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Os valores do formulário do `workflow_dispatch` passam por variáveis
