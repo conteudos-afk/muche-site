@@ -88,3 +88,14 @@ test('a lista real do repositório é válida', () => {
   expect(validarTemas(temas)).toEqual([])
   expect(temas.length).toBeGreaterThanOrEqual(40)
 })
+
+/* Um slug é o endereço do artigo para sempre; depois de publicado já não se
+   emenda. Os termos que a voz da Muche proíbe («vídeo institucional», «filme
+   de marca» — ver o SISTEMA em prompt.mjs) não podem lá entrar. */
+test('nenhum slug da lista real contém um termo que a voz da Muche proíbe', () => {
+  const temas = lerTemas(new URL('../../content/blog/_temas.yml', import.meta.url).pathname)
+  const proibidos = ['institucional', 'filme-de-marca']
+  for (const { slug } of temas) {
+    for (const termo of proibidos) expect(slug, slug).not.toContain(termo)
+  }
+})
