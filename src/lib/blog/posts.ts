@@ -34,11 +34,17 @@ export function sortPosts(posts: Post[]): Post[] {
 }
 
 /* ─── Corpo em falta ─────────────────────────────────────────────────────────
-   Os artigos em português ainda só têm título e excerto traduzidos; o corpo
-   existe apenas em inglês. Era assim que o site funcionava antes da migração
-   (um só corpo, em inglês, com o aviso em PT por cima), e é isso que se
-   mantém aqui. Quando houver tradução, o `bodyHtml` do pt.md deixa de estar
-   vazio e o recurso ao inglês desliga-se sozinho. ─────────────────────────── */
+   Hoje não dispara: os catorze artigos têm corpo nas duas línguas, e o
+   gerador escreve sempre o `pt.md` e o `en.md` juntos. Foi escrito para o
+   tempo em que os artigos em português só tinham título e excerto
+   traduzidos e o corpo existia apenas em inglês (era assim que o site
+   funcionava antes da migração: um só corpo, em inglês, com o aviso em PT
+   por cima).
+
+   Fica como rede de segurança para um `pt.md` com o corpo vazio: em vez de
+   uma página em branco, mostra o corpo inglês e assina o empréstimo com o
+   `bodyLang`. Enquanto todos os artigos tiverem corpo próprio, o `bodyLang`
+   nunca existe e o aviso e o canónico alternativo nunca aparecem. ─────────────────────────────────────────────── */
 export function withBodyFallback(post: Post, all: Post[]): Post {
   if (post.bodyHtml) return post
   const en = all.find(p => p.slug === post.slug && p.lang === 'en')
