@@ -50,7 +50,52 @@ const nada = motivo => ({ acao: 'nada', motivo })
    é por isso que `'20' + 3` nunca chega a concatenar. */
 const contagemValida = n => Number.isInteger(n) && n >= 0
 
-export function decidir({ pr, artigosPublicados, agora } = {}) {
+/* ─── Datas ──────────────────────────────────────────────────────────────────
+   `new Date(texto)` é demasiado generoso para se confiar nele aqui. Lê `"1"`
+   como o ano 2001 e `"2026"` como 1 de janeiro, e um campo truncado ou
+   estragado passaria por uma data antiga — e um PR antigo junta-se. Lê
+   `2026-02-30` como 2 de março (as datas impossíveis «passam ao mês
+   seguinte»). Lê uma hora sem fuso como hora local, pelo que o mesmo texto
+   dava `avisar` num relógio em UTC e `juntar` em Lisboa. E lê `2026-10-01`
+   como meia-noite UTC, o que faz o PR parecer mais velho do que é.
+
+   O `gh` manda sempre um instante ISO 8601 completo com `Z`, portanto nada
+   disto acontece hoje. Mas esta função não confia em quem a chama, e uma
+   guarda que só está certa porque o chamador se porta bem não é uma guarda.
+
+   Por isso: (1) o texto tem de ter o formato completo, com fuso; (2) o dia
+   tem de existir no calendário, conferido contra o texto; (3) a hora não
+   pode ser 24, que o `Date` aceita como meia-noite do dia seguinte. O resto
+   (minuto 60, fuso `+24:00`, mês 13…) o `Date` já recusa, e os testes fixam
+   isso: se um motor novo passar a perdoar, falham. */
+const INSTANTE = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/
+
+/* Nenhum PR é anterior à GitHub. Um ano como `0000` é um campo estragado, e lido
+   como data verdadeira daria um PR com dois mil anos — que se juntava. */
+const ANO_MINIMO = 2000
+
+/* Devolve os milissegundos, ou `NaN` se o texto não for um instante válido. */
+function lerInstante(texto) {
+  if (typeof texto !== 'string') return NaN
+  const m = INSTANTE.exec(texto)
+  if (!m) return NaN
+  const [ano, mes, dia, hora] = m.slice(1, 5).map(Number)
+  if (ano < ANO_MINIMO || hora > 23) return NaN
+
+  /* Escreve-se de volta a data a partir dos números e compara-se com o texto:
+     30 de fevereiro volta como 2 de março e não coincide. */
+  const calendario = new Date(0)
+  calendario.setUTCFullYear(ano, mes - 1, dia)
+  if (calendario.toISOString().slice(0, 10) !== texto.slice(0, 10)) return NaN
+
+  return new Date(texto).getTime()
+}
+
+export function decidir(entrada) {
+  /* `entrada ?? {}` e não um valor por omissão: o valor por omissão só cobre
+     `undefined`, e `null` rebentava. Quem varre vários PRs num ciclo não pode
+     abortar a varredura porque um veio mal formado. */
+  const { pr, artigosPublicados, agora } = entrada ?? {}
   if (!pr) return nada('sem dados do PR — entrada inválida')
   if (!contagemValida(artigosPublicados)) {
     return nada(`número de artigos publicados inválido (${String(artigosPublicados)})`)
@@ -87,9 +132,10 @@ export function decidir({ pr, artigosPublicados, agora } = {}) {
     return nada('hora atual inválida')
   }
 
-  /* Só texto. `new Date(null)` é 1970 e `new Date(0)` também: um PR sem data
-     passaria por ter meio século, e seria juntado. */
-  const criado = typeof pr.criadoEm === 'string' ? new Date(pr.criadoEm).getTime() : NaN
+  /* Só um instante ISO completo (ver `lerInstante`). `new Date(null)` e
+     `new Date(0)` são 1970: um PR sem data passaria por ter meio século, e
+     seria juntado. */
+  const criado = lerInstante(pr.criadoEm)
   if (Number.isNaN(criado)) return nada('data de criação inválida')
 
   const horas = (agora.getTime() - criado) / 3600_000
