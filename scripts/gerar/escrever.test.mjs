@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { limparResposta, verificarArtigo, escreverArtigo } from './escrever.mjs'
+import { limparResposta, verificarArtigo, escreverArtigo, calcularReadTime, aplicarReadTime } from './escrever.mjs'
 
 const CORPO_LONGO = 'palavra '.repeat(1400).trim()
 const BOM = `---
@@ -122,4 +122,52 @@ test('mas escreve por cima quando lhe dizem que é uma expansão', () => {
   const novo = BOM.replace('Um título', 'Outro título')
   escreverArtigo({ contentDir: dir, slug: 'teste', lang: 'pt', markdown: novo, substituir: true })
   expect(fs.readFileSync(path.join(dir, 'teste', 'pt.md'), 'utf-8')).toContain('Outro título')
+})
+
+test('calcularReadTime: 200 palavras por minuto, arredondado ao inteiro mais próximo', () => {
+  expect(calcularReadTime(1572, 'pt')).toBe('8 min de leitura')
+  expect(calcularReadTime(1543, 'en')).toBe('8 min read')
+  expect(calcularReadTime(1499, 'pt')).toBe('7 min de leitura')
+  expect(calcularReadTime(1500, 'pt')).toBe('8 min de leitura')
+  expect(calcularReadTime(1200, 'en')).toBe('6 min read')
+  expect(calcularReadTime(1800, 'en')).toBe('9 min read')
+})
+
+test('calcularReadTime: nunca devolve zero minutos e recusa uma língua que não conhece', () => {
+  expect(calcularReadTime(10, 'pt')).toBe('1 min de leitura')
+  expect(() => calcularReadTime(1500, 'fr')).toThrow(/fr/)
+})
+
+const comCorpo = (n, readTime) => BOM.replace(CORPO_LONGO, 'palavra '.repeat(n).trim()).replace('7 min de leitura', readTime)
+
+test('aplicarReadTime: escreve por cima do valor do modelo, a partir da contagem real', () => {
+  /* 1543 palavras com o «5 min read» que o modelo copiou do artigo antigo. */
+  const md = comCorpo(1543, '5 min read')
+  const r = aplicarReadTime({ markdown: md, lang: 'en' })
+  expect(r).toContain('readTime: "8 min read"')
+  expect(r).not.toContain('5 min read')
+})
+
+test('aplicarReadTime: usa a língua para a redação, e só muda a linha readTime', () => {
+  const md = comCorpo(1400, '99 min de leitura')
+  const r = aplicarReadTime({ markdown: md, lang: 'pt' })
+  expect(r).toBe(md.replace('99 min de leitura', '7 min de leitura'))
+})
+
+test('aplicarReadTime: o resultado continua a passar em verificarArtigo', () => {
+  const r = aplicarReadTime({ markdown: comCorpo(1700, '1 min de leitura'), lang: 'pt' })
+  expect(r).toContain('readTime: "9 min de leitura"')
+  expect(verificarArtigo({ markdown: r, slug: 'teste', lang: 'pt' })).toEqual([])
+})
+
+test('aplicarReadTime: não toca numa linha readTime que esteja no corpo do artigo', () => {
+  const md = comCorpo(1400, '1 min de leitura') + '\n\nreadTime: "3 min de leitura"'
+  const r = aplicarReadTime({ markdown: md, lang: 'pt' })
+  expect(r).toContain('readTime: "7 min de leitura"\n---')
+  expect(r.endsWith('readTime: "3 min de leitura"')).toBe(true)
+})
+
+test('aplicarReadTime: lança se o cabeçalho não tem readTime', () => {
+  const semLinha = BOM.replace('readTime: "7 min de leitura"\n', '')
+  expect(() => aplicarReadTime({ markdown: semLinha, lang: 'pt' })).toThrow(/readTime/)
 })

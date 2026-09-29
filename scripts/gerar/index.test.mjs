@@ -105,6 +105,21 @@ test('escreve as duas línguas a partir de um tema', async () => {
   expect(r.custo).toBeCloseTo(0.30)
 })
 
+test('o readTime escrito vem da contagem real, não do que o modelo pôs', async () => {
+  const contentDir = dirTemp()
+  /* O modelo diz «7 min de leitura» nos dois; a contagem diz 9 (1700) e 6 (1250). */
+  const cliente = clienteFalso([artigo('Português', 1700), artigo('English', 1250)])
+
+  await gerarUm({ cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir })
+
+  const pt = fs.readFileSync(path.join(contentDir, 'tema-novo', 'pt.md'), 'utf-8')
+  const en = fs.readFileSync(path.join(contentDir, 'tema-novo', 'en.md'), 'utf-8')
+  expect(pt).toContain('readTime: "9 min de leitura"')
+  expect(en).toContain('readTime: "6 min read"')
+  /* O modelo inglês recebe o português já corrigido. */
+  expect(cliente.dadas[1]).toContain('readTime: "9 min de leitura"')
+})
+
 test('o pedido inglês leva o artigo português dentro', async () => {
   const cliente = clienteFalso([artigo('Português', 1400), artigo('English', 1400)])
   await gerarUm({ cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir: dirTemp() })

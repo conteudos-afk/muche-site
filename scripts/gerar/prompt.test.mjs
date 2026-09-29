@@ -33,6 +33,14 @@ test('o sistema mantém os termos do ofício em inglês, telemóvel/celular e os
   expect(SISTEMA).toContain('vídeo institucional')
 })
 
+test('o sistema fixa a ortografia do novo Acordo Ortográfico, com pares concretos', () => {
+  expect(SISTEMA).toContain('Novo Acordo Ortográfico')
+  expect(SISTEMA).toContain('«ativo», nunca «activo»')
+  expect(SISTEMA).toContain('«perceção», nunca «percepção»')
+  expect(SISTEMA).toContain('«diretor», nunca «director»')
+  expect(SISTEMA).toContain('«outubro», nunca «Outubro»')
+})
+
 test('o sistema proíbe qualquer coisa a seguir à última linha do artigo', () => {
   expect(SISTEMA).toContain('última linha do artigo')
   expect(SISTEMA).toContain('comentário sobre o próprio artigo')
@@ -133,4 +141,23 @@ test('a referência inglesa em promptIngles alarga a vedação quando tem crases
   const p = promptIngles({ artigoPt: 'Texto simples em português.', referenciaEn: refEnComCrases })
   expect(p).toContain('````')
   expect(p).toContain('```js\nconst w = 4\n```\n\nAfter.')
+})
+
+/* O `readTime` é calculado em código (ver `aplicarReadTime`). Uma instrução
+   sobre ele nos prompts já não governaria nada — e induziria em erro quem os
+   lesse. As instruções vinham sempre com `readTime` entre crases, ao
+   contrário do frontmatter simulado das referências, que o escreve à
+   direita de uma chave. */
+test('nenhum dos três prompts instrui o modelo sobre o readTime', () => {
+  const refEn = { ...REF, lang: 'en', corpo: 'An approved English article.' }
+  const prompts = [
+    promptEscrever({ tema: TEMA, referencias: [REF] }),
+    promptExpandir({ artigo: { ...REF, slug: 'original' }, referencias: [REF] }),
+    promptIngles({ artigoPt: 'Texto em português.', referenciaEn: refEn }),
+  ]
+  for (const p of prompts) {
+    expect(p).not.toContain('`readTime`')
+    expect(p).not.toContain('dividir por 200')
+    expect(p).not.toContain('min read')
+  }
 })

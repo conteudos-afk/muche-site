@@ -19,7 +19,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { lerTemas, proximosTemas, marcarUsados, validarTemas } from './temas.mjs'
 import { lerArtigosMarkdown, escolherReferencias } from './referencias.mjs'
 import { promptEscrever, promptExpandir, promptIngles } from './prompt.mjs'
-import { limparResposta, verificarArtigo, escreverArtigo } from './escrever.mjs'
+import { limparResposta, verificarArtigo, escreverArtigo, aplicarReadTime } from './escrever.mjs'
 import { criarCliente } from './cliente.mjs'
 import { contarPalavras, MIN_PALAVRAS, MAX_PALAVRAS } from './palavras.mjs'
 
@@ -133,13 +133,20 @@ export async function gerarUm({ cliente, modo, alvo, referenciasPt, referenciasE
     ? promptEscrever({ tema: alvo, referencias: referenciasPt })
     : promptExpandir({ artigo: alvo, referencias: referenciasPt })
 
-  const pt = await pedirComRetentativa(cliente, promptPt, slug, 'pt')
-  const en = await pedirComRetentativa(
+  /* O `readTime` não é decidido pelo modelo: depois de cada artigo passar a
+     verificação, calcula-se a partir da contagem real e escreve-se por cima
+     do que o modelo pôs. O português é corrigido antes de seguir para o
+     pedido inglês, para que o modelo veja o artigo tal como vai ficar. */
+  const ptBruto = await pedirComRetentativa(cliente, promptPt, slug, 'pt')
+  const pt = { ...ptBruto, markdown: aplicarReadTime({ markdown: ptBruto.markdown, lang: 'pt' }) }
+
+  const enBruto = await pedirComRetentativa(
     cliente,
     promptIngles({ artigoPt: pt.markdown, referenciaEn: referenciasEn[0] }),
     slug,
     'en',
   )
+  const en = { ...enBruto, markdown: aplicarReadTime({ markdown: enBruto.markdown, lang: 'en' }) }
 
   const caminhos = [
     escreverArtigo({ contentDir, slug, lang: 'pt', markdown: pt.markdown, substituir }),

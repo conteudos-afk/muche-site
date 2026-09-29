@@ -16,6 +16,7 @@ Escreves artigos para o blog da agência. O objetivo é serem encontrados em pes
 
 - Tratamento por **tu**, incluindo nos títulos.
 - **Português europeu.** «ecrã», nunca «tela». «telemóvel», nunca «celular». «a gravar», nunca «gravando».
+- **Novo Acordo Ortográfico** (o de 1990). «ativo», nunca «activo». «perceção», nunca «percepção». «diretor», nunca «director». Os meses escrevem-se com minúscula: «outubro», nunca «Outubro».
 - Termos do ofício em inglês quando é isso que se usa em Portugal: branding, storytelling, podcast, design, copy.
 - **«vídeo de marca»** — nunca «filme de marca», nunca «vídeo institucional».
 - Frases directas. Sem superlativos de brochura, sem «no mundo de hoje», sem «na era digital».
@@ -113,7 +114,6 @@ ${DIMENSAO}
 No frontmatter:
 - \`category\` é exactamente \`${tema.categoria}\`.
 - \`date\` é o mês e ano actuais em inglês, no formato \`"September 2026"\`.
-- \`readTime\` é \`"N min de leitura"\`, com N = palavras a dividir por 200, arredondado.
 
 Abaixo estão artigos já aprovados deste blog. **Escreve como eles.** Repara no comprimento das frases, em como abrem, em como usam subtítulos e em como acabam sem vender.
 
@@ -127,7 +127,7 @@ export function promptExpandir({ artigo, referencias }) {
 
 **O que manter:** o slug \`${artigo.slug}\`, a categoria \`${artigo.frontmatter.category ?? ''}\`, a tese e a posição do artigo. Mantém a data. O leitor que já o leu tem de reconhecer o mesmo texto, mais desenvolvido.
 
-**O que mudar:** desenvolve cada ponto que hoje está resumido num parágrafo. Acrescenta subtítulos onde ajudam a percorrer. Dá exemplos concretos do ofício. Podes reescrever o \`title\`, o \`excerpt\` e o \`readTime\` se o artigo mudar de dimensão.
+**O que mudar:** desenvolve cada ponto que hoje está resumido num parágrafo. Acrescenta subtítulos onde ajudam a percorrer. Dá exemplos concretos do ofício. Podes reescrever o \`title\` e o \`excerpt\` se o artigo mudar de dimensão.
 
 ${DIMENSAO}
 
@@ -150,7 +150,6 @@ Não é uma tradução literal: é o mesmo artigo escrito em inglês, com o mesm
 - Inglês britânico: \`colour\`, \`organisation\`, \`programme\`.
 - Tratamento directo por \`you\`.
 - \`category\` e \`date\` ficam **exactamente iguais** às do artigo português — são chaves partilhadas pelas duas versões.
-- \`readTime\` fica em inglês: \`"5 min read"\`.
 
 ${DIMENSAO}
 

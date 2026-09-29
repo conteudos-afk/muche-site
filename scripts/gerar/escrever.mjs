@@ -152,6 +152,48 @@ export function verificarArtigo({ markdown, slug, lang }) {
   return problemas
 }
 
+/* ─── O tempo de leitura ─────────────────────────────────────────────────────
+   Quem conta as palavras é o código, não o modelo. Um modelo de linguagem não
+   conta o que acabou de escrever: na primeira execução real o artigo inglês
+   saiu com «5 min read» para 1543 palavras — o valor do artigo antigo,
+   copiado em vez de recalculado — e essa string aparece na página publicada.
+
+   Vive aqui, e não em `index.mjs`, porque é uma transformação do texto do
+   artigo, a par de `limparResposta` e `verificarArtigo`: `index.mjs` só
+   decide a ordem (verificar, calcular, escrever). E usa a mesma contagem que
+   `verificarArtigo` — o corpo depois do frontmatter, aparado — para que o
+   número que o leitor vê seja o mesmo que passou a verificação.
+
+   200 palavras por minuto e arredondamento ao inteiro mais próximo: é o que
+   o prompt sempre disse ao modelo. Os artigos aprovados não desempatam — o
+   `readTime` deles foi escrito à mão e não corresponde a divisor nenhum. */
+export const PALAVRAS_POR_MINUTO = 200
+
+export function calcularReadTime(palavras, lang) {
+  const minutos = Math.max(1, Math.round(palavras / PALAVRAS_POR_MINUTO))
+  if (lang === 'pt') return `${minutos} min de leitura`
+  if (lang === 'en') return `${minutos} min read`
+  throw new Error(`língua desconhecida para o readTime: "${lang}"`)
+}
+
+/* Reescreve a linha `readTime` do cabeçalho — só do cabeçalho: uma linha
+   `readTime:` dentro do corpo é texto do artigo e não se toca. Lança se o
+   cabeçalho não a tiver, porque um artigo sem `readTime` já devia ter
+   reprovado em `verificarArtigo`. */
+export function aplicarReadTime({ markdown, lang }) {
+  const cabecalho = markdown.match(/^﻿?---[ \t]*\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/)
+  const LINHA = /^readTime[ \t]*:[^\r\n]*/m
+  if (!cabecalho || !LINHA.test(cabecalho[0])) {
+    throw new Error('o cabeçalho não tem a linha readTime para atualizar')
+  }
+
+  const { resultado: { content } } = comAvisosApanhados(() => splitFrontmatter(markdown))
+  const readTime = calcularReadTime(contarPalavras(content.trim()), lang)
+
+  const novo = cabecalho[0].replace(LINHA, `readTime: "${readTime}"`)
+  return novo + markdown.slice(cabecalho[0].length)
+}
+
 export function escreverArtigo({ contentDir, slug, lang, markdown, substituir = false }) {
   if (!SLUG_VALIDO.test(slug)) {
     throw new Error(`slug inválido: "${slug}" — só pode ter minúsculas, números e hífenes`)
