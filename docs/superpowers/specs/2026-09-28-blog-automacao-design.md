@@ -51,9 +51,19 @@ As regras explícitas, validadas na revisão dessas traduções:
 
 - Tratamento por **tu**, incluindo nos títulos
 - **Português europeu** — «ecrã», não «tela»; «telemóvel», não «celular»
+- **Novo Acordo Ortográfico** — «diretor», não «director»; «objetivo», não «objectivo». O primeiro artigo gerado saiu no antigo, e misturado, porque a regra não existia em lado nenhum — e porque o próprio prompt estava escrito no antigo
 - Termos do ofício em inglês quando é isso que se usa em Portugal: *branding*, *storytelling*, *podcast*, *design*
 - **«vídeo de marca»**, nunca «filme de marca» nem «vídeo institucional»
 - **Sem estatísticas sem fonte.** Dois artigos tinham-nas e foram corrigidos; o gerador não as deve introduzir
+
+### O que o modelo não decide
+
+O `readTime` é calculado em código, a partir da contagem real de palavras. Era
+pedido ao modelo, e o primeiro artigo saiu com «5 min read» para 1543 palavras —
+contar palavras que acabou de escrever e dividir por 200 não é o que um modelo de
+linguagem faz bem, e não há razão para lho pedir.
+
+O mesmo princípio vale para o resto: ao modelo pede-se o que só ele sabe fazer.
 
 ### A lista de temas
 
@@ -116,9 +126,13 @@ Foi uma decisão consciente da equipa, depois de discutida a alternativa de apli
 
 | | |
 |---|---|
-| Por artigo (PT + EN, Opus 5) | ~$0,30 |
-| Fase A, uma vez | ~$4 |
-| Fase B, um ano a 2/semana | ~$31 |
+| Por artigo (PT + EN, Opus 5) | **$0,37** — medido, não estimado |
+| Fase A, uma vez | ~$5,20 |
+| Fase B, um ano a 2/semana | ~$37 |
+
+O primeiro artigo real custou $0,37, contra os $0,30 estimados. Os valores acima
+já são os corrigidos. O gerador calcula o custo a partir dos tokens que a API
+devolve, por isso cada execução diz o que gastou.
 | GitHub Actions | $0 — repositório público, minutos ilimitados |
 | Cloudflare Pages | $0 — dentro do plano gratuito |
 
