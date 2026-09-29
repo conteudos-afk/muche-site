@@ -38,17 +38,17 @@ test('um artigo bom não tem problemas', () => {
 
 test('acusa um campo em falta, pelo validador que já existe', () => {
   const semExcerpt = BOM.replace('excerpt: "Um excerto."\n', '')
-  expect(verificarArtigo({ markdown: semExcerpt, slug: 'teste', lang: 'pt' }).join(' ')).toContain('excerpt')
+  expect(verificarArtigo({ markdown: semExcerpt, slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).toContain('excerpt')
 })
 
 test('acusa uma categoria inventada', () => {
   const mau = BOM.replace('Podcasts', 'Categoria Inventada')
-  expect(verificarArtigo({ markdown: mau, slug: 'teste', lang: 'pt' }).join(' ')).toContain('Inventada')
+  expect(verificarArtigo({ markdown: mau, slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).toContain('Inventada')
 })
 
 test('acusa um artigo curto de mais', () => {
   const curto = BOM.replace(CORPO_LONGO, 'palavra '.repeat(400))
-  expect(verificarArtigo({ markdown: curto, slug: 'teste', lang: 'pt' }).join(' ')).toContain('400')
+  expect(verificarArtigo({ markdown: curto, slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).toContain('400')
 })
 
 test('não deixa um comentário HTML preencher um artigo curto até ao mínimo', () => {
@@ -56,7 +56,7 @@ test('não deixa um comentário HTML preencher um artigo curto até ao mínimo',
   const comentario = `<!-- ${'palavra '.repeat(300).trim()} -->`
   const curtoDisfarcado = BOM.replace(CORPO_LONGO, `${real}\n\n${comentario}`)
   const problemas = verificarArtigo({ markdown: curtoDisfarcado, slug: 'teste', lang: 'pt' })
-  expect(problemas.join(' ')).toContain('1100')
+  expect(problemas.map(p => p.mensagem).join(' ')).toContain('1100')
 })
 
 test('não deixa um comentário HTML sem fecho (resposta cortada a meio) preencher um artigo curto', () => {
@@ -64,16 +64,16 @@ test('não deixa um comentário HTML sem fecho (resposta cortada a meio) preench
   const comentarioSemFecho = `<!-- ${'palavra '.repeat(300).trim()}`
   const curtoDisfarcado = BOM.replace(CORPO_LONGO, `${real}\n\n${comentarioSemFecho}`)
   const problemas = verificarArtigo({ markdown: curtoDisfarcado, slug: 'teste', lang: 'pt' })
-  expect(problemas.join(' ')).toContain('1100')
+  expect(problemas.map(p => p.mensagem).join(' ')).toContain('1100')
 })
 
 test('acusa um artigo sem frontmatter nenhum', () => {
-  expect(verificarArtigo({ markdown: 'Só corpo.', slug: 'teste', lang: 'pt' }).join(' ')).toContain('frontmatter')
+  expect(verificarArtigo({ markdown: 'Só corpo.', slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).toContain('frontmatter')
 })
 
 test('acusa um título de nível 1 no corpo', () => {
   const comH1 = BOM.replace(CORPO_LONGO, `# Um título repetido\n\n${CORPO_LONGO}`)
-  expect(verificarArtigo({ markdown: comH1, slug: 'teste', lang: 'pt' }).join(' ')).toContain('#')
+  expect(verificarArtigo({ markdown: comH1, slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).toContain('#')
 })
 
 test('acusa um aviso do leitor de frontmatter, não só um campo em falta', () => {
@@ -81,17 +81,17 @@ test('acusa um aviso do leitor de frontmatter, não só um campo em falta', () =
     'readTime: "7 min de leitura"\n---',
     'readTime: "7 min de leitura"\numa linha sem dois pontos\n---'
   )
-  expect(verificarArtigo({ markdown: comAvisoDoLeitor, slug: 'teste', lang: 'pt' }).join(' ')).toContain('[blog]')
+  expect(verificarArtigo({ markdown: comAvisoDoLeitor, slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).toContain('[blog]')
 })
 
 test('acusa um segundo bloco de frontmatter que vazou para o corpo', () => {
   const comSegundo = `${BOM}\n\n---\ntitle: "Outro"\nexcerpt: "Outro excerto."\ncategory: "Podcasts"\ndate: "September 2026"\nreadTime: "1 min de leitura"\n---\n\nMais texto a seguir.`
-  expect(verificarArtigo({ markdown: comSegundo, slug: 'teste', lang: 'pt' }).join(' ')).toContain('segundo bloco de frontmatter')
+  expect(verificarArtigo({ markdown: comSegundo, slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).toContain('segundo bloco de frontmatter')
 })
 
 test('não acusa um separador horizontal comum como se fosse um segundo frontmatter', () => {
   const comSeparador = BOM.replace(CORPO_LONGO, `${CORPO_LONGO}\n\n---\n\nMais texto depois do separador.`)
-  expect(verificarArtigo({ markdown: comSeparador, slug: 'teste', lang: 'pt' }).join(' ')).not.toContain('segundo bloco de frontmatter')
+  expect(verificarArtigo({ markdown: comSeparador, slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).not.toContain('segundo bloco de frontmatter')
 })
 
 test('escreve o ficheiro no sítio certo, com newline final', () => {

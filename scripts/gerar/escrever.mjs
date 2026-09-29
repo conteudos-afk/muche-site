@@ -89,38 +89,64 @@ export function limparResposta(texto) {
   return t
 }
 
+/* Cada problema é `{ tipo, mensagem }`, nunca só uma string. O `tipo` é o
+   que `index.mjs` usa para decidir se há segunda tentativa (só `dimensao`)
+   ou se falha logo — uma comparação estrutural, e não uma substring da
+   `mensagem`. A `mensagem` continua a ser o texto completo que chega à
+   consola e ao corpo do Pull Request; reescrever essa frase não muda mais
+   nenhum comportamento, porque nada volta a fazer `.includes()` nela.
+
+   Os tipos:
+   - 'sem-frontmatter': a resposta nem começa por `---`.
+   - 'aviso-leitura': o `splitFrontmatter` avisou de uma linha do cabeçalho
+     que não conseguiu ler — distinto de 'validacao' porque a origem é
+     outra: não é um campo em falta ou uma categoria inventada, é o
+     cabeçalho a não fazer sentido nenhum.
+   - 'validacao': o que o `validatePosts` do build já verifica (campo em
+     falta, categoria desconhecida).
+   - 'dimensao': fora do intervalo de palavras — o único tipo retentável.
+   - 'titulo-duplicado': um `#` de nível 1 no corpo.
+   - 'frontmatter-duplicado': um segundo bloco de frontmatter a vazar para
+     o corpo.
+   Todos menos 'dimensao' são fatais — essa é a política, inalterada; só o
+   mecanismo que a aplica mudou. */
 export function verificarArtigo({ markdown, slug, lang }) {
   const problemas = []
 
   if (!markdown.trimStart().startsWith('---')) {
-    problemas.push(`${slug}/${lang}.md: a resposta não começa por frontmatter`)
+    problemas.push({ tipo: 'sem-frontmatter', mensagem: `${slug}/${lang}.md: a resposta não começa por frontmatter` })
     return problemas
   }
 
   const { resultado: { data, content }, avisos } = comAvisosApanhados(() =>
     splitFrontmatter(markdown, `${slug}/${lang}.md`)
   )
-  problemas.push(...avisos)
+  problemas.push(...avisos.map(mensagem => ({ tipo: 'aviso-leitura', mensagem })))
 
   const corpo = content.trim()
 
-  problemas.push(...validatePosts([{ slug, lang, ...data }]))
+  problemas.push(...validatePosts([{ slug, lang, ...data }]).map(mensagem => ({ tipo: 'validacao', mensagem })))
 
   const palavras = contarPalavras(corpo)
   if (!dentroDoIntervalo(palavras)) {
-    problemas.push(
-      `${slug}/${lang}.md: tem ${palavras} palavras, e o intervalo é ${MIN_PALAVRAS}–${MAX_PALAVRAS}`
-    )
+    problemas.push({
+      tipo: 'dimensao',
+      mensagem: `${slug}/${lang}.md: tem ${palavras} palavras, e o intervalo é ${MIN_PALAVRAS}–${MAX_PALAVRAS}`,
+    })
   }
 
   if (/^[ \t]*#[ \t]+/m.test(corpo)) {
-    problemas.push(`${slug}/${lang}.md: o corpo tem um título de nível 1 (#) — o título já está no frontmatter`)
+    problemas.push({
+      tipo: 'titulo-duplicado',
+      mensagem: `${slug}/${lang}.md: o corpo tem um título de nível 1 (#) — o título já está no frontmatter`,
+    })
   }
 
   if (temSegundoFrontmatter(corpo)) {
-    problemas.push(
-      `${slug}/${lang}.md: o corpo tem um segundo bloco de frontmatter — só o primeiro é lido, e o resto ficava a aparecer como YAML no artigo`
-    )
+    problemas.push({
+      tipo: 'frontmatter-duplicado',
+      mensagem: `${slug}/${lang}.md: o corpo tem um segundo bloco de frontmatter — só o primeiro é lido, e o resto ficava a aparecer como YAML no artigo`,
+    })
   }
 
   return problemas

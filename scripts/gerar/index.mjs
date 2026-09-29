@@ -55,8 +55,10 @@ async function tentar(cliente, prompt, slug, lang) {
 }
 
 /* Separa o que é dimensão do que é frontmatter: só a primeira dá segunda
-   tentativa, e só a segunda é fatal. */
-const ehDimensao = p => p.includes('palavras, e o intervalo é')
+   tentativa, e só a segunda é fatal. Estrutural — compara o `tipo` que
+   `verificarArtigo` atribui a cada problema — e não uma substring da
+   mensagem: reescrever a frase em `escrever.mjs` já não muda esta decisão. */
+const ehDimensao = p => p.tipo === 'dimensao'
 
 async function pedirComRetentativa(cliente, prompt, slug, lang) {
   let total = 0
@@ -74,11 +76,16 @@ async function pedirComRetentativa(cliente, prompt, slug, lang) {
     if (r.problemas.length === 0) return { markdown: r.markdown, custo: total, avisos: [] }
 
     const fatais = r.problemas.filter(p => !ehDimensao(p))
-    if (fatais.length) throw new Error(`${slug}/${lang}.md não passou a verificação:\n  ${r.problemas.join('\n  ')}`)
+    if (fatais.length) {
+      const mensagens = r.problemas.map(p => p.mensagem).join('\n  ')
+      throw new Error(`${slug}/${lang}.md não passou a verificação:\n  ${mensagens}`)
+    }
   }
 
-  /* Só sobra a dimensão: escreve à mesma e avisa. */
-  return { markdown: ultimo.markdown, custo: total, avisos: ultimo.problemas }
+  /* Só sobra a dimensão: escreve à mesma e avisa. `avisos` é consumido pelo
+     `console.warn` e pelo corpo do PR em `principal()` — tem de continuar a
+     ser texto legível, não os objectos estruturados de `verificarArtigo`. */
+  return { markdown: ultimo.markdown, custo: total, avisos: ultimo.problemas.map(p => p.mensagem) }
 }
 
 export async function gerarUm({ cliente, modo, alvo, referenciasPt, referenciasEn, contentDir }) {
