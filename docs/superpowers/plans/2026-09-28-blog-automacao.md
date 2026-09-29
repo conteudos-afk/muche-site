@@ -1516,7 +1516,7 @@ Cria `scripts/prazo/contador.test.mjs`:
 
 ```js
 import { expect, test } from 'vitest'
-import { contarArtigos, MARCA_AVISO, ETIQUETA, BOTS } from './contador.mjs'
+import { contarArtigos, MARCA_AVISO, ETIQUETA, ehBot } from './contador.mjs'
 
 test('conta um artigo por cada pt.md', () => {
   expect(contarArtigos([
@@ -2055,7 +2055,19 @@ git commit -m "feat: decisão do prazo de 48 horas, com a rampa de 10 artigos"
 - Create: `.github/workflows/prazo-artigos.yml`
 
 **Interfaces:**
-- Consumes: `decidir` de `decidir.mjs`; `contarArtigos`, `MARCA_AVISO`, `ETIQUETA`, `BOTS` de `contador.mjs`
+- Consumes: `decidir` de `decidir.mjs`; `contarArtigos`, `MARCA_AVISO`, `ETIQUETA`, `ehBot` de `contador.mjs`
+
+**Duas coisas que a Task 6 descobriu e que esta tarefa tem de respeitar:**
+
+1. `gh pr view --json comments` devolve o login do Cloudflare como
+   `cloudflare-workers-and-pages`, **sem** o sufixo `[bot]` — a API REST usa a
+   outra forma. Por isso não se compara com uma lista: usa-se o `ehBot`, que
+   normaliza. Com uma lista, o comentário de pré-visualização do Cloudflare
+   contava como comentário humano, o relógio parava em todos os PRs e o merge
+   automático nunca corria — sem sintoma visível.
+2. `contarArtigos` exige `path` **e** `changeType`, e conta só `ADDED`, em
+   maiúsculas como o `gh` devolve. Um objeto só com `path` conta zero. A API
+   REST usa `status: 'added'` em minúsculas, que contaria zero para sempre.
 - Produces: CLI com dois modos — `--planear` imprime JSON com o que fazer a cada PR e não muda nada; `--aplicar <numero>` executa a decisão de um PR, com `BUILD_VERDE` no ambiente
 
 - [ ] **Step 1: Escrever o `index.mjs`**
@@ -2076,12 +2088,12 @@ só há leitura do GitHub e execução.
    comentário e não vão a lado nenhum. ───────────────────────────────────── */
 import { execFileSync } from 'node:child_process'
 import { decidir, ARTIGOS_ANTES_DO_AUTOMATICO } from './decidir.mjs'
-import { contarArtigos, MARCA_AVISO, ETIQUETA, BOTS } from './contador.mjs'
+import { contarArtigos, MARCA_AVISO, ETIQUETA, ehBot } from './contador.mjs'
 
 const gh = args => execFileSync('gh', args, { encoding: 'utf-8' })
 const ghJson = args => JSON.parse(gh(args))
 
-const humano = quem => !BOTS.includes(quem?.login)
+const humano = quem => !ehBot(quem?.login)
 
 function lerPr(numero, buildVerde) {
   const pr = ghJson([
@@ -2101,6 +2113,9 @@ function lerPr(numero, buildVerde) {
   }
 }
 
+/* Lê `path` e `changeType`, e conta só os `ADDED` — ver o `contador.mjs`. Se
+   isto voltar a pedir só `files` sem o `changeType`, a contagem passa a incluir
+   edições e apagamentos, e a rampa avança sem artigos novos. */
 function artigosPublicados() {
   const juntados = ghJson([
     'pr', 'list', '--state', 'merged', '--label', ETIQUETA,
