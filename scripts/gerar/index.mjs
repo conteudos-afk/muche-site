@@ -30,9 +30,18 @@ const MODOS = ['escrever', 'expandir']
 const REFERENCIAS = 3
 
 export function lerArgumentos(argv) {
+  /* Uma opção sem valor — no fim da linha, ou seguida de outra opção — é
+     um erro, não um `undefined` que caia no valor por omissão: `--lote` sem
+     nada a seguir voltava calado a 3. Um valor vazio (`--slugs ""`) é um
+     valor, e passa. */
   const valor = nome => {
     const i = argv.indexOf(`--${nome}`)
-    return i === -1 ? undefined : argv[i + 1]
+    if (i === -1) return undefined
+    const seguinte = argv[i + 1]
+    if (seguinte === undefined || seguinte.startsWith('--')) {
+      throw new Error(`--${nome} precisa de um valor`)
+    }
+    return seguinte
   }
 
   const modo = valor('modo') ?? 'escrever'

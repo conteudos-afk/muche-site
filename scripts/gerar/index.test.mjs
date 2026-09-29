@@ -57,6 +57,18 @@ test('recusa um --lote que não é um número inteiro positivo', () => {
   expect(() => lerArgumentos(['--lote', '2.5'])).toThrow(/2\.5/)
 })
 
+test('recusa uma opção sem valor, em vez de cair no valor por omissão', () => {
+  expect(() => lerArgumentos(['--lote'])).toThrow(/--lote precisa de um valor/)
+  expect(() => lerArgumentos(['--modo', 'escrever', '--lote'])).toThrow(/--lote precisa de um valor/)
+  expect(() => lerArgumentos(['--lote', '--modo', 'expandir'])).toThrow(/--lote precisa de um valor/)
+  expect(() => lerArgumentos(['--modo'])).toThrow(/--modo precisa de um valor/)
+  expect(() => lerArgumentos(['--slugs'])).toThrow(/--slugs precisa de um valor/)
+})
+
+test('um valor vazio explícito continua a ser um valor', () => {
+  expect(lerArgumentos(['--slugs', ''])).toEqual({ modo: 'escrever', lote: 3, slugs: [] })
+})
+
 /* A distinção que interessa: um --lote malformado tem de rebentar em
    lerArgumentos (rota do exit(1), com o valor recebido na mensagem) — não
    pode produzir, mais abaixo, o mesmo `[]` silencioso que uma lista
