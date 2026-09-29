@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { lerTemas, proximosTemas, marcarUsados, validarTemas } from './temas.mjs'
 
 const YAML_EXEMPLO = `temas:
@@ -93,7 +94,7 @@ test('acusa um campo em falta', () => {
 })
 
 test('a lista real do repositório é válida', () => {
-  const temas = lerTemas(new URL('../../content/blog/_temas.yml', import.meta.url).pathname)
+  const temas = lerTemas(fileURLToPath(new URL('../../content/blog/_temas.yml', import.meta.url)))
   expect(validarTemas(temas)).toEqual([])
   expect(temas.length).toBeGreaterThanOrEqual(40)
 })
@@ -102,7 +103,7 @@ test('a lista real do repositório é válida', () => {
    emenda. Os termos que a voz da Muche proíbe («vídeo institucional», «filme
    de marca» — ver o SISTEMA em prompt.mjs) não podem lá entrar. */
 test('nenhum slug da lista real contém um termo que a voz da Muche proíbe', () => {
-  const temas = lerTemas(new URL('../../content/blog/_temas.yml', import.meta.url).pathname)
+  const temas = lerTemas(fileURLToPath(new URL('../../content/blog/_temas.yml', import.meta.url)))
   const proibidos = ['institucional', 'filme-de-marca']
   for (const { slug } of temas) {
     for (const termo of proibidos) expect(slug, slug).not.toContain(termo)
