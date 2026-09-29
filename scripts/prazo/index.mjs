@@ -21,6 +21,7 @@
    O stdout do `--planear` é só o JSON: o workflow lê-o. ─────────────────── */
 import { execFileSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
 import { decidir, ARTIGOS_ANTES_DO_AUTOMATICO } from './decidir.mjs'
 import { contarArtigos, foraDoAmbito, MARCA_AVISO, ETIQUETA, ehBot } from './contador.mjs'
 
@@ -63,13 +64,27 @@ function registar(linha) {
    normal («só passaram 3 horas»), e a funcionalidade pode ficar calada meses.
    Estes são os que não são normais; sobem à página da execução como aviso.
    (Sai em stderr: o stdout do `--planear` é só o JSON.) */
-const ANOMALIA = /inválid|suspeit|erro ao ler|fora do âmbito|sem dados/i
+const ANOMALIA = /inválid|suspeit|erro ao ler|fora do âmbito|sem dados|repetidos/i
 
 function decisao(numero, { acao, motivo }) {
   registar(`PR #${numero}: ${acao} — ${motivo}`)
   if (acao === 'nada' && ANOMALIA.test(motivo)) {
     console.error(`::warning title=Prazo, PR #${numero}::${motivo.replace(/[\r\n]+/g, ' ')}`)
   }
+}
+
+/* Dois comentários de bot com o corpo igual, no mesmo PR. O `github-actions`
+   e a Cloudflare escrevem um comentário cada e editam-no, não repetem. Se
+   aparecerem dois iguais, o mais provável é o aviso das 24 horas a repetir-se
+   porque o `jaAvisado` não o reconhece (o marcador foi mudado, ou o GitHub
+   normalizou o corpo). Não depende do marcador nem do texto do aviso, de
+   propósito: tem de funcionar justamente quando eles falham. */
+function temComentariosRepetidosDeBot(comentarios) {
+  const corpos = comentarios
+    .filter(c => !humano(c.author))
+    .map(c => (typeof c.body === 'string' ? c.body.trim() : ''))
+    .filter(corpo => corpo !== '')
+  return corpos.some((corpo, i) => corpos.indexOf(corpo) !== i)
 }
 
 /* Devolve o PR já no formato do `decidir`, ou `{ nada }` com o motivo se ele
@@ -82,7 +97,7 @@ function decisao(numero, { acao, motivo }) {
    sozinho ao fim de 72 horas de silêncio, e mudava as regras de todos os PRs
    seguintes. Também é o portão que impede código hostil de chegar ao passo do
    build: o que se constrói é o `main` mais ficheiros markdown. */
-function lerPr(numero, buildVerde) {
+export function lerPr(numero, buildVerde) {
   const pr = ghJson([
     'pr', 'view', String(numero),
     '--json', 'number,state,baseRefName,headRefOid,isCrossRepository,createdAt,isDraft,comments,reviews,files',
@@ -99,6 +114,7 @@ function lerPr(numero, buildVerde) {
 
   return {
     commit: pr.headRefOid,
+    repetidos: temComentariosRepetidosDeBot(pr.comments),
     pr: {
       numero: pr.number,
       criadoEm: pr.createdAt,
@@ -147,11 +163,24 @@ function guardarRecusa(commit, estado, descricao) {
 
 /* Lê, aplica o portão, decide. É o mesmo caminho no `--planear` e no
    `--aplicar`, que volta a decidir em vez de confiar no plano. */
-function avaliar(numero, buildVerde, publicados, agora) {
+export function avaliar(numero, buildVerde, publicados, agora) {
   const lido = lerPr(numero, buildVerde)
   if (lido.nada) return { acao: 'nada', motivo: lido.nada }
 
   const resultado = decidir({ pr: lido.pr, artigosPublicados: publicados, agora })
+
+  /* O aviso tem de ficar reconhecível na execução seguinte (`MARCA_AVISO`).
+     Se não fica, cada hora escreve outro aviso igual e o PR nunca se junta.
+     Depois de um comentário repetido, pára: um PR sem aviso reconhecido nunca
+     é juntado de qualquer forma (o `decidir` exige `jaAvisado`), e assim o
+     erro deixa de acumular comentários e passa a ser um aviso na execução. */
+  if (resultado.acao === 'avisar' && lido.repetidos) {
+    return {
+      acao: 'nada',
+      motivo: 'há comentários de bot repetidos neste PR — o aviso das 24 horas não está a ser reconhecido (o marcador mudou, ou o GitHub alterou o corpo?); não se avisa outra vez até isto ser visto por uma pessoa',
+    }
+  }
+
   if (resultado.acao === 'precisa-build') {
     const recusa = recusaGuardada(lido.commit, agora)
     if (recusa) {
@@ -185,7 +214,7 @@ function abertos() {
   ]).map(p => p.number)
 }
 
-function avisar(numero, publicados) {
+export function avisar(numero, publicados) {
   gh(['pr', 'comment', String(numero), '--body', `${MARCA_AVISO}
 Faltam **24 horas** para este PR ser juntado automaticamente.
 
@@ -211,7 +240,7 @@ function juntar(numero, motivo, commit) {
   }
 }
 
-function planear() {
+export function planear() {
   const numeros = abertos()
   if (numeros.length === 0) {
     registar('nenhum PR aberto com a etiqueta — nada a decidir')
@@ -241,7 +270,7 @@ function planear() {
   console.log(JSON.stringify({ publicados, prs }))
 }
 
-function aplicar(numero) {
+export function aplicar(numero) {
   const publicados = artigosPublicados()
   const verde = process.env.BUILD_VERDE === 'true' ? true
     : process.env.BUILD_VERDE === 'false' ? false
@@ -271,17 +300,24 @@ function aplicar(numero) {
   }
 }
 
-const argv = process.argv.slice(2)
-try {
-  if (argv[0] === '--planear') {
-    planear()
-  } else if (argv[0] === '--aplicar' && Number.isInteger(Number(argv[1])) && Number(argv[1]) > 0) {
-    aplicar(Number(argv[1]))
-  } else {
-    console.error('uso: index.mjs --planear | --aplicar <numero>')
+function principal(argv) {
+  try {
+    if (argv[0] === '--planear') {
+      planear()
+    } else if (argv[0] === '--aplicar' && Number.isInteger(Number(argv[1])) && Number(argv[1]) > 0) {
+      aplicar(Number(argv[1]))
+    } else {
+      console.error('uso: index.mjs --planear | --aplicar <numero>')
+      process.exit(1)
+    }
+  } catch (erro) {
+    registar(`erro — ${primeiraLinha(erro)}`)
     process.exit(1)
   }
-} catch (erro) {
-  registar(`erro — ${primeiraLinha(erro)}`)
-  process.exit(1)
+}
+
+/* Só corre quando é chamado como programa: o teste do aviso importa este
+   ficheiro para exercitar `avisar` e `lerPr` a sério. */
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  principal(process.argv.slice(2))
 }
