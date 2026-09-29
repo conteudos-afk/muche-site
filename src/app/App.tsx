@@ -89,35 +89,6 @@ function useDragCarousel(itemCount: number, step: number) {
   return { x, dragConstraints: { left: -step * maxIndex, right: 0 }, handleDragEnd, goTo }
 }
 
-/* Variante do carrossel de arrastar para quando os cartões NÃO têm todos a
-   mesma largura (ex.: um cartão alargado). Guarda a posição x de cada
-   índice (soma cumulativa de largura+gap) em vez de assumir um "step"
-   uniforme, para o snap ficar sempre exato independentemente da largura de
-   cada cartão. */
-function useDragCarouselVariable(widths: number[], gap: number) {
-  const positions = widths.reduce<number[]>((acc, w, i) => {
-    acc.push(i === 0 ? 0 : acc[i - 1] + widths[i - 1] + gap)
-    return acc
-  }, [])
-  const maxIndex = Math.max(0, widths.length - 1)
-  const x = useMotionValue(0)
-  const indexRef = useRef(0)
-  const goTo = (i: number) => {
-    const clamped = Math.max(0, Math.min(maxIndex, i))
-    indexRef.current = clamped
-    animate(x, -positions[clamped], { type: "spring", stiffness: 300, damping: 32, mass: 0.7 })
-  }
-  const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const localStep = widths[indexRef.current] + gap
-    const { offset, velocity } = info
-    let target = indexRef.current
-    if (velocity.x < -350 || offset.x < -localStep * 0.25) target = indexRef.current + 1
-    else if (velocity.x > 350 || offset.x > localStep * 0.25) target = indexRef.current - 1
-    goTo(target)
-  }
-  return { x, dragConstraints: { left: -positions[maxIndex], right: 0 }, handleDragEnd, goTo }
-}
-
 function useWindowWidth() {
   const [w, setW] = useState(() => window.innerWidth)
   useEffect(() => {
@@ -876,25 +847,20 @@ function PortfolioSection() {
   const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
   const hintOpacity    = useTransform(rawProgress, [0, 0.06], [1, 0])
 
-  // Mobile/tablet (carrossel por swipe) — vertical 9:16 (igual aos ficheiros
-  // originais, sem recortar para horizontal). A média usa uma altura em vh
-  // (não a largura do cartão) para sobrar sempre espaço para o texto por
-  // baixo ler-se no mesmo ecrã, sem precisar de scroll extra dentro do
-  // cartão — e sem cortar a imagem/vídeo, já que a largura vem do 9:16.
-  // Ligeiramente maior do que antes (0.56 -> 0.60vh) a pedido.
+  // Mobile/tablet — projetos empilhados na VERTICAL (scroll normal para
+  // avançar, não swipe lateral). Cada projeto usa o ScrollBlock já existente
+  // no site (o mesmo efeito do Hero/Manifesto): ao avançar para o seguinte,
+  // o projeto atual encolhe, desfoca e esbate — como se fosse empurrado
+  // para trás — em vez de simplesmente desaparecer.
+  //
+  // Todos os projetos (vídeo ou imagem) usam o MESMO tamanho de caixa —
+  // como referência, o tamanho que o cartão do Teentac já tinha (a única
+  // imagem do conjunto, mais larga que os vídeos 9:16).
   const mMediaH = vp.h * 0.60
-  const mCardW  = mMediaH * (9 / 16)
-  const mGap    = 16
   // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — bem mais larga que
-  // alta do que os cartões 9:16 dos vídeos. A ALTURA do cartão é SEMPRE
-  // mMediaH, tal como todos os outros — não se mexe nisto. Só a largura
-  // deste cartão é maior (mais destaque, é a única imagem do conjunto),
-  // limitada ao ecrã para nunca ultrapassar a página. Preenche a caixa a
-  // 100% (object-fit: cover, tal como os vídeos) — mas como a caixa fica
-  // mais larga-mas-baixa do que a foto, cobrir a altura corta algo dos
-  // lados. Em vez do recorte simétrico por omissão (centrado na FOTO), o
-  // objectPosition abaixo centra o recorte no ECRÃ do portátil (que não
-  // está mesmo ao centro da foto original) — para não cortar o ecrã.
+  // alta do que a proporção 9:16 dos vídeos. À mesma altura (mMediaH), a
+  // largura em 4:3 passaria a caixa para lá da largura do próprio ecrã em
+  // telemóveis, por isso fica limitada ao ecrã (com margem).
   const teentacW = Math.min(mMediaH * (4 / 3), vpw - 32)
   const TEENTAC_IMG_W = 1920, TEENTAC_IMG_H = 1440, TEENTAC_SCREEN_CENTER_X = 1030
   const teentacCropW = (teentacW / mMediaH) * TEENTAC_IMG_H
@@ -902,41 +868,34 @@ function PortfolioSection() {
   const teentacObjX = teentacTotalCrop > 0
     ? Math.max(0, Math.min(100, ((TEENTAC_SCREEN_CENTER_X - teentacCropW / 2) / teentacTotalCrop) * 100))
     : 50
-  const mCardWidths = PORTFOLIO.map(item => item.client === "Teentac" ? teentacW : mCardW)
-  const { x: mx, dragConstraints, handleDragEnd } = useDragCarouselVariable(mCardWidths, mGap)
 
   if (isMobile) {
     return (
-      <div id="work" style={{ position: "relative", padding: "56px 0 40px", overflow: "hidden" }}>
-        <motion.div
-          drag="x"
-          dragConstraints={dragConstraints}
-          dragElastic={0.06}
-          onDragEnd={handleDragEnd}
-          style={{ x: mx, gap: `${mGap}px`, paddingLeft: `${(vpw - mCardWidths[0]) / 2}px`, touchAction: "pan-y" }}
-          className="flex items-stretch"
-        >
-          {PORTFOLIO.map((item, i) => {
-            const { services, concept } = portfolioText(item, lang)
-            return (
-              <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardWidths[i]}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${mMediaH}px`, background: "#060f13" }}>
-                  {"video" in item
-                    ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
-                    : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
-                  }
-                </div>
-                <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <div>
-                    <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
-                    <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(22px, 6vw, 36px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
+      <div id="work">
+        {PORTFOLIO.map((item, i) => {
+          const { services, concept } = portfolioText(item, lang)
+          return (
+            <ScrollBlock key={i} height="150vh">
+              <div className="size-full flex flex-col items-center justify-center" style={{ padding: "72px 16px 0" }}>
+                <div style={{ width: `${teentacW}px` }}>
+                  <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${mMediaH}px`, background: "#060f13" }}>
+                    {"video" in item
+                      ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
+                      : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
+                    }
                   </div>
-                  <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.5, opacity: 0.6 }}>{concept}</p>
+                  <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div>
+                      <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
+                      <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(22px, 6vw, 36px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
+                    </div>
+                    <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.5, opacity: 0.6 }}>{concept}</p>
+                  </div>
                 </div>
               </div>
-            )
-          })}
-        </motion.div>
+            </ScrollBlock>
+          )
+        })}
       </div>
     )
   }
