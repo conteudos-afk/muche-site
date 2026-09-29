@@ -69,7 +69,19 @@ export function contarArtigos(ficheiros) {
    (com o caminho do primeiro ficheiro a mais) se houver alguma coisa fora.
    Sem isto, um PR com um artigo e uma alteração a `scripts/prazo/` ou a
    `package.json` juntava-se sozinho, com a pré-visualização a parecer só um
-   artigo. Uma lista que não seja lista também é fora de âmbito. */
+   artigo. Uma lista que não seja lista também é fora de âmbito.
+
+   DOIS BURACOS CONHECIDOS, deixados de propósito, porque fechá-los aqui é
+   difícil e o custo de os deixar é baixo. Quem os fechar tem de saber que já
+   foram vistos:
+   1. Um `pt.md` ou `en.md` de um artigo JÁ PUBLICADO, `MODIFIED`, passa o
+      portão e pode ir de boleia com um artigo novo. Quem só olha para a
+      pré-visualização do artigo novo não vê a alteração ao antigo. É o mesmo
+      caso do modo `expandir`, que edita artigos existentes por desenho:
+      proibi-lo aqui desligaria o expandir.
+   2. O `gh pr view --json files` não diz o modo do ficheiro. Um symlink
+      chamado `pt.md` (ou um ficheiro executável) passa, porque só se vê o
+      caminho e o tipo de alteração. */
 export function foraDoAmbito(ficheiros) {
   if (!Array.isArray(ficheiros)) return 'lista de ficheiros do PR inválida'
   if (ficheiros.length >= MAXIMO_FICHEIROS) {

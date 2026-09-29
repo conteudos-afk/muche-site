@@ -82,10 +82,15 @@ function decisao(numero, { acao, motivo }) {
 function temComentariosRepetidosDeBot(comentarios) {
   const corpos = comentarios
     .filter(c => !humano(c.author))
-    .map(c => (typeof c.body === 'string' ? c.body.trim() : ''))
+    .map(c => (typeof c.body === 'string' ? normalizarCorpo(c.body) : ''))
     .filter(corpo => corpo !== '')
   return corpos.some((corpo, i) => corpos.indexOf(corpo) !== i)
 }
+
+/* Fins de linha `\r\n` e espaços no fim das linhas não contam: o GitHub pode
+   guardar o mesmo texto com uns ou com outros. */
+const normalizarCorpo = corpo =>
+  corpo.replace(/\r\n?/g, '\n').split('\n').map(linha => linha.trimEnd()).join('\n').trim()
 
 /* Devolve o PR já no formato do `decidir`, ou `{ nada }` com o motivo se ele
    nem chega a ser considerado.
@@ -95,8 +100,21 @@ function temComentariosRepetidosDeBot(comentarios) {
    artigo parece um artigo seja o que for que mais vá no commit. Sem isto, um
    PR com um artigo e uma alteração a `scripts/prazo/decidir.mjs` juntava-se
    sozinho ao fim de 72 horas de silêncio, e mudava as regras de todos os PRs
-   seguintes. Também é o portão que impede código hostil de chegar ao passo do
-   build: o que se constrói é o `main` mais ficheiros markdown. */
+   seguintes.
+
+   O QUE O PORTÃO GARANTE, e quando. Corre no `--planear` e outra vez no
+   `--aplicar`, com uma leitura nova de cada vez. O passo do build vai buscar a
+   ponta do PR por sua conta, entre as duas, e constrói (e corre) o que lá
+   estiver nesse momento: quem tiver escrita no repositório e empurrar código
+   depois do plano faz esse código correr no build antes de o `--aplicar` o
+   apanhar. O que o `--aplicar` garante é outra coisa: só junta se a ponta
+   atual passar o portão e for exatamente o commit construído. Ou seja, o
+   que chega ao `main` é sempre conteúdo de artigos; o que corre no build não
+   tem essa garantia contra alguém com escrita.
+
+   O que o portão NÃO vê, e foi considerado (ver `foraDoAmbito`, no
+   `contador.mjs`): um `pt.md`/`en.md` já publicado que venha `MODIFIED`, e o
+   modo dos ficheiros (um symlink chamado `pt.md`). */
 export function lerPr(numero, buildVerde) {
   const pr = ghJson([
     'pr', 'view', String(numero),
@@ -214,13 +232,20 @@ function abertos() {
   ]).map(p => p.number)
 }
 
-export function avisar(numero, publicados) {
+/* O corpo do aviso é sempre o mesmo, palavra por palavra: não leva o número
+   de artigos publicados, nem a hora, nem nada que varie de uma execução para
+   a seguinte. É de propósito. A deteção de avisos repetidos compara corpos, e
+   existe para quando o marcador não é legível, que é quando o sistema já está
+   confuso; com um número no corpo, dois avisos enviados a 12 e a 13 artigos
+   já não seriam iguais e a deteção calava-se. O número não faz falta a quem
+   lê o PR (interessa à automação, e está no registo e no resumo da execução). */
+export function avisar(numero) {
   gh(['pr', 'comment', String(numero), '--body', `${MARCA_AVISO}
 Faltam **24 horas** para este PR ser juntado automaticamente.
 
 Para travar o relógio basta escrever aqui qualquer coisa — não é preciso aprovar nem pedir alterações.
 
-_Artigos publicados por esta via: ${publicados}. O prazo automático corre acima de ${ARTIGOS_ANTES_DO_AUTOMATICO}._`])
+_O prazo automático só corre depois de ${ARTIGOS_ANTES_DO_AUTOMATICO} artigos publicados por esta via._`])
 }
 
 /* `--match-head-commit`: o merge só acontece se a ponta do PR for exatamente o
@@ -286,8 +311,17 @@ export function aplicar(numero) {
   if (verde === false && commitValido) guardarRecusa(construido, 'failure', 'build vermelho')
 
   if (resultado.acao === 'avisar') {
-    avisar(numero, publicados)
+    avisar(numero)
   } else if (resultado.acao === 'juntar') {
+    /* O `avaliar` acabou de ler e de passar o portão de âmbito na ponta atual
+       do PR (`resultado.commit`). Só se junta se essa ponta for exatamente o
+       commit que foi construído: senão, o que passou o portão e o que passou
+       o build são coisas diferentes. Não é um erro, é um PR que mexeu: a
+       próxima execução volta a olhar, e reconstrói. */
+    if (commitValido && resultado.commit !== construido) {
+      registar(`PR #${numero}: nada — a ponta do PR mudou desde o build (construído ${construido.slice(0, 7)}, agora ${String(resultado.commit).slice(0, 7)}); não se junta`)
+      return
+    }
     if (!commitValido) {
       throw new Error(`COMMIT_CONSTRUIDO em falta ou inválido (${JSON.stringify(construido)}) — não se junta um PR sem saber que commit foi construído`)
     }

@@ -80,11 +80,17 @@ jobs:
       # partir do checkout do `main`, não da árvore do PR.
       #
       # O QUE PROTEGE DE VERDADE é o portão de âmbito do `lerPr` (`index.mjs`):
-      # só chega aqui um PR que acrescenta ou edita ficheiros de artigos
+      # só se aceita um PR que acrescenta ou edita ficheiros de artigos
       # (`content/blog/<slug>/{pt,en}.md` e a lista de temas), vindo de um ramo
-      # deste repositório. O que se constrói é o código do `main` com markdown
-      # novo, e não há código do PR para correr. Sem o portão, este passo
-      # executaria código de terceiros com permissão de escrita no repositório.
+      # deste repositório. Mas atenção ao QUANDO: o portão corre no plano e outra
+      # vez no `--aplicar`, e este passo vai buscar a ponta do PR por sua conta
+      # entre os dois. O build vê o que a ponta for no momento do build; quem
+      # tiver escrita e empurrar código depois do plano faz esse código correr
+      # aqui. O que o `--aplicar` garante é que só se junta uma ponta que
+      # passe o portão e seja exatamente o commit construído. Com o portão a
+      # valer em ambos os lados, o que chega ao `main` é sempre conteúdo de
+      # artigos; o que corre no build tem essa garantia contra acidentes e
+      # contra PRs vindos de fora, e não contra alguém com escrita.
       #
       # O QUE ESTE PASSO NÃO GARANTE, para ninguém construir em cima de uma
       # promessa que não existe:
@@ -143,9 +149,16 @@ jobs:
               git worktree prune
             fi
 
-            if [ -n "$(git status --porcelain --untracked-files=all -- scripts .github package.json package-lock.json)" ]; then
+            # Falha fechada: se o `git status` em si falhar (um índice
+            # corrompido, por exemplo), a substituição ficava vazia e a
+            # verificação passava. Sem um resultado legível não se decide.
+            if ! alterados=$(git status --porcelain --untracked-files=all -- scripts .github package.json package-lock.json); then
+              echo "::error::não foi possível verificar o checkout depois do build do PR #$numero — nada mais é decidido nesta execução"
+              falhas=1; echo "::endgroup::"; break
+            fi
+            if [ -n "$alterados" ]; then
               echo "::error::o build do PR #$numero alterou ficheiros do checkout — nada mais é decidido nesta execução"
-              git status --short
+              echo "$alterados"
               falhas=1; echo "::endgroup::"; break
             fi
 
