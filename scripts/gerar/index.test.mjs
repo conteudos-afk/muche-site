@@ -142,6 +142,49 @@ test('desiste ao fim de duas tentativas e regista o aviso, sem falhar', async ()
   expect(fs.existsSync(path.join(contentDir, 'tema-novo', 'pt.md'))).toBe(true)
 })
 
+/* A grafia antiga é um aviso: o artigo escreve-se, o aviso chega ao PR, e não
+   se gasta uma segunda chamada por causa disso. */
+const comGrafiaAntiga = (titulo, palavras) => artigo(titulo, palavras).replace('---\n\n', '---\n\nO director tem um objectivo. ')
+
+test('grafia antiga: escreve o artigo à mesma, com o aviso, e sem repetir o pedido', async () => {
+  const contentDir = dirTemp()
+  const cliente = clienteFalso([comGrafiaAntiga('Português', 1400), artigo('English', 1400)])
+  const r = await gerarUm({ cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir })
+  expect(cliente.dadas).toHaveLength(2)
+  expect(r.avisos.join(' ')).toContain('director')
+  expect(fs.readFileSync(path.join(contentDir, 'tema-novo', 'pt.md'), 'utf-8')).toContain('director')
+})
+
+test('grafia antiga: não é fatal nem quando o artigo também está fora do intervalo', async () => {
+  const contentDir = dirTemp()
+  const cliente = clienteFalso([comGrafiaAntiga('Curto', 400), comGrafiaAntiga('Curto', 500), artigo('English', 1400)])
+  const r = await gerarUm({ cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir })
+  expect(cliente.dadas).toHaveLength(3)
+  expect(r.avisos.join(' ')).toContain('505')
+  expect(r.avisos.join(' ')).toContain('director')
+})
+
+test('grafia antiga: a segunda tentativa limpa não deixa avisos da primeira', async () => {
+  const cliente = clienteFalso([comGrafiaAntiga('Curto', 400), artigo('Bom', 1400), artigo('English', 1400)])
+  const r = await gerarUm({ cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir: dirTemp() })
+  expect(r.avisos).toEqual([])
+})
+
+test('grafia antiga: um problema fatal continua fatal, com ou sem grafia antiga ao lado', async () => {
+  const contentDir = dirTemp()
+  const mau = comGrafiaAntiga('Mau', 1400).replace('category: "Podcasts"', 'category: "Inventada"')
+  const cliente = clienteFalso([mau, mau])
+  await expect(gerarUm({ cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir }))
+    .rejects.toThrow(/Inventada/)
+  expect(cliente.dadas).toHaveLength(1)
+})
+
+test('grafia antiga: o artigo inglês não é verificado pelo detetor', async () => {
+  const cliente = clienteFalso([artigo('Português', 1400), comGrafiaAntiga('English', 1400)])
+  const r = await gerarUm({ cliente, modo: 'escrever', alvo: TEMA, referenciasPt: [REF], referenciasEn: [REF_EN], contentDir: dirTemp() })
+  expect(r.avisos).toEqual([])
+})
+
 test('não escreve nada quando o frontmatter vem estragado das duas vezes', async () => {
   const contentDir = dirTemp()
   const mau = artigo('Mau', 1400).replace('category: "Podcasts"', 'category: "Inventada"')

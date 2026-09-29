@@ -91,11 +91,19 @@ async function tentar(cliente, prompt, slug, lang) {
   return { markdown, custo, problemas: verificarArtigo({ markdown, slug, lang }) }
 }
 
-/* Separa o que é dimensão do que é frontmatter: só a primeira dá segunda
-   tentativa, e só a segunda é fatal. Estrutural — compara o `tipo` que
-   `verificarArtigo` atribui a cada problema — e não uma substring da
-   mensagem: reescrever a frase em `escrever.mjs` já não muda esta decisão. */
+/* Separa o que é fatal do que é só um aviso, e dentro dos avisos o que dá
+   segunda tentativa. Estrutural — compara o `tipo` que `verificarArtigo`
+   atribui a cada problema — e não uma substring da mensagem: reescrever a
+   frase em `escrever.mjs` já não muda esta decisão.
+
+   - 'dimensao': não é fatal, e é o único tipo que repete o pedido. Um artigo
+     curto pode sair mais comprido à segunda.
+   - 'grafia': não é fatal e NÃO repete o pedido. É uma suspeita que pode ser
+     um falso positivo; repeti-la custava uma chamada de $0,15 para, no pior
+     caso, obter a mesma frase. Vai para o corpo do PR.
+   - todos os outros: fatais. */
 const ehDimensao = p => p.tipo === 'dimensao'
+const ehAviso = p => p.tipo === 'dimensao' || p.tipo === 'grafia'
 
 async function pedirComRetentativa(cliente, prompt, slug, lang) {
   let total = 0
@@ -112,14 +120,17 @@ async function pedirComRetentativa(cliente, prompt, slug, lang) {
 
     if (r.problemas.length === 0) return { markdown: r.markdown, custo: total, avisos: [] }
 
-    const fatais = r.problemas.filter(p => !ehDimensao(p))
+    const fatais = r.problemas.filter(p => !ehAviso(p))
     if (fatais.length) {
       const mensagens = r.problemas.map(p => p.mensagem).join('\n  ')
       throw new Error(`${slug}/${lang}.md não passou a verificação:\n  ${mensagens}`)
     }
+
+    /* Só sobram avisos, e sem dimensão nada justifica pedir outra vez. */
+    if (!r.problemas.some(ehDimensao)) break
   }
 
-  /* Só sobra a dimensão: escreve à mesma e avisa. `avisos` é consumido pelo
+  /* Só sobram avisos: escreve à mesma e avisa. `avisos` é consumido pelo
      `console.warn` e pelo corpo do PR em `principal()` — tem de continuar a
      ser texto legível, não os objectos estruturados de `verificarArtigo`. */
   return { markdown: ultimo.markdown, custo: total, avisos: ultimo.problemas.map(p => p.mensagem) }

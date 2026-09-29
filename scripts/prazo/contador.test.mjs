@@ -1,29 +1,34 @@
 import { expect, test } from 'vitest'
-import { contarArtigos, MARCA_AVISO, ETIQUETA, BOTS } from './contador.mjs'
+import { contarArtigos, ehBot, MARCA_AVISO, ETIQUETA } from './contador.mjs'
+
+/* O que o `gh pr view --json files` devolve por ficheiro (mais additions e
+   deletions, que aqui não interessam). */
+const add = path => ({ path, changeType: 'ADDED' })
+const com = (path, changeType) => ({ path, changeType })
 
 test('conta um artigo por cada pt.md', () => {
   expect(contarArtigos([
-    { path: 'content/blog/um/pt.md' },
-    { path: 'content/blog/um/en.md' },
-    { path: 'content/blog/dois/pt.md' },
-    { path: 'content/blog/dois/en.md' },
+    add('content/blog/um/pt.md'),
+    add('content/blog/um/en.md'),
+    add('content/blog/dois/pt.md'),
+    add('content/blog/dois/en.md'),
   ])).toBe(2)
 })
 
 test('não conta o ficheiro de temas nem outras pastas com underscore', () => {
   expect(contarArtigos([
-    { path: 'content/blog/_temas.yml' },
-    { path: 'content/blog/_rascunho/pt.md' },
-    { path: 'content/blog/um/pt.md' },
+    add('content/blog/_temas.yml'),
+    add('content/blog/_rascunho/pt.md'),
+    add('content/blog/um/pt.md'),
   ])).toBe(1)
 })
 
 test('não conta ficheiros fora do blog', () => {
-  expect(contarArtigos([{ path: 'src/app/App.tsx' }, { path: 'README.md' }])).toBe(0)
+  expect(contarArtigos([add('src/app/App.tsx'), add('README.md')])).toBe(0)
 })
 
 test('não conta um pt.md em subpasta mais funda', () => {
-  expect(contarArtigos([{ path: 'content/blog/um/dois/pt.md' }])).toBe(0)
+  expect(contarArtigos([add('content/blog/um/dois/pt.md')])).toBe(0)
 })
 
 test('sem ficheiros não há artigos (etiqueta ainda sem nenhum PR)', () => {
@@ -32,24 +37,24 @@ test('sem ficheiros não há artigos (etiqueta ainda sem nenhum PR)', () => {
 
 test('só conta a partir da raiz do repositório e da pasta do blog', () => {
   expect(contarArtigos([
-    { path: 'src/content/blog/um/pt.md' },
-    { path: 'content/outro/um/pt.md' },
-    { path: 'content/blog/pt.md' },
+    add('src/content/blog/um/pt.md'),
+    add('content/outro/um/pt.md'),
+    add('content/blog/pt.md'),
   ])).toBe(0)
 })
 
 test('o nome do ficheiro tem de ser exatamente pt.md', () => {
   expect(contarArtigos([
-    { path: 'content/blog/um/pt.md.bak' },
-    { path: 'content/blog/um/pt.mdx' },
-    { path: 'content/blog/um/xpt.md' },
-    { path: 'content/blog/um/ptxmd' },
-    { path: 'content/blog/um/PT.md' },
+    add('content/blog/um/pt.md.bak'),
+    add('content/blog/um/pt.mdx'),
+    add('content/blog/um/xpt.md'),
+    add('content/blog/um/ptxmd'),
+    add('content/blog/um/PT.md'),
   ])).toBe(0)
 })
 
 test('só o underscore no início da pasta a exclui', () => {
-  expect(contarArtigos([{ path: 'content/blog/um_dois/pt.md' }])).toBe(1)
+  expect(contarArtigos([add('content/blog/um_dois/pt.md')])).toBe(1)
 })
 
 test('a etiqueta é a que os workflows usam', () => {
@@ -60,6 +65,80 @@ test('a marca do aviso é um comentário HTML, invisível na página', () => {
   expect(MARCA_AVISO).toMatch(/^<!--.*-->$/)
 })
 
-test('a lista de bots inclui o do GitHub Actions', () => {
-  expect(BOTS).toContain('github-actions[bot]')
+/* Só um ficheiro ADDED é um artigo novo. Ler «alterado» como «novo» fazia a
+   rampa subir com uma revisão, uma tradução ou um `--expandir`: o PR #18 deste
+   repositório alterou 14 `pt.md` e, com a etiqueta, saltava o limiar dos 10 de
+   uma vez. Ler alto é o lado perigoso — junta coisas que ninguém aprovou. */
+const PT = 'content/blog/um/pt.md'
+
+test('só conta um pt.md ADDED: alterado, apagado e copiado não são artigos novos', () => {
+  expect(contarArtigos([com(PT, 'MODIFIED')])).toBe(0)
+  expect(contarArtigos([com(PT, 'DELETED')])).toBe(0)
+  expect(contarArtigos([com(PT, 'COPIED')])).toBe(0)
+  expect(contarArtigos([com(PT, 'CHANGED')])).toBe(0)
+  expect(contarArtigos([com(PT, 'ADDED')])).toBe(1)
+})
+
+test('um pt.md renomeado para dentro do blog não é um artigo novo', () => {
+  expect(contarArtigos([com('content/blog/novo/pt.md', 'RENAMED')])).toBe(0)
+})
+
+test('sem changeType não conta: na dúvida lê-se baixo, nunca alto', () => {
+  expect(contarArtigos([{ path: PT }])).toBe(0)
+  expect(contarArtigos([{ path: PT, changeType: undefined }])).toBe(0)
+  expect(contarArtigos([{ path: PT, changeType: null }])).toBe(0)
+})
+
+test('o changeType é exatamente ADDED, sem variações de maiúsculas', () => {
+  expect(contarArtigos([com(PT, 'added')])).toBe(0)
+  expect(contarArtigos([com(PT, 'Added')])).toBe(0)
+})
+
+test('num PR misto conta só os pt.md novos', () => {
+  expect(contarArtigos([
+    com('content/blog/novo/pt.md', 'ADDED'),
+    com('content/blog/novo/en.md', 'ADDED'),
+    com('content/blog/velho/pt.md', 'MODIFIED'),
+    com('content/blog/apagado/pt.md', 'DELETED'),
+    com('content/blog/_temas.yml', 'MODIFIED'),
+  ])).toBe(1)
+})
+
+/* Estes logins são os que o `gh pr view --json comments` devolve mesmo: o da
+   Cloudflare vem SEM o sufixo `[bot]` (verificado nos PRs #17 e #18); a API
+   REST devolve-o COM. Quem decide se um comentário é humano tem de aceitar as
+   duas formas — se não aceitar, todos os PRs (todos têm o comentário de preview
+   da Cloudflare) parecem ter comentário humano, o relógio das 48 horas nunca
+   corre e o merge automático nunca dispara. */
+test('o comentário da Cloudflare não é humano, venha com ou sem [bot]', () => {
+  expect(ehBot('cloudflare-workers-and-pages')).toBe(true)
+  expect(ehBot('cloudflare-workers-and-pages[bot]')).toBe(true)
+})
+
+test('o comentário do GitHub Actions não é humano, venha com ou sem [bot]', () => {
+  expect(ehBot('github-actions')).toBe(true)
+  expect(ehBot('github-actions[bot]')).toBe(true)
+})
+
+test('uma pessoa não é um bot', () => {
+  expect(ehBot('fabio')).toBe(false)
+  expect(ehBot('conteudos-afk')).toBe(false)
+})
+
+test('só o nome inteiro conta: um utilizador com nome parecido continua humano', () => {
+  expect(ehBot('github-actions-fan')).toBe(false)
+  expect(ehBot('my-github-actions')).toBe(false)
+  expect(ehBot('cloudflare-workers-and-pages-x')).toBe(false)
+  /* O sufixo só se tira do fim: um `[bot]` a meio não reconstrói um nome de bot. */
+  expect(ehBot('github-[bot]actions')).toBe(false)
+})
+
+test('sem autor (conta apagada) trata-se como humano: na dúvida o relógio pára', () => {
+  expect(ehBot(undefined)).toBe(false)
+  expect(ehBot(null)).toBe(false)
+  expect(ehBot('')).toBe(false)
+})
+
+test('a comparação ignora maiúsculas, como o GitHub', () => {
+  expect(ehBot('GitHub-Actions[bot]')).toBe(true)
 })

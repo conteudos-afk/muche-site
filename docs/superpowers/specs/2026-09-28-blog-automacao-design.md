@@ -138,7 +138,7 @@ devolve, por isso cada execução diz o que gastou.
 
 Requer `ANTHROPIC_API_KEY` como secret do repositório, criada pelo dono do site.
 
-*Prompt caching* foi considerado e rejeitado: cortaria ~90% da entrada, mas a entrada são $0,05 dos $0,30. Poupava cêntimos e acrescentava complexidade.
+*Prompt caching* foi considerado e rejeitado: cortaria ~90% da entrada, mas a entrada são $0,05 dos $0,37. Poupava cêntimos e acrescentava complexidade.
 
 ## Fora de âmbito
 

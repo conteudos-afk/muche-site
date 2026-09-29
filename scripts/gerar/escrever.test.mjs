@@ -188,3 +188,41 @@ test('verificarArtigo: o mesmo texto de chave no corpo não é uma chave repetid
 test('aplicarReadTime: recusa um cabeçalho com readTime repetido, em vez de adivinhar', () => {
   expect(() => aplicarReadTime({ markdown: COM_READTIME_REPETIDO, lang: 'pt' })).toThrow(/repetida/)
 })
+
+/* ─── Grafia antiga: um aviso, nunca um erro ─────────────────────────────────
+   O primeiro artigo real voltou com seis formas do Acordo antigo. O detetor
+   pode enganar-se (falso positivo) e o modelo pode regredir (verdadeiro), por
+   isso o resultado é um problema de tipo próprio, que chega ao corpo do PR
+   para um humano ver — e que `index.mjs` não trata como fatal nem como
+   motivo para repetir o pedido. */
+const comFrase = frase => BOM.replace(CORPO_LONGO, `${frase} ${'palavra '.repeat(1395).trim()}`)
+const grafias = problemas => problemas.filter(p => p.tipo === 'grafia')
+
+test('verificarArtigo: uma forma do Acordo antigo num artigo português é um problema de tipo «grafia»', () => {
+  const problemas = verificarArtigo({ markdown: comFrase('O director tem um objectivo.'), slug: 'teste', lang: 'pt' })
+  expect(problemas.map(p => p.tipo)).toEqual(['grafia'])
+  expect(problemas[0].mensagem).toContain('teste/pt.md')
+  expect(problemas[0].mensagem).toContain('director')
+  expect(problemas[0].mensagem).toContain('objectivo')
+})
+
+test('verificarArtigo: cada forma antiga aparece uma só vez na mensagem, mesmo repetida', () => {
+  const problemas = grafias(verificarArtigo({ markdown: comFrase('O director, o director e o director.'), slug: 'teste', lang: 'pt' }))
+  expect(problemas).toHaveLength(1)
+  expect(problemas[0].mensagem.match(/director/g)).toHaveLength(1)
+})
+
+test('verificarArtigo: um artigo em inglês não é lido pelo detetor, que é só de português', () => {
+  const problemas = verificarArtigo({ markdown: comFrase('The director sold the actual product.'), slug: 'teste', lang: 'en' })
+  expect(grafias(problemas)).toEqual([])
+})
+
+test('verificarArtigo: português no novo Acordo não gera aviso de grafia', () => {
+  const problemas = verificarArtigo({ markdown: comFrase('O diretor tem um objetivo e uma perceção clara.'), slug: 'teste', lang: 'pt' })
+  expect(grafias(problemas)).toEqual([])
+})
+
+test('verificarArtigo: a grafia antiga no cabeçalho também conta', () => {
+  const md = BOM.replace('excerpt: "Um excerto."', 'excerpt: "Um excerto directo."')
+  expect(grafias(verificarArtigo({ markdown: md, slug: 'teste', lang: 'pt' })).map(p => p.mensagem).join(' ')).toContain('directo')
+})

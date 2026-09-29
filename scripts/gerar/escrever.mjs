@@ -13,6 +13,7 @@ import path from 'node:path'
 import { splitFrontmatter } from '../../src/lib/blog/parsePost.ts'
 import { validatePosts, OBRIGATORIOS } from '../../src/lib/blog/validate.ts'
 import { contarPalavras, dentroDoIntervalo, MIN_PALAVRAS, MAX_PALAVRAS } from './palavras.mjs'
+import { grafiasAntigas } from './grafia.mjs'
 
 /* O slug entra no `path.join` de `escreverArtigo` mais abaixo. Um `..` ou um
    `../outside` escrevem fora de `content/blog/` — o `validarTemas` do
@@ -109,8 +110,13 @@ export function limparResposta(texto) {
    - 'titulo-duplicado': um `#` de nível 1 no corpo.
    - 'frontmatter-duplicado': um segundo bloco de frontmatter a vazar para
      o corpo.
-   Todos menos 'dimensao' são fatais — essa é a política, inalterada; só o
-   mecanismo que a aplica mudou. */
+   - 'grafia': formas anteriores ao Acordo Ortográfico num artigo em
+     português. É uma suspeita, não uma prova — o detetor pode enganar-se, e
+     o modelo pode ter mesmo regredido —, por isso só chega ao corpo do PR,
+     onde um humano a lê de qualquer maneira.
+   Todos menos 'dimensao' e 'grafia' são fatais, e só 'dimensao' dá segunda
+   tentativa (a política está em `index.mjs`); repetir o pedido por causa de
+   uma grafia que pode ser um falso positivo era gastar dinheiro à toa. */
 export function verificarArtigo({ markdown, slug, lang }) {
   const problemas = []
 
@@ -156,6 +162,19 @@ export function verificarArtigo({ markdown, slug, lang }) {
       tipo: 'frontmatter-duplicado',
       mensagem: `${slug}/${lang}.md: o corpo tem um segundo bloco de frontmatter — só o primeiro é lido, e o resto ficava a aparecer como YAML no artigo`,
     })
+  }
+
+  /* Só o português: o detetor é de português, e em inglês dispararia em
+     metade das palavras. Lê o Markdown inteiro, cabeçalho incluído — o
+     `title` e o `excerpt` também aparecem na página. */
+  if (lang === 'pt') {
+    const antigas = [...new Set(grafiasAntigas(markdown))]
+    if (antigas.length) {
+      problemas.push({
+        tipo: 'grafia',
+        mensagem: `${slug}/${lang}.md: possíveis formas anteriores ao Acordo Ortográfico (${antigas.join(', ')}) — pode ser um falso positivo, confirma antes de juntar`,
+      })
+    }
   }
 
   return problemas
