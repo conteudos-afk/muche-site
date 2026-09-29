@@ -10,9 +10,21 @@
    aconteça o que acontecer. É a travagem que não depende de nenhuma das
    outras estar bem.
 
-   **A contagem inclui os artigos deste PR.** Sem isso o 10.º artigo cairia num
-   limbo: o PR que o traz ainda conta 7 publicados, e o seguinte já conta 13. O
-   critério tem de ser o estado do blog depois deste merge, não antes.
+   **A rampa conta só o que já foi publicado, nunca o que o PR traz.** O
+   portão abre quando uma pessoa já juntou mais de 10 artigos, e nada do que
+   está dentro de um PR o pode abrir para si próprio. A tentação é somar os
+   artigos do PR («o estado do blog depois deste merge»), e é um erro: com 9
+   publicados, um PR de 3 artigos somaria 12 e juntava-se sozinho, e os
+   artigos 10, 11 e 12 chegavam ao site sem ninguém os ter visto; e um único
+   PR de 11 artigos passava a rampa partindo de zero. A rampa existe para que
+   os primeiros artigos tenham olhos humanos, e essa soma deixava-a ser
+   ultrapassada pelos próprios artigos que devia proteger.
+
+   Também não há nenhum vazio a preencher. Com lotes de 3 e 9 publicados, o PR
+   seguinte não se junta sozinho (9 não é maior que 10), uma pessoa junta-o, e
+   passam a ser 12: o PR depois desse já é automático. A rampa acaba nos 12 em
+   vez de exatamente nos 10, o que não custa nada. Quem for tentado a «acertar»
+   isto somando `pr.artigos` está a repor o buraco descrito acima.
 
    **O `buildVerde` pode ser `null`.** Correr um build custa três minutos, e
    esta função é chamada de hora a hora sobre todos os PRs abertos. Devolver
@@ -51,10 +63,10 @@ export function decidir({ pr, artigosPublicados, agora } = {}) {
      já existiam, por exemplo) não é um artigo a publicar. Nada o aprovou. */
   if (pr.artigos === 0) return nada('o PR não traz nenhum artigo novo')
 
-  const depoisDeste = artigosPublicados + pr.artigos
-  if (depoisDeste <= ARTIGOS_ANTES_DO_AUTOMATICO) {
+  /* Só `artigosPublicados`, nunca `pr.artigos` — ver o cabeçalho. */
+  if (artigosPublicados <= ARTIGOS_ANTES_DO_AUTOMATICO) {
     return nada(
-      `rampa: ficariam ${depoisDeste} artigos publicados, e o prazo só corre acima de ${ARTIGOS_ANTES_DO_AUTOMATICO}`
+      `rampa: só há ${artigosPublicados} artigos publicados, e o prazo só corre acima de ${ARTIGOS_ANTES_DO_AUTOMATICO}`
     )
   }
 

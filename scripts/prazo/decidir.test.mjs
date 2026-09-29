@@ -26,17 +26,18 @@ test('os números são os do spec', () => {
 test('não faz nada enquanto a rampa não tiver terminado', () => {
   const d = decidir({ pr: pr(), artigosPublicados: 6, agora: AGORA })
   expect(d.acao).toBe('nada')
-  expect(d.motivo).toContain('9')
+  expect(d.motivo).toContain('6')
   expect(d.motivo).toContain('10')
 })
 
-test('a rampa conta com os artigos deste PR', () => {
-  // 8 publicados + 3 neste PR = 11, passa dos 10
-  expect(acao({}, 8)).toBe('juntar')
+test('a rampa não conta com os artigos deste PR', () => {
+  // 8 publicados + 3 neste PR seriam 11, mas o que abre o portão é o que já está publicado
+  expect(acao({}, 8)).toBe('nada')
 })
 
-test('exatamente 10 ainda não chega', () => {
-  expect(acao({}, 7)).toBe('nada')
+test('exatamente 10 publicados ainda não chega, 11 já chega', () => {
+  expect(acao({}, 10)).toBe('nada')
+  expect(acao({}, 11)).toBe('juntar')
 })
 
 test('não faz nada antes das 24 horas', () => {
@@ -142,9 +143,21 @@ test('a rampa: com 0 publicados e 3 neste PR ainda não chega', () => {
   expect(d.motivo).toContain('rampa')
 })
 
-test('a rampa: 8 publicados e 3 neste PR passam (11), 7 e 3 não (10)', () => {
-  expect(acao({}, 8)).toBe('juntar')
-  expect(acao({}, 7)).toBe('nada')
+test('a rampa: com 9 publicados, um PR de 3 artigos não se junta sozinho (era o buraco da soma)', () => {
+  // 9 + 3 = 12 passaria se se somasse: os artigos 10, 11 e 12 chegariam ao site sem ninguém os ver
+  expect(acao({ artigos: 3, criadoEm: haHoras(500) }, 9)).toBe('nada')
+})
+
+test('a rampa: um PR grande não abre o portão para si próprio', () => {
+  // 0 + 11 passaria se se somasse
+  const d = decidir({ pr: pr({ artigos: 11, criadoEm: haHoras(500) }), artigosPublicados: 0, agora: AGORA })
+  expect(d.acao).toBe('nada')
+  expect(d.motivo).toContain('rampa')
+  expect(acao({ artigos: 50, criadoEm: haHoras(500) }, 10)).toBe('nada')
+})
+
+test('a rampa: 12 publicados e o PR seguinte já é automático (a rampa acaba nos 12, não nos 10)', () => {
+  expect(acao({ artigos: 3, criadoEm: haHoras(500) }, 12)).toBe('juntar')
 })
 
 test('a rampa manda mesmo quando tudo o resto está pronto para juntar', () => {
@@ -156,10 +169,9 @@ test('a rampa trava também o aviso e o pedido de build', () => {
   expect(acao({ criadoEm: haHoras(60), buildVerde: null }, 0)).toBe('nada')
 })
 
-test('a rampa lê o número de artigos, não o número do PR nem outro campo', () => {
-  // 20 publicados e 1 artigo: o total é 21. Com 9 publicados e 1 artigo seria 10.
-  expect(acao({ artigos: 1 }, 9)).toBe('nada')
-  expect(acao({ artigos: 1 }, 10)).toBe('juntar')
+test('a rampa depende só dos publicados: com 11 publicados, 1 artigo no PR basta', () => {
+  expect(acao({ artigos: 1 }, 10)).toBe('nada')
+  expect(acao({ artigos: 1 }, 11)).toBe('juntar')
 })
 
 /* Um PR que não traz artigos novos */
