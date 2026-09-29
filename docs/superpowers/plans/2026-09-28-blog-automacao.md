@@ -1716,6 +1716,20 @@ jobs:
 
       - run: npm ci
 
+      # Um `expandir` disparado à mão dentro da janela das 48 horas voltaria a
+      # escolher um artigo que já está num PR por juntar — o `main` ainda o vê
+      # curto. A automação não deve gastar dinheiro a reescrever o que já está
+      # à espera de revisão.
+      - name: Recusar se já houver um PR de artigos por juntar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          abertos=$(gh pr list --state open --label artigo-automatico --limit 50 --json number --jq 'length')
+          if [ "$abertos" != "0" ]; then
+            echo "::error::há $abertos PR(s) de artigos por juntar — junta ou fecha antes de gerar mais"
+            exit 1
+          fi
+
       - name: Gerar
         id: gerar
         env:
