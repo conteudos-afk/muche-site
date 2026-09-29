@@ -157,5 +157,5 @@ jobs:
           gh pr create \
             --label artigo-automatico \
             --title "Artigos: $(echo "$SLUGS" | tr ',' ' ')" \
-            --body "$(printf 'Artigos gerados pela automação, em português e inglês.\n\n%s\n\nLê-os na **pré-visualização do Cloudflare** — o link aparece aqui em baixo daqui a um minuto. Não é preciso ler código.\n\n%s\n%s\nCusto desta execução: $%s\n' \
+            --body "$(printf 'Artigos gerados pela automação, em português e inglês.\n\n%s\n\nLê-os na **pré-visualização do Cloudflare** — o link aparece aqui em baixo daqui a um minuto. Não é preciso ler código.\n\n%s\n%s\n\nCusto desta execução: $%s\n' \
               "$lista" "$rampa" "$avisos" "$CUSTO")"
