@@ -1806,6 +1806,9 @@ jobs:
               "$(echo "$AVISOS" | sed 's|^|- |')")
           fi
 
+          # A etiqueta só entra em PRs que a automação abre. Se alguém a puser à
+          # mão num PR que apenas edita um artigo já publicado, o contador
+          # conta-o como artigo novo e a rampa avança mais depressa do que devia.
           gh pr create \
             --label artigo-automatico \
             --title "Artigos: $(echo "$SLUGS" | tr ',' ' ')" \
