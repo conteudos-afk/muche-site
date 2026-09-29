@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, type ReactNode } from "react"
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, type PanInfo } from "motion/react"
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, type PanInfo, type MotionValue } from "motion/react"
 import { RouterProvider, createBrowserRouter, Outlet, useNavigate, useParams, useLocation } from "react-router"
 import heroVideo from "@/imports/Hero_video.mp4"
 import svgPaths from "@/imports/HomeFinal/svg-kkmjukgdk7"
@@ -857,11 +857,70 @@ function portfolioText(item: PortfolioItem, lang: Lang) {
   return lang === "pt" ? { services: item.services_pt, concept: item.concept_pt } : { services: item.services, concept: item.concept }
 }
 
+/* ─── Cartão do portfólio mobile/tablet — entra e sai sobre um progresso de
+   scroll PARTILHADO (não tem sticky/unstick próprio), com a janela de
+   entrada/saída de cada cartão a sobrepor-se à do vizinho. Isso garante que
+   o projeto seguinte já está a aparecer enquanto o anterior ainda está a
+   desaparecer — nunca há um momento sem nenhum projeto visível. */
+function MobilePortfolioCard({
+  item, i, n, progress, boxW, boxH, isPhone, teentacObjX, services, concept,
+}: {
+  item: PortfolioItem
+  i: number
+  n: number
+  progress: MotionValue<number>
+  boxW: number
+  boxH: number
+  isPhone: boolean
+  teentacObjX: number
+  services: string
+  concept: string
+}) {
+  const isFirst = i === 0
+  const isLast = i === n - 1
+  const segFrac  = 1 / n
+  const overlap  = segFrac * 0.35
+  const winStart = isFirst ? 0 : i / n - overlap
+  const winEnd   = isLast ? 1 : (i + 1) / n + overlap
+  const local    = useTransform(progress, [winStart, winEnd], [0, 1], { clamp: true })
+
+  const ENTER = 0.3, EXIT = 0.7
+  const inRange  = isFirst ? [EXIT, 1] : isLast ? [0, ENTER] : [0, ENTER, EXIT, 1]
+  const scale    = useTransform(local, inRange, isFirst ? [1, 0.84] : isLast ? [0.84, 1] : [0.84, 1, 1, 0.84])
+  const blur     = useTransform(local, inRange, isFirst ? ["blur(0px)", "blur(10px)"] : isLast ? ["blur(10px)", "blur(0px)"] : ["blur(10px)", "blur(0px)", "blur(0px)", "blur(10px)"])
+  const opacity  = useTransform(local, inRange, isFirst ? [1, 0] : isLast ? [0, 1] : [0, 1, 1, 0])
+
+  return (
+    <motion.div
+      className="absolute inset-0 flex flex-col items-center justify-center"
+      style={{ scale, filter: blur, opacity, zIndex: i, transformOrigin: "50% 38%", padding: "72px 16px 0" }}
+    >
+      <div style={{ width: `${boxW}px` }}>
+        <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${boxH}px`, background: "#060f13" }}>
+          {"video" in item
+            ? <LazyVideo src={isPhone ? item.videoMobile : item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
+            : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={isPhone && item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
+          }
+        </div>
+        <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div>
+            <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
+            <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(22px, 6vw, 36px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
+          </div>
+          <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.5, opacity: 0.6 }}>{concept}</p>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 function PortfolioSection() {
   const lang = useLang()
   const c = COPY[lang].portfolio
   const ref = useRef<HTMLDivElement>(null)
   useHorizontalSwipeToScroll(ref)
+  const mobileRef = useRef<HTMLDivElement>(null)
+  const mobileRawProgress = useScrollProgress(mobileRef, "end-end")
   const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
   useEffect(() => {
     const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight })
@@ -936,33 +995,35 @@ function PortfolioSection() {
   const boxW = isPhone ? teentacW : tabletCardW
   const boxH = isPhone ? mMediaH : tabletMediaH
 
+  // Mobile/tablet: um único percurso de scroll partilhado por todos os
+  // cartões (ver MobilePortfolioCard) — sem sticky/unstick por projeto —
+  // para que a saída de um e a entrada do seguinte se sobreponham.
+  const MOBILE_PIN_PER_CARD_VH = 120
+  const n = PORTFOLIO.length
+
   if (isMobile) {
     return (
-      <div id="work">
-        {PORTFOLIO.map((item, i) => {
-          const { services, concept } = portfolioText(item, lang)
-          return (
-            <ScrollBlock key={i} height="150vh" holdUntil={0.12} doneBy={0.30}>
-              <div className="size-full flex flex-col items-center justify-center" style={{ padding: "72px 16px 0" }}>
-                <div style={{ width: `${boxW}px` }}>
-                  <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${boxH}px`, background: "#060f13" }}>
-                    {"video" in item
-                      ? <LazyVideo src={isPhone ? item.videoMobile : item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
-                      : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={isPhone && item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
-                    }
-                  </div>
-                  <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <div>
-                      <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
-                      <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(22px, 6vw, 36px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
-                    </div>
-                    <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.5, opacity: 0.6 }}>{concept}</p>
-                  </div>
-                </div>
-              </div>
-            </ScrollBlock>
-          )
-        })}
+      <div id="work" ref={mobileRef} style={{ height: `${n * MOBILE_PIN_PER_CARD_VH + 100}vh`, position: "relative" }}>
+        <div className="sticky top-0 h-screen overflow-hidden">
+          {PORTFOLIO.map((item, i) => {
+            const { services, concept } = portfolioText(item, lang)
+            return (
+              <MobilePortfolioCard
+                key={i}
+                item={item}
+                i={i}
+                n={n}
+                progress={mobileRawProgress}
+                boxW={boxW}
+                boxH={boxH}
+                isPhone={isPhone}
+                teentacObjX={teentacObjX}
+                services={services}
+                concept={concept}
+              />
+            )
+          })}
+        </div>
       </div>
     )
   }
