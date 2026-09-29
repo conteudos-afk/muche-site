@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { contarArtigos, ehBot, MARCA_AVISO, ETIQUETA } from './contador.mjs'
+import { contarArtigos, foraDoAmbito, ehBot, MARCA_AVISO, ETIQUETA } from './contador.mjs'
 
 /* O que o `gh pr view --json files` devolve por ficheiro (mais additions e
    deletions, que aqui não interessam). */
@@ -141,4 +141,71 @@ test('sem autor (conta apagada) trata-se como humano: na dúvida o relógio pár
 
 test('a comparação ignora maiúsculas, como o GitHub', () => {
   expect(ehBot('GitHub-Actions[bot]')).toBe(true)
+})
+
+test('âmbito: artigos nas duas línguas e a lista de temas passam', () => {
+  expect(foraDoAmbito([
+    add('content/blog/um/pt.md'),
+    add('content/blog/um/en.md'),
+    com('content/blog/_temas.yml', 'MODIFIED'),
+    com('content/blog/velho/pt.md', 'MODIFIED'),
+  ])).toBeNull()
+})
+
+test('âmbito: um artigo mais uma alteração a scripts/prazo nomeia o ficheiro', () => {
+  const motivo = foraDoAmbito([
+    add('content/blog/um/pt.md'),
+    com('scripts/prazo/decidir.mjs', 'MODIFIED'),
+    com('package.json', 'MODIFIED'),
+  ])
+  expect(motivo).toContain('scripts/prazo/decidir.mjs')
+  expect(motivo).toContain('package.json')
+})
+
+test('âmbito: apagar ou renomear mesmo um ficheiro de artigo fica de fora', () => {
+  expect(foraDoAmbito([com('content/blog/um/pt.md', 'DELETED')])).toContain('DELETED')
+  expect(foraDoAmbito([com('content/blog/um/pt.md', 'RENAMED')])).toContain('RENAMED')
+})
+
+test('âmbito: outros ficheiros dentro de content/blog ficam de fora', () => {
+  for (const path of [
+    'content/blog/um/imagem.png',
+    'content/blog/um/fr.md',
+    'content/blog/um/sub/pt.md',
+    'content/blog/_rascunho/pt.md',
+    'content/blog/README.md',
+    'content/blog/../../src/x.md',
+    'content/blog/um/pt.md.exe',
+  ]) {
+    expect(foraDoAmbito([add(path)]), path).toContain('fora do âmbito')
+  }
+})
+
+test('âmbito: sem changeType, sem path, ou sem lista, não passa', () => {
+  expect(foraDoAmbito([{ path: 'content/blog/um/pt.md' }])).not.toBeNull()
+  expect(foraDoAmbito([{ changeType: 'ADDED' }])).not.toBeNull()
+  expect(foraDoAmbito(undefined)).not.toBeNull()
+  expect(foraDoAmbito(null)).not.toBeNull()
+})
+
+test('âmbito: uma lista de 100 ficheiros pode estar cortada e não passa', () => {
+  const cem = Array.from({ length: 100 }, (_, i) => add(`content/blog/a${i}/pt.md`))
+  expect(foraDoAmbito(cem)).toContain('cortada')
+  expect(foraDoAmbito(cem.slice(1))).toBeNull()
+})
+
+test('âmbito e contagem partilham a definição de artigo', () => {
+  /* Tudo o que a contagem toma por artigo tem de passar o portão. */
+  for (const path of ['content/blog/x/pt.md', 'content/blog/a-b_c/pt.md']) {
+    expect(contarArtigos([add(path)])).toBe(1)
+    expect(foraDoAmbito([add(path)])).toBeNull()
+  }
+})
+
+test('âmbito: nomeia até três caminhos e conta os restantes', () => {
+  const motivo = foraDoAmbito(['a', 'b', 'c', 'd', 'e'].map(n => com(`src/${n}.ts`, 'MODIFIED')))
+  expect(motivo).toContain('src/a.ts')
+  expect(motivo).toContain('src/c.ts')
+  expect(motivo).not.toContain('src/d.ts')
+  expect(motivo).toContain('e mais 2')
 })

@@ -22,15 +22,33 @@
 import { execFileSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
 import { decidir, ARTIGOS_ANTES_DO_AUTOMATICO } from './decidir.mjs'
-import { contarArtigos, MARCA_AVISO, ETIQUETA, ehBot } from './contador.mjs'
+import { contarArtigos, foraDoAmbito, MARCA_AVISO, ETIQUETA, ehBot } from './contador.mjs'
 
 /* O `gh` não lê `GITHUB_REPOSITORY`: descobre o repositório pelo `git remote`
    da pasta atual. No workflow a pasta é o checkout e daria certo, mas é uma
-   coincidência; por isso, com a variável presente, o `--repo` é explícito.
-   À mão, sem a variável, vale o remoto da pasta. */
+   coincidência; por isso, com a variável presente, o `--repo` é explícito nos
+   comandos `pr`. Já o `gh api` não tem `--repo`: o repositório vai no caminho
+   (ou, sem a variável, no `GH_REPO`/remoto da pasta, pelos marcadores).
+   À mão, sem a variável, vale o remoto da pasta.
+
+   O stderr do `gh` é capturado para entrar na mensagem do erro: sem isso o
+   registo dizia «Command failed: gh …» e perdia a razão. */
 const REPO = process.env.GITHUB_REPOSITORY
-const gh = args => execFileSync('gh', REPO ? [...args, '--repo', REPO] : args, { encoding: 'utf-8' })
+const BASE = 'main'
+const CAMINHO_REPO = REPO ?? '{owner}/{repo}'
+
+function gh(args) {
+  const completos = REPO && args[0] === 'pr' ? [...args, '--repo', REPO] : args
+  try {
+    return execFileSync('gh', completos, { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] })
+  } catch (erro) {
+    const razao = String(erro.stderr ?? '').trim() || primeiraLinha(erro)
+    throw new Error(`gh ${args.slice(0, 2).join(' ')}: ${razao.replace(/\s+/g, ' ').slice(0, 300)}`)
+  }
+}
 const ghJson = args => JSON.parse(gh(args))
+
+const primeiraLinha = erro => String(erro?.message ?? erro).split('\n')[0]
 
 const humano = quem => !ehBot(quem?.login)
 
@@ -41,24 +59,109 @@ function registar(linha) {
   try { appendFileSync(resumo, `- ${linha}\n`) } catch { /* o resumo é um extra; o registo já saiu */ }
 }
 
-const primeiraLinha = erro => String(erro?.message ?? erro).split('\n')[0]
+/* Um `nada` por um dado com a forma errada é igual, à vista, a um `nada`
+   normal («só passaram 3 horas»), e a funcionalidade pode ficar calada meses.
+   Estes são os que não são normais; sobem à página da execução como aviso.
+   (Sai em stderr: o stdout do `--planear` é só o JSON.) */
+const ANOMALIA = /inválid|suspeit|erro ao ler|fora do âmbito|sem dados/i
 
+function decisao(numero, { acao, motivo }) {
+  registar(`PR #${numero}: ${acao} — ${motivo}`)
+  if (acao === 'nada' && ANOMALIA.test(motivo)) {
+    console.error(`::warning title=Prazo, PR #${numero}::${motivo.replace(/[\r\n]+/g, ' ')}`)
+  }
+}
+
+/* Devolve o PR já no formato do `decidir`, ou `{ nada }` com o motivo se ele
+   nem chega a ser considerado.
+
+   O portão de âmbito vem antes de tudo o resto. Os revisores leem a
+   pré-visualização da Cloudflare, não o diff, e a pré-visualização de um
+   artigo parece um artigo seja o que for que mais vá no commit. Sem isto, um
+   PR com um artigo e uma alteração a `scripts/prazo/decidir.mjs` juntava-se
+   sozinho ao fim de 72 horas de silêncio, e mudava as regras de todos os PRs
+   seguintes. Também é o portão que impede código hostil de chegar ao passo do
+   build: o que se constrói é o `main` mais ficheiros markdown. */
 function lerPr(numero, buildVerde) {
   const pr = ghJson([
     'pr', 'view', String(numero),
-    '--json', 'number,createdAt,isDraft,comments,reviews,files',
+    '--json', 'number,state,baseRefName,headRefOid,isCrossRepository,createdAt,isDraft,comments,reviews,files',
   ])
 
-  return {
-    numero: pr.number,
-    criadoEm: pr.createdAt,
-    artigos: contarArtigos(pr.files),
-    comentariosHumanos: pr.comments.filter(c => humano(c.author)).length,
-    revisoes: pr.reviews.filter(r => humano(r.author)).length,
-    jaAvisado: pr.comments.some(c => c.body?.includes(MARCA_AVISO)),
-    rascunho: pr.isDraft,
-    buildVerde,
+  if (pr.state !== 'OPEN') return { nada: `o PR não está aberto (${String(pr.state)})` }
+  if (pr.baseRefName !== BASE) return { nada: `fora do âmbito: o PR não aponta a ${BASE} (${String(pr.baseRefName)})` }
+  /* `=== false`: um campo em falta não é «vem deste repositório». */
+  if (pr.isCrossRepository !== false) {
+    return { nada: 'fora do âmbito: o PR não vem de um ramo deste repositório (fork, ou origem desconhecida)' }
   }
+  const fora = foraDoAmbito(pr.files)
+  if (fora) return { nada: fora }
+
+  return {
+    commit: pr.headRefOid,
+    pr: {
+      numero: pr.number,
+      criadoEm: pr.createdAt,
+      artigos: contarArtigos(pr.files),
+      comentariosHumanos: pr.comments.filter(c => humano(c.author)).length,
+      revisoes: pr.reviews.filter(r => humano(r.author)).length,
+      jaAvisado: pr.comments.some(c => c.body?.includes(MARCA_AVISO)),
+      rascunho: pr.isDraft,
+      buildVerde,
+    },
+  }
+}
+
+/* ─── Memória entre execuções ────────────────────────────────────────────────
+   Um PR com mais de 48 horas de silêncio e um build que não passa (ou um
+   merge que o GitHub recusa: conflito, política do ramo) voltava a ser
+   construído todas as horas, que é o custo que a divisão em duas fases existe
+   para evitar. Não há onde guardar estado no repositório, por isso guarda-se
+   no GitHub: um estado de commit (`statuses`) no commit que foi construído.
+
+   Enquanto a ponta do PR for esse commit, não se reconstrói. Expira ao fim de
+   um dia: um build vermelho por falha de rede não pode bloquear um PR para
+   sempre e em silêncio. */
+const CONTEXTO = 'prazo-artigos/build'
+const RECUSA_VALE_HORAS = 24
+
+function recusaGuardada(commit, agora) {
+  if (!/^[0-9a-f]{40}$/.test(String(commit))) return null
+  const estados = ghJson(['api', `repos/${CAMINHO_REPO}/commits/${commit}/statuses`])
+  const recusa = estados.find(e => e.context === CONTEXTO)
+  if (!recusa || !['failure', 'error'].includes(recusa.state)) return null
+  const horas = (agora.getTime() - new Date(recusa.created_at).getTime()) / 3600_000
+  if (!(horas >= 0 && horas < RECUSA_VALE_HORAS)) return null
+  return recusa
+}
+
+function guardarRecusa(commit, estado, descricao) {
+  try {
+    gh(['api', '-X', 'POST', `repos/${CAMINHO_REPO}/statuses/${commit}`,
+      '-f', `state=${estado}`, '-f', `context=${CONTEXTO}`,
+      '-f', `description=${descricao.replace(/\s+/g, ' ').slice(0, 130)}`])
+  } catch (erro) {
+    registar(`não foi possível guardar a recusa do commit ${commit.slice(0, 7)} — ${primeiraLinha(erro)}`)
+  }
+}
+
+/* Lê, aplica o portão, decide. É o mesmo caminho no `--planear` e no
+   `--aplicar`, que volta a decidir em vez de confiar no plano. */
+function avaliar(numero, buildVerde, publicados, agora) {
+  const lido = lerPr(numero, buildVerde)
+  if (lido.nada) return { acao: 'nada', motivo: lido.nada }
+
+  const resultado = decidir({ pr: lido.pr, artigosPublicados: publicados, agora })
+  if (resultado.acao === 'precisa-build') {
+    const recusa = recusaGuardada(lido.commit, agora)
+    if (recusa) {
+      return {
+        acao: 'nada',
+        motivo: `o commit ${lido.commit.slice(0, 7)} já foi construído e recusado (${recusa.description}) — espera por um commit novo, ou até passarem ${RECUSA_VALE_HORAS} horas`,
+      }
+    }
+  }
+  return { ...resultado, commit: lido.commit }
 }
 
 /* Lê `path` e `changeType`, e conta só os `ADDED` — ver o `contador.mjs`. Se
@@ -78,7 +181,7 @@ function artigosPublicados() {
 function abertos() {
   return ghJson([
     'pr', 'list', '--state', 'open', '--label', ETIQUETA,
-    '--limit', '50', '--json', 'number',
+    '--base', BASE, '--limit', '50', '--json', 'number',
   ]).map(p => p.number)
 }
 
@@ -122,17 +225,17 @@ function planear() {
 
   const agora = new Date()
   const prs = numeros.map(numero => {
-    let decisao
+    let resultado
     try {
       /* `null` no build: o plano é feito sem construir nada. */
-      decisao = decidir({ pr: lerPr(numero, null), artigosPublicados: publicados, agora })
+      resultado = avaliar(numero, null, publicados, agora)
     } catch (erro) {
       /* Um PR que não se consegue ler não pode impedir os outros, nem ser
          juntado: fica em `nada`, com a razão escrita. */
-      decisao = { acao: 'nada', motivo: `erro ao ler o PR — ${primeiraLinha(erro)}` }
+      resultado = { acao: 'nada', motivo: `erro ao ler o PR — ${primeiraLinha(erro)}` }
     }
-    registar(`PR #${numero}: ${decisao.acao} — ${decisao.motivo}`)
-    return { numero, acao: decisao.acao, motivo: decisao.motivo }
+    decisao(numero, resultado)
+    return { numero, acao: resultado.acao, motivo: resultado.motivo }
   })
 
   console.log(JSON.stringify({ publicados, prs }))
@@ -143,18 +246,28 @@ function aplicar(numero) {
   const verde = process.env.BUILD_VERDE === 'true' ? true
     : process.env.BUILD_VERDE === 'false' ? false
     : null
+  const construido = process.env.COMMIT_CONSTRUIDO ?? ''
+  const commitValido = /^[0-9a-f]{40}$/.test(construido)
 
-  const { acao, motivo } = decidir({ pr: lerPr(numero, verde), artigosPublicados: publicados, agora: new Date() })
-  registar(`PR #${numero}: ${acao} — ${motivo}`)
+  const resultado = avaliar(numero, verde, publicados, new Date())
+  decisao(numero, resultado)
 
-  if (acao === 'avisar') {
+  /* Build vermelho: guarda-se no commit que foi construído, para as próximas
+     horas não o reconstruírem. */
+  if (verde === false && commitValido) guardarRecusa(construido, 'failure', 'build vermelho')
+
+  if (resultado.acao === 'avisar') {
     avisar(numero, publicados)
-  } else if (acao === 'juntar') {
-    const commit = process.env.COMMIT_CONSTRUIDO ?? ''
-    if (!/^[0-9a-f]{40}$/.test(commit)) {
-      throw new Error(`COMMIT_CONSTRUIDO em falta ou inválido (${JSON.stringify(commit)}) — não se junta um PR sem saber que commit foi construído`)
+  } else if (resultado.acao === 'juntar') {
+    if (!commitValido) {
+      throw new Error(`COMMIT_CONSTRUIDO em falta ou inválido (${JSON.stringify(construido)}) — não se junta um PR sem saber que commit foi construído`)
     }
-    juntar(numero, motivo, commit)
+    try {
+      juntar(numero, resultado.motivo, construido)
+    } catch (erro) {
+      guardarRecusa(construido, 'error', `merge recusado: ${primeiraLinha(erro)}`)
+      throw erro
+    }
   }
 }
 

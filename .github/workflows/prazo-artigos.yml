@@ -9,6 +9,9 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # Para guardar no commit que um build vermelho, ou um merge recusado, não deve
+  # ser reconstruído todas as horas (ver `recusaGuardada`, no `index.mjs`).
+  statuses: write
 
 concurrency:
   group: prazo-artigos
@@ -26,9 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      # `persist-credentials: false`: o token não fica escrito no `.git/config`.
-      # As árvores de trabalho partilham esse ficheiro com o checkout, e o
-      # `npm ci` e o build de um PR são código do PR a correr nesta máquina.
+      # `persist-credentials: false` tira o token do `.git/config`, que as
+      # árvores de trabalho partilham com este checkout. Não é uma barreira:
+      # o token continua no ambiente deste passo (ver o passo do build).
       # O repositório é público, por isso os `git fetch` abaixo não precisam de
       # credenciais; se algum dia deixar de ser, falham em voz alta (o passo
       # fica vermelho) e não em silêncio.
@@ -36,7 +39,6 @@ jobs:
         with:
           persist-credentials: false
 
-      # Versão 24, tal como no `gerar-artigos.yml`.
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
@@ -57,7 +59,7 @@ jobs:
       # Os números vêm do `gh`, mas passam por variáveis de ambiente e nunca
       # são escritos dentro do script.
       - name: Avisar às 24 horas
-        if: steps.plano.outputs.avisar != ''
+        if: ${{ steps.plano.outputs.avisar != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           AVISAR: ${{ steps.plano.outputs.avisar }}
@@ -68,57 +70,83 @@ jobs:
           done
           exit "$falhas"
 
+      # `!cancelled()`: sem uma função de estado, o `if` leva um `success() &&`
+      # implícito, e um aviso que falhe para sempre (um PR bloqueado, por
+      # exemplo) saltava o build de todos os PRs, todas as horas, sem fim. O
+      # aviso falhado continua a deixar a execução vermelha; só não trava o resto.
+      #
       # Só os PRs a quem falta mesmo o build. Cada um é construído numa árvore
-      # de trabalho à parte, para o `scripts/prazo/` que decide o merge ser
-      # sempre o do `main` (o checkout, aqui em cima) e nunca o que vem dentro
-      # do PR — um PR não deve poder mudar as regras pelas quais é juntado.
+      # de trabalho à parte, e o `node scripts/prazo/index.mjs` corre sempre a
+      # partir do checkout do `main`, não da árvore do PR.
       #
-      # O build corre sem `GH_TOKEN`: o código do PR não recebe o token que
-      # pode juntar PRs. E, antes de decidir, confirma-se que esse código não
-      # mexeu no `scripts/` do checkout (está tudo no mesmo disco); se mexeu,
-      # não se junta mais nada nesta execução.
+      # O QUE PROTEGE DE VERDADE é o portão de âmbito do `lerPr` (`index.mjs`):
+      # só chega aqui um PR que acrescenta ou edita ficheiros de artigos
+      # (`content/blog/<slug>/{pt,en}.md` e a lista de temas), vindo de um ramo
+      # deste repositório. O que se constrói é o código do `main` com markdown
+      # novo, e não há código do PR para correr. Sem o portão, este passo
+      # executaria código de terceiros com permissão de escrita no repositório.
       #
-      # O commit construído segue para o `--aplicar`, que só junta se a ponta
-      # do PR continuar a ser esse commit.
+      # O QUE ESTE PASSO NÃO GARANTE, para ninguém construir em cima de uma
+      # promessa que não existe:
+      # - O build corre como o mesmo utilizador, no mesmo disco, no mesmo
+      #   ambiente. O `unset GH_TOKEN` limpa a variável só na subshell do build;
+      #   o passo-pai continua com o token no ambiente, e um processo do mesmo
+      #   utilizador consegue lê-lo (`/proc/<pid>/environ`).
+      # - A verificação de `git status` antes de decidir apanha acidentes e
+      #   enganos (um build que reescreve um ficheiro do checkout). Não apanha
+      #   quem quer contorná-la: `git update-index --skip-worktree` num ficheiro
+      #   antes de o reescrever passa por ela, e o mesmo vale para o PATH ou
+      #   o `node`.
+      # - O commit construído segue para o `--aplicar` (`--match-head-commit`),
+      #   que garante que o que se junta é o que se construiu, e nada mais.
+      # A separação a sério é em dois jobs com permissões próprias (um constrói
+      # sem token nenhum, outro decide). Enquanto isso não existir, o portão de
+      # âmbito é a defesa.
       - name: Construir e juntar
-        if: steps.plano.outputs.construir != ''
+        if: ${{ !cancelled() && steps.plano.outputs.construir != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
           CONSTRUIR: ${{ steps.plano.outputs.construir }}
         run: |
+          # O shell dos passos arranca com `-e`, e `set -uo pipefail` não o
+          # desliga: qualquer comando que falhasse sem guarda interrompia o
+          # passo inteiro a meio da lista, em vez de saltar só esse PR. `+e`
+          # desliga-o de propósito, e cada comando que pode falhar é testado.
+          set +e
           set -uo pipefail
           falhas=0
           for numero in $CONSTRUIR; do
             echo "::group::PR #$numero"
+            arvore="../pr-$numero"
 
             if ! git fetch --depth=1 origin "pull/$numero/head"; then
               echo "::error::não foi possível obter o PR #$numero"
-              falhas=1
-              echo "::endgroup::"
-              continue
+              falhas=1; echo "::endgroup::"; continue
             fi
-            commit=$(git rev-parse FETCH_HEAD)
-            arvore="../pr-$numero"
-
+            if ! commit=$(git rev-parse --verify FETCH_HEAD^{commit}); then
+              echo "::error::o PR #$numero não deu um commit"
+              falhas=1; echo "::endgroup::"; continue
+            fi
             if ! git worktree add --detach "$arvore" "$commit"; then
               echo "::error::não foi possível criar a árvore de trabalho do PR #$numero"
-              falhas=1
-              echo "::endgroup::"
-              continue
+              falhas=1; echo "::endgroup::"; continue
             fi
 
             verde=false
             if (cd "$arvore" && unset GH_TOKEN GITHUB_TOKEN && npm ci && npm run build); then verde=true; fi
             echo "build do PR #$numero ($commit): verde=$verde"
 
-            git worktree remove --force "$arvore"
+            if ! git worktree remove --force "$arvore"; then
+              echo "::warning::não foi possível remover a árvore do PR #$numero"
+              falhas=1
+              rm -rf "$arvore"
+              git worktree prune
+            fi
 
             if [ -n "$(git status --porcelain --untracked-files=all -- scripts .github package.json package-lock.json)" ]; then
               echo "::error::o build do PR #$numero alterou ficheiros do checkout — nada mais é decidido nesta execução"
               git status --short
-              falhas=1
-              echo "::endgroup::"
-              break
+              falhas=1; echo "::endgroup::"; break
             fi
 
             BUILD_VERDE=$verde COMMIT_CONSTRUIDO=$commit node scripts/prazo/index.mjs --aplicar "$numero" || falhas=1
