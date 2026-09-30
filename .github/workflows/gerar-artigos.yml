@@ -1,0 +1,206 @@
+name: Gerar artigos
+
+on:
+  schedule:
+    # Terça e sexta às 07:00 UTC. O cron do GitHub não tem fuso: em Portugal
+    # são 08:00 no inverno e 09:00 no verão, e não faz diferença nenhuma —
+    # o que sai daqui é um PR à espera de revisão, não uma publicação.
+    - cron: '0 7 * * 2,5'
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: 'escrever (temas novos) ou expandir (artigos curtos)'
+        type: choice
+        options: [escrever, expandir]
+        default: escrever
+      lote:
+        description: 'Quantos artigos'
+        default: '3'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: gerar-artigos
+  cancel-in-progress: false
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    steps:
+      # Um `expandir` disparado à mão dentro da janela das 48 horas voltaria a
+      # escolher um artigo que já está num PR por juntar — o `main` ainda o vê
+      # curto. A automação não deve gastar dinheiro a reescrever o que já está
+      # à espera de revisão.
+      #
+      # A guarda vem primeiro: quem lê o workflow de cima para baixo vê a decisão
+      # de não fazer nada antes de qualquer trabalho. Não precisa do repositório
+      # em disco. O `gh` não lê `GITHUB_REPOSITORY`: sem `--repo` descobre o
+      # repositório pelo `git remote` da pasta atual, e fora de um checkout
+      # falha com «not a git repository». Por isso o `--repo` é explícito.
+      - name: Saltar se já houver um PR de artigos por juntar
+        id: guarda
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          abertos=$(gh pr list --repo "${{ github.repository }}" --state open --label artigo-automatico --limit 50 --json number --jq 'length')
+          if [ "$abertos" != "0" ]; then
+            # Não é uma falha: é a guarda a fazer o que deve. O passo acaba
+            # verde, os seguintes não correm, e o motivo fica escrito no
+            # resumo da execução para quem se perguntar porque não apareceu
+            # nada. Uma falha a sério (o `gh` a rebentar) continua a ser
+            # vermelha, porque o `-e` do shell interrompe o passo antes daqui.
+            echo "saltar=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Geração saltada"
+              echo
+              echo "Há **$abertos** Pull Request(s) de artigos por juntar, e a automação não gera mais enquanto houver algum à espera de revisão."
+              echo
+              echo "Junta ou fecha esse(s) PR(s) e a próxima execução avança sozinha."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "::notice::geração saltada: há $abertos PR(s) de artigos por juntar"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.guarda.outputs.saltar != 'true'
+
+      # Versão 24 e não 22: os módulos do gerador importam `.ts` a partir de
+      # `.mjs`, e o Node só o faz sozinho a partir da 24. Na 22 isto falha com
+      # `Unknown file extension ".ts"`.
+      - uses: actions/setup-node@v4
+        if: steps.guarda.outputs.saltar != 'true'
+        with:
+          node-version: '24'
+
+      - run: npm ci
+        if: steps.guarda.outputs.saltar != 'true'
+
+      - name: Gerar
+        id: gerar
+        if: steps.guarda.outputs.saltar != 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Os valores do formulário do `workflow_dispatch` passam por variáveis
+          # de ambiente e nunca são escritos dentro do script: o `lote` é texto
+          # livre, e uma expressão `${{ }}` dentro do `run` seria interpretada
+          # pelo shell como código. Num disparo agendado não há `inputs`, e é
+          # aqui que entram os valores por omissão.
+          MODO: ${{ inputs.modo || 'escrever' }}
+          LOTE: ${{ inputs.lote || '3' }}
+        run: |
+          # O `-e` do shell do GitHub interromperia o passo no primeiro código
+          # diferente de zero, e o 2 tem de chegar ao fim. O `$?` lê-se logo na
+          # linha a seguir ao comando, antes de qualquer outra coisa o mudar.
+          set +e
+          npm run gerar -- --modo "$MODO" --lote "$LOTE"
+          codigo=$?
+          set -e
+          echo "codigo=$codigo" >> "$GITHUB_OUTPUT"
+          # 2 = não há nada por fazer. Não é falha: é tratado a seguir.
+          if [ "$codigo" -eq 2 ]; then exit 0; fi
+          exit "$codigo"
+
+      # Só a lista de temas esgota. No `expandir`, o código 2 quer dizer que
+      # já não há artigos curtos, e isso é uma boa notícia, não um pedido de
+      # temas novos.
+      - name: Avisar que a lista de temas esgotou
+        if: steps.gerar.outputs.codigo == '2' && (inputs.modo || 'escrever') == 'escrever'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          abertos=$(gh issue list --label artigo-automatico --state open \
+            --search "Lista de temas esgotada in:title" --json number --jq 'length')
+          if [ "$abertos" = "0" ]; then
+            gh issue create \
+              --title "Lista de temas esgotada" \
+              --label artigo-automatico \
+              --body 'A automação chegou ao fim de `content/blog/_temas.yml`. Não inventa temas: fica à espera.
+
+          Para a destravar, acrescenta entradas novas ao ficheiro com `estado: por-escrever`. A próxima execução agendada apanha-as sozinha.'
+          fi
+
+      # O `main` não tem status checks obrigatórios, e um PR aberto pelo
+      # GITHUB_TOKEN não dispara outros workflows. Se o build não correr aqui,
+      # não corre em lado nenhum antes do merge.
+      - name: Confirmar que o build passa
+        if: steps.gerar.outputs.codigo == '0'
+        run: npm run build
+
+      - name: Abrir o Pull Request
+        if: steps.gerar.outputs.codigo == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SLUGS: ${{ steps.gerar.outputs.slugs }}
+          CUSTO: ${{ steps.gerar.outputs.custo }}
+          AVISOS: ${{ steps.gerar.outputs.avisos }}
+          MODO: ${{ inputs.modo || 'escrever' }}
+        run: |
+          set -euo pipefail
+
+          # O build deixou `dist/` e `dist-ssr/` para trás. Estão no .gitignore,
+          # e o commit só leva `content/blog/` de qualquer forma. Não se faz
+          # `git checkout -- .` para limpar: isso desfaria também as alterações
+          # que o gerador fez a ficheiros já versionados (o `_temas.yml`, ou um
+          # artigo expandido), e o PR ficava sem elas.
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add content/blog/
+
+          # Antes de qualquer push: se o contador falhar, não fica um ramo
+          # órfão no repositório.
+          #
+          # `publicados` conta só os artigos que uma pessoa já juntou ao `main`,
+          # e é o mesmo número que o `decidir.mjs` compara com 10. Os artigos
+          # deste PR ficam de fora de propósito: se entrassem na conta, um PR
+          # podia passar a rampa com os próprios artigos que a rampa existe para
+          # proteger (com 9 publicados, um lote de 3 dava 12 e juntava-se
+          # sozinho). E o texto tem de dizer o que o `decidir` vai mesmo fazer;
+          # somar aqui prometia um merge automático que nunca chegava.
+          publicados=$(node scripts/prazo/contar.mjs)
+
+          # Os números do prazo vêm do `decidir.mjs` e não se repetem aqui: este
+          # texto é o que as pessoas leem, e se alguém mudasse a rampa ou as
+          # horas só lá, cada PR passava a mentir sobre quando as coisas
+          # acontecem. Sai `limite horas-do-aviso horas-do-merge`.
+          constantes=$(node --input-type=module -e "import { ARTIGOS_ANTES_DO_AUTOMATICO as a, HORAS_AVISO as b, HORAS_MERGE as c } from './scripts/prazo/decidir.mjs'; console.log(a, b, c)")
+          read -r limite horas_aviso horas_merge <<< "$constantes"
+          for n in "$limite" "$horas_aviso" "$horas_merge"; do
+            case "$n" in ''|*[!0-9]*) echo "::error::constantes do prazo ilegíveis: '$constantes'"; exit 1 ;; esac
+          done
+
+          # Um `expandir` altera artigos que já existem e nunca traz um artigo
+          # novo, por isso o `decidir` nunca o junta sozinho, seja qual for a
+          # rampa (e o portão de âmbito do prazo recusa-o, com um aviso). Dizer
+          # o contrário prometia um merge que não chega e deixava o PR aberto a
+          # parar a geração sem ninguém saber porquê.
+          if [ "$MODO" = "expandir" ]; then
+            rampa="**Este PR não se junta sozinho.** Altera artigos que já existem, e só os artigos novos entram no prazo automático de $horas_merge horas. Precisa de uma pessoa que leia a pré-visualização e carregue em *Merge*. Enquanto estiver aberto, a geração de artigos novos fica parada."
+          elif [ "$publicados" -le "$limite" ]; then
+            rampa="Vão **$publicados artigos publicados** por esta via. Enquanto forem $limite ou menos, nada é publicado sem alguém carregar em *Merge* — este PR incluído."
+          else
+            rampa="Vão $publicados artigos publicados. **Este PR é juntado automaticamente ao fim de $horas_merge horas** se ninguém escrever nada aqui. Recebes um aviso às $horas_aviso horas."
+          fi
+
+          lista=$(echo "$SLUGS" | tr ',' '\n' | sed 's|^|- `content/blog/|; s|$|/`|')
+
+          avisos=""
+          if [ -n "$AVISOS" ]; then
+            avisos=$(printf '\n## Avisos\n\n%s\n\n_O PR abre à mesma: a dimensão é uma decisão editorial, não um erro técnico._\n' \
+              "$(echo "$AVISOS" | sed 's|^|- |')")
+          fi
+
+          ramo="artigos/$(date -u +%Y-%m-%d-%H%M)"
+          git checkout -b "$ramo"
+          git commit -m "conteúdo: $(echo "$SLUGS" | tr ',' ' ')"
+          git push -u origin "$ramo"
+
+          # A etiqueta só entra em PRs que a automação abre. Se alguém a puser à
+          # mão num PR que mexe noutra coisa (ou que edita um artigo já
+          # publicado), o portão de âmbito do prazo recusa-o e assinala-o.
+          gh pr create \
+            --label artigo-automatico \
+            --title "Artigos: $(echo "$SLUGS" | tr ',' ' ')" \
+            --body "$(printf 'Artigos gerados pela automação, em português e inglês.\n\n%s\n\nLê-os na **pré-visualização do Cloudflare** — o link aparece aqui em baixo daqui a um minuto. Não é preciso ler código.\n\n%s\n%s\n\nCusto desta execução: $%s\n' \
+              "$lista" "$rampa" "$avisos" "$CUSTO")"
