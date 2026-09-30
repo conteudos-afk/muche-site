@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { lerTemas, proximosTemas, marcarUsados, validarTemas } from './temas.mjs'
 
 const YAML_EXEMPLO = `temas:
@@ -48,6 +49,15 @@ test('escolhe por prioridade e ignora os já publicados', () => {
   ])
 })
 
+test('dentro da mesma prioridade, a ordem do ficheiro; entre prioridades, a menor primeiro', () => {
+  const t = (slug, prioridade, estado = 'por-escrever') => ({ slug, prioridade, estado })
+  /* Escrito de propósito fora de ordem alfabética e com a prioridade 2 antes
+     da 1: nem a ordem do ficheiro nem a alfabética chegam sozinhas. */
+  const temas = [t('z-dois', 2), t('m-um-b', 1), t('a-dois', 2), t('x-um-a', 1), t('ja', 1, 'publicado'), t('b-um-c', 1)]
+  expect(proximosTemas(temas, 10).map(x => x.slug)).toEqual(['m-um-b', 'x-um-a', 'b-um-c', 'z-dois', 'a-dois'])
+  expect(proximosTemas(temas, 2).map(x => x.slug)).toEqual(['m-um-b', 'x-um-a'])
+})
+
 test('devolve menos do que o pedido quando a lista está a acabar', () => {
   const temas = lerTemas(ficheiroTemporario(YAML_EXEMPLO))
   expect(proximosTemas(temas, 10)).toHaveLength(2)
@@ -84,7 +94,18 @@ test('acusa um campo em falta', () => {
 })
 
 test('a lista real do repositório é válida', () => {
-  const temas = lerTemas(new URL('../../content/blog/_temas.yml', import.meta.url).pathname)
+  const temas = lerTemas(fileURLToPath(new URL('../../content/blog/_temas.yml', import.meta.url)))
   expect(validarTemas(temas)).toEqual([])
   expect(temas.length).toBeGreaterThanOrEqual(40)
+})
+
+/* Um slug é o endereço do artigo para sempre; depois de publicado já não se
+   emenda. Os termos que a voz da Muche proíbe («vídeo institucional», «filme
+   de marca» — ver o SISTEMA em prompt.mjs) não podem lá entrar. */
+test('nenhum slug da lista real contém um termo que a voz da Muche proíbe', () => {
+  const temas = lerTemas(fileURLToPath(new URL('../../content/blog/_temas.yml', import.meta.url)))
+  const proibidos = ['institucional', 'filme-de-marca']
+  for (const { slug } of temas) {
+    for (const termo of proibidos) expect(slug, slug).not.toContain(termo)
+  }
 })

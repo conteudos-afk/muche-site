@@ -2,8 +2,8 @@
 title: "Typography as personality: choosing typefaces that speak"
 excerpt: "Every typeface carries a voice. Here is how to match type to tone — and avoid the most common pairing mistakes we see from brands every week."
 category: "Graphic Design"
-date: "April 2026"
-readTime: "5 min read"
+date: "2026-04-21"
+readTime: "1 min read"
 ---
 
 Typography is one of the most under-appreciated brand decisions a company makes. Most businesses choose a typeface based on what looks nice on a screen in a presentation. Very few ask the deeper question: what does this typeface say about us? Every typeface carries a personality, a history, and a set of connotations — and whether you intend it or not, those connotations transfer to your brand.

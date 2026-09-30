@@ -2,8 +2,8 @@
 title: "What makes a podcast worth listening to?"
 excerpt: "Audio storytelling is having a moment. Here is what the best brand podcasts get right — and the production and editorial choices that separate the memorable from the forgettable."
 category: "Podcasts"
-date: "May 2026"
-readTime: "6 min read"
+date: "2026-05-05"
+readTime: "1 min read"
 ---
 
 There are now more podcasts than any listener could explore in multiple lifetimes. Most of them are not bad — they are simply unnecessary. They exist because someone decided their brand should have a podcast, without asking the harder question: what would make this worth someone's time and attention? That question is where all great podcasts begin.

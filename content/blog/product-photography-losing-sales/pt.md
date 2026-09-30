@@ -2,8 +2,8 @@
 title: "Porque é que a tua fotografia de produto pode estar a fazer-te perder vendas"
 excerpt: "No e-commerce, a fotografia é a experiência do produto. Analisamos as decisões de iluminação, styling e contexto que convertem visitantes em compradores."
 category: "Photography & Events"
-date: "April 2026"
-readTime: "5 min de leitura"
+date: "2026-04-07"
+readTime: "2 min de leitura"
 ---
 
 Numa loja física, um cliente pode pegar num produto, sentir-lhe o peso, ler o rótulo e examiná-lo de todos os ângulos. Online, tem apenas a fotografia. Isto significa que a fotografia de produto não é um elemento de apoio da experiência de e-commerce — é a experiência. E, ainda assim, a maioria das marcas trata-a como um bem indiferenciado, uma caixa a assinalar ao mais baixo custo possível.

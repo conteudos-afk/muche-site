@@ -2,8 +2,8 @@
 title: "O que torna um podcast digno de ser ouvido?"
 excerpt: "A narrativa em áudio está em alta. Eis o que os melhores podcasts de marca fazem bem — e as escolhas de produção e edição que separam o memorável do esquecível."
 category: "Podcasts"
-date: "May 2026"
-readTime: "6 min de leitura"
+date: "2026-05-05"
+readTime: "2 min de leitura"
 ---
 
 Existem hoje mais podcasts do que qualquer ouvinte conseguiria explorar em várias vidas. A maioria não é má — é simplesmente desnecessária. Existem porque alguém decidiu que a marca devia ter um podcast, sem fazer a pergunta mais difícil: o que é que tornaria isto digno do tempo e da atenção de alguém? É nessa pergunta que começam todos os grandes podcasts.

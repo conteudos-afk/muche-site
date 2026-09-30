@@ -6,7 +6,7 @@ import path from 'path'
 const bom = {
   slug: 'teste', lang: 'pt' as const,
   title: 'Um título', excerpt: 'Um excerto',
-  category: 'Branding & Visual Identity', date: 'July 2026', readTime: '5 min read',
+  category: 'Branding & Visual Identity', date: '2026-07-15', readTime: '5 min read',
 }
 
 test('um artigo completo não tem nada a apontar', () => {
@@ -46,6 +46,45 @@ test('uma categoria fora da lista é apanhada', () => {
    outra vez como categoria desconhecida só faria barulho. */
 test('uma categoria vazia dá um problema, não dois', () => {
   expect(validatePosts([{ ...bom, category: '' }])).toHaveLength(1)
+})
+
+/* O blog ordena por `date`, por isso o formato é uma regra e não um gosto:
+   `July 2026` ordenava-se como texto, e `2026-07` empatava com o mês inteiro. */
+test('uma data que não é AAAA-MM-DD é apanhada, com o ficheiro e o valor no aviso', () => {
+  for (const errada of ['July 2026', '2026-07', '2026-7-5', '15-07-2026', '2026/07/15', '2026-07-15T10:00:00Z', 'brevemente']) {
+    const problemas = validatePosts([{ ...bom, date: errada }])
+    expect(problemas, errada).toHaveLength(1)
+    expect(problemas[0]).toContain('teste/pt.md')
+    expect(problemas[0]).toContain(errada)
+    expect(problemas[0]).toContain('AAAA-MM-DD')
+  }
+})
+
+/* `2026-02-30` tem o feitio certo e não existe: escrita de volta, a data sai
+   como 2 de março. */
+test('uma data com o feitio certo mas impossível no calendário é apanhada', () => {
+  for (const impossivel of ['2026-02-30', '2026-02-29', '2026-13-01', '2026-00-10', '2026-04-31', '2026-07-00']) {
+    expect(validatePosts([{ ...bom, date: impossivel }]), impossivel).toHaveLength(1)
+  }
+})
+
+test('as datas possíveis passam, o 29 de fevereiro só em ano bissexto', () => {
+  for (const boa of ['2026-01-01', '2026-12-31', '2028-02-29', '2026-07-15']) {
+    expect(validatePosts([{ ...bom, date: boa }]), boa).toEqual([])
+  }
+})
+
+/* O mesmo limite do `lerInstante`: um ano de três dígitos escrito com zeros
+   à frente é um erro de escrita, não uma data. */
+test('um ano anterior a 2000 é apanhado', () => {
+  for (const antiga of ['1999-12-31', '0026-07-15']) {
+    expect(validatePosts([{ ...bom, date: antiga }]), antiga).toHaveLength(1)
+  }
+})
+
+/* Uma data em falta já foi contada como campo obrigatório. */
+test('uma data vazia dá um problema, não dois', () => {
+  expect(validatePosts([{ ...bom, date: '' }])).toHaveLength(1)
 })
 
 test('os problemas de vários artigos aparecem todos de uma vez', () => {

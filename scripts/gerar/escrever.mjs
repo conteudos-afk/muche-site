@@ -11,7 +11,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { splitFrontmatter } from '../../src/lib/blog/parsePost.ts'
-import { validatePosts, OBRIGATORIOS } from '../../src/lib/blog/validate.ts'
+import { validatePosts, ehDataISO, OBRIGATORIOS } from '../../src/lib/blog/validate.ts'
 import { contarPalavras, dentroDoIntervalo, MIN_PALAVRAS, MAX_PALAVRAS } from './palavras.mjs'
 import { grafiasAntigas } from './grafia.mjs'
 
@@ -117,6 +117,8 @@ export function limparResposta(texto) {
    Todos menos 'dimensao' e 'grafia' são fatais, e só 'dimensao' dá segunda
    tentativa (a política está em `index.mjs`); repetir o pedido por causa de
    uma grafia que pode ser um falso positivo era gastar dinheiro à toa. */
+const DATA_A_PREENCHER = '2000-01-01'
+
 export function verificarArtigo({ markdown, slug, lang }) {
   const problemas = []
 
@@ -140,7 +142,12 @@ export function verificarArtigo({ markdown, slug, lang }) {
     })
   }
 
-  problemas.push(...validatePosts([{ slug, lang, ...data }]).map(mensagem => ({ tipo: 'validacao', mensagem })))
+  /* O `date` não é do modelo: `aplicarData` escreve-o depois desta verificação,
+     por cima do que lá estiver. Validar o que o modelo pôs (ou não pôs) seria
+     reprovar um artigo por uma coisa que o código vai substituir; por isso
+     entra aqui uma data de preenchimento, válida, e o resto do cabeçalho é
+     validado como vem. */
+  problemas.push(...validatePosts([{ slug, lang, ...data, date: DATA_A_PREENCHER }]).map(mensagem => ({ tipo: 'validacao', mensagem })))
 
   const palavras = contarPalavras(corpo)
   if (!dentroDoIntervalo(palavras)) {
@@ -241,6 +248,42 @@ export function aplicarReadTime({ markdown, lang }) {
   const readTime = calcularReadTime(contarPalavras(content.trim()), lang)
 
   const novo = cabecalho[0].replace(LINHA, `readTime: "${readTime}"`)
+  return novo + markdown.slice(cabecalho[0].length)
+}
+
+/* ─── A data ─────────────────────────────────────────────────────────────────
+   Tal como o `readTime`, a data é do código e não do modelo: um modelo não
+   sabe que dia é hoje, e o artigo antigo que ele viu como referência ensina-o
+   a copiar a data errada. E há uma razão a mais — o blog ordena por ela, e uma
+   data inventada põe um artigo novo no meio da lista.
+
+   Recebe a data já decidida por quem chama (`index.mjs`): a de hoje num artigo
+   novo, a que o artigo já tinha num artigo expandido. Reescrever um artigo
+   antigo não pode fazê-lo parecer novo. Escreve-a por cima de uma linha `date`
+   que o modelo tenha posto e, se não houver, acrescenta-a — antes do
+   `readTime`, que é onde os artigos escritos à mão a têm. Só mexe no
+   cabeçalho. Recusa uma data que o build recusaria. */
+export function aplicarData({ markdown, data }) {
+  if (!ehDataISO(data)) {
+    throw new Error(`a data "${data}" não é uma data AAAA-MM-DD válida`)
+  }
+  const cabecalho = markdown.match(CABECALHO)
+  if (!cabecalho) throw new Error('o markdown não tem cabeçalho onde pôr a data')
+  if (chavesRepetidas(cabecalho[0]).includes('date')) {
+    throw new Error('o cabeçalho tem a chave date repetida — não se adivinha qual é a certa')
+  }
+
+  const linha = `date: "${data}"`
+  const LINHA = /^date[ \t]*:[^\r\n]*/m
+  const fimDeLinha = cabecalho[0].includes('\r\n') ? '\r\n' : '\n'
+
+  let novo
+  if (LINHA.test(cabecalho[0])) {
+    novo = cabecalho[0].replace(LINHA, linha)
+  } else {
+    const antes = cabecalho[0].match(/^readTime[ \t]*:/m)?.index ?? cabecalho[0].lastIndexOf('---')
+    novo = cabecalho[0].slice(0, antes) + linha + fimDeLinha + cabecalho[0].slice(antes)
+  }
   return novo + markdown.slice(cabecalho[0].length)
 }
 

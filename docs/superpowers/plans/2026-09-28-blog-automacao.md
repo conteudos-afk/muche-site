@@ -345,7 +345,7 @@ temas:
     prioridade: 2
     estado: por-escrever
 
-  - slug: video-para-redes-vs-institucional
+  - slug: video-para-redes-vs-video-de-marca
     tema: "Vídeo para redes sociais ou vídeo de marca: qual é que precisas"
     angulo: "Servem objetivos diferentes e têm custos por peça muito diferentes. Como decidir sem fazer os dois mal"
     categoria: "Video Production"
@@ -1776,10 +1776,13 @@ jobs:
         run: |
           set -euo pipefail
 
-          # O build deixou o `dist/` para trás; não vai no commit.
-          git checkout -- . 2>/dev/null || true
-          git clean -fd dist dist-ssr 2>/dev/null || true
-
+          # NÃO limpar nada aqui. Uma versão anterior deste plano fazia
+          # `git checkout -- .` para arrumar o que o build deixasse — e isso
+          # revertia as alterações do próprio gerador a ficheiros versionados:
+          # o `_temas.yml` nunca ficava marcado, e no modo expandir os artigos
+          # reescritos desapareciam antes do commit. O `dist/` e o `dist-ssr/`
+          # estão no .gitignore e o `git add content/blog/` só apanha esse
+          # caminho, por isso não há nada para limpar.
           ramo="artigos/$(date -u +%Y-%m-%d-%H%M)"
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

@@ -5,7 +5,7 @@ import { grafiasAntigas } from './grafia.mjs'
 
 const REF = {
   slug: 'referencia', lang: 'pt', categoria: 'Podcasts',
-  frontmatter: { title: 'Título de referência', excerpt: 'Excerto.', category: 'Podcasts', date: 'July 2026', readTime: '5 min de leitura' },
+  frontmatter: { title: 'Título de referência', excerpt: 'Excerto.', category: 'Podcasts', date: '2026-07-15', readTime: '5 min de leitura' },
   corpo: 'O corpo do artigo de referência.', palavras: 6,
 }
 
@@ -82,7 +82,7 @@ test('o prompt de expansão manda manter o slug e a categoria', () => {
   const p = promptExpandir({ artigo: original, referencias: [REF] })
   expect(p).toContain('original')
   expect(p).toContain('a categoria `Fotografia`')
-  expect(p.toLowerCase()).toContain('mantém')
+  expect(p).toContain('O que manter')
 })
 
 test('o prompt inglês leva o artigo português e uma referência inglesa', () => {
@@ -164,9 +164,36 @@ test('nenhum dos três prompts instrui o modelo sobre o readTime', () => {
   }
 })
 
-test('a regra dos meses é só para português: o date do frontmatter fica em inglês', () => {
+test('a regra dos meses continua a existir, sem a ressalva do date que já não há', () => {
   expect(SISTEMA).toContain('Em português, os meses escrevem-se com minúscula')
-  expect(SISTEMA).toContain('O `date` do frontmatter não conta: é sempre em inglês.')
+  expect(SISTEMA).not.toContain('frontmatter não conta')
+})
+
+/* A data é do código (ver `aplicarData`): o modelo não a escreve, não a copia
+   e não é instruído sobre ela. Nem sequer a vê nos cabeçalhos de exemplo, que
+   é onde a aprenderia a imitar. */
+test('nenhum prompt fala na data, e os cabeçalhos de exemplo não a levam', () => {
+  const prompts = [
+    SISTEMA,
+    promptEscrever({ tema: TEMA, referencias: [REF] }),
+    promptExpandir({ artigo: { ...REF, slug: 'original' }, referencias: [REF] }),
+    promptIngles({ artigoPt: 'Artigo em português.', referenciaEn: { ...REF, lang: 'en' } }),
+  ]
+  for (const p of prompts) {
+    expect(p).not.toMatch(/\bdate\b/)
+    expect(p).not.toContain('2026-07-15')
+  }
+})
+
+test('o sistema pede exatamente quatro chaves de frontmatter', () => {
+  expect(SISTEMA).toContain('exatamente estas quatro chaves')
+  const exemplo = SISTEMA.match(/```\n---\n([\s\S]*?)\n---\n```/)[1]
+  expect(exemplo.split('\n').map(l => l.split(':')[0])).toEqual(['title', 'excerpt', 'category', 'readTime'])
+})
+
+test('o prompt de expansão já não manda manter a data: isso é o código que garante', () => {
+  const p = promptExpandir({ artigo: { ...REF, slug: 'original' }, referencias: [REF] })
+  expect(p).not.toMatch(/data/i)
 })
 
 test('o sistema diz ao modelo que o readTime é calculado depois e que qualquer valor plausível serve', () => {

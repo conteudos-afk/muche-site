@@ -2,14 +2,17 @@ import { expect, test } from 'vitest'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { limparResposta, verificarArtigo, escreverArtigo, calcularReadTime, aplicarReadTime } from './escrever.mjs'
+import { fileURLToPath } from 'node:url'
+import { splitFrontmatter } from '../../src/lib/blog/parsePost.ts'
+import { contarPalavras } from './palavras.mjs'
+import { limparResposta, verificarArtigo, escreverArtigo, calcularReadTime, aplicarReadTime, aplicarData } from './escrever.mjs'
 
 const CORPO_LONGO = 'palavra '.repeat(1400).trim()
 const BOM = `---
 title: "Um título"
 excerpt: "Um excerto."
 category: "Podcasts"
-date: "September 2026"
+date: "2026-09-29"
 readTime: "7 min de leitura"
 ---
 
@@ -85,7 +88,7 @@ test('acusa um aviso do leitor de frontmatter, não só um campo em falta', () =
 })
 
 test('acusa um segundo bloco de frontmatter que vazou para o corpo', () => {
-  const comSegundo = `${BOM}\n\n---\ntitle: "Outro"\nexcerpt: "Outro excerto."\ncategory: "Podcasts"\ndate: "September 2026"\nreadTime: "1 min de leitura"\n---\n\nMais texto a seguir.`
+  const comSegundo = `${BOM}\n\n---\ntitle: "Outro"\nexcerpt: "Outro excerto."\ncategory: "Podcasts"\ndate: "2026-09-29"\nreadTime: "1 min de leitura"\n---\n\nMais texto a seguir.`
   expect(verificarArtigo({ markdown: comSegundo, slug: 'teste', lang: 'pt' }).map(p => p.mensagem).join(' ')).toContain('segundo bloco de frontmatter')
 })
 
@@ -136,6 +139,22 @@ test('calcularReadTime: 200 palavras por minuto, arredondado ao inteiro mais pr�
 test('calcularReadTime: nunca devolve zero minutos e recusa uma língua que não conhece', () => {
   expect(calcularReadTime(10, 'pt')).toBe('1 min de leitura')
   expect(() => calcularReadTime(1500, 'fr')).toThrow(/fr/)
+})
+
+/* O `readTime` que o leitor vê tem de ser o que o gerador calcularia. Os
+   artigos escritos à mão diziam 4 a 7 minutos para 200 a 400 palavras e
+   ficaram meses assim, no site, sem que nada o notasse. */
+test('o readTime de cada artigo real corresponde à contagem do seu corpo', () => {
+  const contentDir = fileURLToPath(new URL('../../content/blog', import.meta.url))
+  const slugs = fs.readdirSync(contentDir, { withFileTypes: true })
+    .filter(e => e.isDirectory() && !e.name.startsWith('_')).map(e => e.name)
+  expect(slugs.length).toBeGreaterThanOrEqual(14)
+  for (const slug of slugs) {
+    for (const lang of ['pt', 'en']) {
+      const { data, content } = splitFrontmatter(fs.readFileSync(path.join(contentDir, slug, `${lang}.md`), 'utf-8'), `${slug}/${lang}.md`)
+      expect(data.readTime, `${slug}/${lang}`).toBe(calcularReadTime(contarPalavras(content.trim()), lang))
+    }
+  }
 })
 
 const comCorpo = (n, readTime) => BOM.replace(CORPO_LONGO, 'palavra '.repeat(n).trim()).replace('7 min de leitura', readTime)
@@ -225,4 +244,61 @@ test('verificarArtigo: português no novo Acordo não gera aviso de grafia', () 
 test('verificarArtigo: a grafia antiga no cabeçalho também conta', () => {
   const md = BOM.replace('excerpt: "Um excerto."', 'excerpt: "Um excerto directo."')
   expect(grafias(verificarArtigo({ markdown: md, slug: 'teste', lang: 'pt' })).map(p => p.mensagem).join(' ')).toContain('directo')
+})
+
+/* ─── A data ─────────────────────────────────────────────────────────────────
+   Do código, não do modelo. A verificação não a exige nem a valida no que o
+   modelo devolve; `aplicarData` escreve-a depois. */
+const SEM_DATA = BOM.replace('date: "2026-09-29"\n', '')
+
+test('verificarArtigo: um artigo sem date, como o prompt o pede, não tem problemas', () => {
+  expect(SEM_DATA).not.toContain('date:')
+  expect(verificarArtigo({ markdown: SEM_DATA, slug: 'teste', lang: 'pt' })).toEqual([])
+})
+
+test('verificarArtigo: o date que o modelo tenha posto não é validado, porque vai ser substituído', () => {
+  const md = BOM.replace('date: "2026-09-29"', 'date: "September 2026"')
+  expect(verificarArtigo({ markdown: md, slug: 'teste', lang: 'pt' })).toEqual([])
+})
+
+test('aplicarData: acrescenta a linha antes do readTime quando o modelo não a pôs', () => {
+  const r = aplicarData({ markdown: SEM_DATA, data: '2026-10-03' })
+  expect(r).toBe(BOM.replace('date: "2026-09-29"', 'date: "2026-10-03"'))
+})
+
+test('aplicarData: escreve por cima do date que o modelo tenha posto, e só dessa linha', () => {
+  const md = BOM.replace('date: "2026-09-29"', 'date: "September 2026"')
+  const r = aplicarData({ markdown: md, data: '2026-10-03' })
+  expect(r).toBe(BOM.replace('date: "2026-09-29"', 'date: "2026-10-03"'))
+  expect(splitFrontmatter(r).data.date).toBe('2026-10-03')
+})
+
+test('aplicarData: o resultado passa em verificarArtigo e no validador do build', () => {
+  const r = aplicarData({ markdown: SEM_DATA, data: '2026-10-03' })
+  expect(verificarArtigo({ markdown: r, slug: 'teste', lang: 'pt' })).toEqual([])
+})
+
+test('aplicarData: não toca numa linha date que esteja no corpo do artigo', () => {
+  const md = `${SEM_DATA}\n\ndate: "1999-01-01"\n`
+  const r = aplicarData({ markdown: md, data: '2026-10-03' })
+  expect(r.endsWith('\n\ndate: "1999-01-01"\n')).toBe(true)
+  expect(splitFrontmatter(r).data.date).toBe('2026-10-03')
+})
+
+test('aplicarData: acrescenta a linha mesmo num cabeçalho sem readTime, e em CRLF', () => {
+  const r = aplicarData({ markdown: '---\r\ntitle: "A"\r\n---\r\n\r\nCorpo.', data: '2026-10-03' })
+  expect(r).toBe('---\r\ntitle: "A"\r\ndate: "2026-10-03"\r\n---\r\n\r\nCorpo.')
+  expect(aplicarData({ markdown: '---\n---\n\nCorpo.', data: '2026-10-03' })).toBe('---\ndate: "2026-10-03"\n---\n\nCorpo.')
+})
+
+test('aplicarData: recusa uma data que o build recusaria', () => {
+  for (const errada of ['September 2026', '2026-07', '2026-02-30', '', undefined, null]) {
+    expect(() => aplicarData({ markdown: SEM_DATA, data: errada }), String(errada)).toThrow(/data/)
+  }
+})
+
+test('aplicarData: lança se o cabeçalho tem a chave date repetida, ou se não há cabeçalho', () => {
+  const repetida = BOM.replace('readTime:', 'date: "2026-01-01"\nreadTime:')
+  expect(() => aplicarData({ markdown: repetida, data: '2026-10-03' })).toThrow(/repetida/)
+  expect(() => aplicarData({ markdown: 'Sem cabeçalho.', data: '2026-10-03' })).toThrow(/cabeçalho/)
 })

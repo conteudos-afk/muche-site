@@ -98,8 +98,15 @@ Para os Pull Requests não se acumularem por rever — o risco principal deste d
 
 | Etapa | Comportamento |
 |---|---|
-| **Artigos 1 a 10** | Merge só por humano. Sem prazo, sem automático |
-| **Artigo 11 em diante** | Aviso às 24h; merge automático às 48h se ninguém tiver reagido |
+| **Enquanto houver 10 ou menos artigos publicados** | Merge só por humano. Sem prazo, sem automático |
+| **A partir de 11 publicados** | Aviso às 24h; merge automático às 48h se ninguém tiver reagido |
+
+A contagem é de artigos **já juntos**, e não inclui os do Pull Request que está a
+ser avaliado. A diferença não é cosmética: contar os do próprio PR deixava-o
+vencer a rampa sozinho — com 9 publicados, um lote de três satisfazia
+9 + 3 > 10 e juntava-se, pelo que os artigos 10, 11 e 12 chegavam ao site sem
+ninguém os ter lido. Como os lotes são de três, a rampa acaba na prática aos 12
+artigos em vez de exatamente 10. É mais barato do que o buraco que fecha.
 
 Qualquer comentário no Pull Request **trava o relógio**. Não é preciso aprovar formalmente nem pedir alterações: escrever qualquer coisa basta.
 
@@ -162,4 +169,4 @@ Requer `ANTHROPIC_API_KEY` como secret do repositório, criada pelo dono do site
 3. O PR abre com pré-visualização funcional e revisão pedida automaticamente
 4. A voz é indistinguível dos artigos aprovados — avaliado por leitura, não por métrica
 5. Com a lista esgotada, a automação avisa em vez de inventar
-6. O prazo de 48h não corre antes do 11.º artigo, e um comentário trava-o
+6. O prazo de 48h não corre enquanto houver 10 ou menos artigos publicados, nenhum PR consegue vencer a rampa com os artigos que traz, e um comentário trava o relógio

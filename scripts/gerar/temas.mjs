@@ -49,14 +49,15 @@ export function validarTemas(temas) {
 }
 
 /* Por prioridade, e dentro da mesma prioridade pela ordem do ficheiro: quem
-   escreveu a lista pô-los por uma razão. */
+   escreveu a lista pô-los por uma razão. Esta segunda regra não precisa de
+   código: `Array.prototype.sort` é estável desde o ES2019, por isso os temas
+   com a mesma prioridade ficam onde estavam. Quem a garante é o teste
+   «dentro da mesma prioridade, a ordem do ficheiro», não um desempate. */
 export function proximosTemas(temas, quantos) {
   return temas
-    .map((tema, ordem) => ({ tema, ordem }))
-    .filter(({ tema }) => tema.estado === 'por-escrever')
-    .sort((a, b) => a.tema.prioridade - b.tema.prioridade || a.ordem - b.ordem)
+    .filter(tema => tema.estado === 'por-escrever')
+    .sort((a, b) => a.prioridade - b.prioridade)
     .slice(0, quantos)
-    .map(({ tema }) => tema)
 }
 
 /* Edita o documento em vez de o reescrever, para não perder comentários. */

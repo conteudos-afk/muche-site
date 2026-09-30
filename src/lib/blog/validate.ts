@@ -21,6 +21,30 @@ export const OBRIGATORIOS = ['title', 'excerpt', 'category', 'date', 'readTime']
 
 const CATEGORIAS: readonly string[] = BLOG_CATEGORIES
 
+/* ─── A data ─────────────────────────────────────────────────────────────────
+   `YYYY-MM-DD`, dia incluído: é por ela que o blog se ordena (do mais recente
+   para o mais antigo), e com a precisão de um mês dois artigos da mesma
+   semana empatavam.
+
+   O formato sozinho não chega: `2026-02-30` tem o feitio certo e não existe.
+   Escreve-se de volta a data a partir dos números e compara-se com o texto —
+   30 de fevereiro volta como 2 de março e não coincide. É a mesma ideia do
+   `lerInstante` em `scripts/prazo/decidir.mjs`. ────────────────────────── */
+const DATA_ISO = /^(\d{4})-(\d{2})-(\d{2})$/
+const ANO_MINIMO = 2000
+
+export function ehDataISO(texto: unknown): texto is string {
+  if (typeof texto !== 'string') return false
+  const m = DATA_ISO.exec(texto)
+  if (!m) return false
+  const [ano, mes, dia] = m.slice(1, 4).map(Number)
+  if (ano < ANO_MINIMO) return false
+
+  const calendario = new Date(0)
+  calendario.setUTCFullYear(ano, mes - 1, dia)
+  return calendario.toISOString().slice(0, 10) === texto
+}
+
 export function validatePosts(posts: readonly PostMeta[]): string[] {
   const problemas: string[] = []
 
@@ -40,6 +64,16 @@ export function validatePosts(posts: readonly PostMeta[]): string[] {
       problemas.push(
         `${onde}: a categoria "${categoria}" não é nenhuma das conhecidas — ` +
         `escolhe uma de: ${CATEGORIAS.join(', ')}`
+      )
+    }
+
+    /* Tal como a categoria, só quando existe: uma data em falta já foi
+       contada acima. */
+    const data = String(post.date ?? '').trim()
+    if (data && !ehDataISO(data)) {
+      problemas.push(
+        `${onde}: a data "${data}" não está no formato AAAA-MM-DD ` +
+        `(por exemplo 2026-07-15), ou não existe no calendário — o blog ordena por ela`
       )
     }
   }
