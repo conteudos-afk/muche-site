@@ -2,8 +2,8 @@
 title: "Why your product photography might be losing you sales"
 excerpt: "In e-commerce, photography is the product experience. We look at the lighting, styling, and context decisions that convert browsers into buyers."
 category: "Photography & Events"
-date: "April 2026"
-readTime: "5 min read"
+date: "2026-04-07"
+readTime: "1 min read"
 ---
 
 In a physical store, a customer can pick up a product, feel its weight, read its label, and examine it from every angle. Online, they have only the photograph. This means product photography is not a support element of the e-commerce experience — it is the experience. And yet most brands treat it as a commodity, a box to be ticked at the lowest possible cost.

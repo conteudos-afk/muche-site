@@ -2,8 +2,8 @@
 title: "Estratégia de podcast antes da produção: definir o teu público e formato"
 excerpt: "Antes de gravares um único episódio, as decisões que tomares sobre formato, cadência e posicionamento vão determinar se o teu podcast cresce ou estagna."
 category: "Podcasts"
-date: "January 2026"
-readTime: "7 min de leitura"
+date: "2026-01-20"
+readTime: "2 min de leitura"
 ---
 
 A razão mais comum para os podcasts de marca falharem não é má produção nem mau conteúdo. É a ausência de estratégia. São lançados sem uma resposta clara a quem se dirigem, ao que procuram alcançar e a como se vão sustentar para além dos três primeiros episódios. São perguntas que têm de ser respondidas antes de se ligar um microfone.

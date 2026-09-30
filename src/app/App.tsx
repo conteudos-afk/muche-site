@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, type ReactNode } from "react"
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, type PanInfo } from "motion/react"
+import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, type PanInfo, type MotionValue } from "motion/react"
 import { RouterProvider, createBrowserRouter, Outlet, useNavigate, useParams, useLocation } from "react-router"
 import heroVideo from "@/imports/Hero_video.mp4"
 import svgPaths from "@/imports/HomeFinal/svg-kkmjukgdk7"
@@ -93,35 +93,6 @@ function useDragCarousel(itemCount: number, step: number) {
     goTo(target)
   }
   return { x, dragConstraints: { left: -step * maxIndex, right: 0 }, handleDragEnd, goTo }
-}
-
-/* Variante do carrossel de arrastar para quando os cartões NÃO têm todos a
-   mesma largura (ex.: um cartão alargado). Guarda a posição x de cada
-   índice (soma cumulativa de largura+gap) em vez de assumir um "step"
-   uniforme, para o snap ficar sempre exato independentemente da largura de
-   cada cartão. */
-function useDragCarouselVariable(widths: number[], gap: number) {
-  const positions = widths.reduce<number[]>((acc, w, i) => {
-    acc.push(i === 0 ? 0 : acc[i - 1] + widths[i - 1] + gap)
-    return acc
-  }, [])
-  const maxIndex = Math.max(0, widths.length - 1)
-  const x = useMotionValue(0)
-  const indexRef = useRef(0)
-  const goTo = (i: number) => {
-    const clamped = Math.max(0, Math.min(maxIndex, i))
-    indexRef.current = clamped
-    animate(x, -positions[clamped], { type: "spring", stiffness: 300, damping: 32, mass: 0.7 })
-  }
-  const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    const localStep = widths[indexRef.current] + gap
-    const { offset, velocity } = info
-    let target = indexRef.current
-    if (velocity.x < -350 || offset.x < -localStep * 0.25) target = indexRef.current + 1
-    else if (velocity.x > 350 || offset.x > localStep * 0.25) target = indexRef.current - 1
-    goTo(target)
-  }
-  return { x, dragConstraints: { left: -positions[maxIndex], right: 0 }, handleDragEnd, goTo }
 }
 
 function useWindowWidth() {
@@ -495,7 +466,7 @@ function SiteNav() {
 }
 
 /* ─── Push-to-background scroll block ───────────────────────────────────── */
-function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; height?: string }) {
+function ScrollBlock({ children, height = "250vh", holdUntil = 0, doneBy = 1 }: { children: ReactNode; height?: string; holdUntil?: number; doneBy?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const rawProgress = useScrollProgress(ref, "end-start")
   // Pausa curta (bem mais curta que as versões anteriores): quando a secção
@@ -513,7 +484,14 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
     const obs = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting && !armed) {
         armed = true
-        timer = setTimeout(() => { readyRef.current = true }, SHORT_PAUSE_MS)
+        // Quando já há um holdUntil (recorte por posição de scroll, não por
+        // tempo), a pausa por tempo fica redundante — e pior: se o
+        // utilizador continuar a fazer scroll durante os 180ms, o progresso
+        // "salta" de repente para o valor real assim que a pausa acaba, em
+        // vez de subir suavemente a partir do holdUntil. Por isso só se usa
+        // a pausa por tempo quando NÃO há holdUntil (uso original).
+        if (holdUntil > 0) readyRef.current = true
+        else timer = setTimeout(() => { readyRef.current = true }, SHORT_PAUSE_MS)
       }
     }, { threshold: 0 })
     obs.observe(el)
@@ -525,9 +503,18 @@ function ScrollBlock({ children, height = "250vh" }: { children: ReactNode; heig
       unsubscribe()
       if (timer) clearTimeout(timer)
     }
-  }, [rawProgress, gatedProgress])
+  }, [rawProgress, gatedProgress, holdUntil])
 
-  const scrollYProgress = gatedProgress
+  // holdUntil/doneBy (0-1, opcionais) recomprimem a curva de scroll: fica
+  // trancada a 0 (nítido, sem blur/encolher) até holdUntil, depois percorre
+  // a curva normal abaixo (que não muda) inteira entre holdUntil e doneBy,
+  // ficando trancada em 1 (transição completa) daí em diante. Serve para
+  // dar tempo ao conteúdo ficar parado e legível antes de sair de cena, e
+  // para blocos mais baixos (menos "vh" de altura, logo menos scroll ainda
+  // pinned) conseguirem terminar a transição antes de deixar de estar
+  // fixos. Por omissão (0, 1) o comportamento é exactamente o mesmo de
+  // sempre.
+  const scrollYProgress = useTransform(gatedProgress, [holdUntil, doneBy], [0, 1])
   const scale        = useTransform(scrollYProgress, [0, 0.55], [1, 0.84])
   const borderRadius = useTransform(scrollYProgress, [0, 0.55], ["0px", "22px"])
   const blur         = useTransform(scrollYProgress, [0.12, 0.55], ["blur(0px)", "blur(10px)"])
@@ -870,11 +857,70 @@ function portfolioText(item: PortfolioItem, lang: Lang) {
   return lang === "pt" ? { services: item.services_pt, concept: item.concept_pt } : { services: item.services, concept: item.concept }
 }
 
+/* ─── Cartão do portfólio mobile/tablet — entra e sai sobre um progresso de
+   scroll PARTILHADO (não tem sticky/unstick próprio), com a janela de
+   entrada/saída de cada cartão a sobrepor-se à do vizinho. Isso garante que
+   o projeto seguinte já está a aparecer enquanto o anterior ainda está a
+   desaparecer — nunca há um momento sem nenhum projeto visível. */
+function MobilePortfolioCard({
+  item, i, n, progress, boxW, boxH, isPhone, teentacObjX, services, concept,
+}: {
+  item: PortfolioItem
+  i: number
+  n: number
+  progress: MotionValue<number>
+  boxW: number
+  boxH: number
+  isPhone: boolean
+  teentacObjX: number
+  services: string
+  concept: string
+}) {
+  const isFirst = i === 0
+  const isLast = i === n - 1
+  const segFrac  = 1 / n
+  const overlap  = segFrac * 0.35
+  const winStart = isFirst ? 0 : i / n - overlap
+  const winEnd   = isLast ? 1 : (i + 1) / n + overlap
+  const local    = useTransform(progress, [winStart, winEnd], [0, 1], { clamp: true })
+
+  const ENTER = 0.3, EXIT = 0.7
+  const inRange  = isFirst ? [EXIT, 1] : isLast ? [0, ENTER] : [0, ENTER, EXIT, 1]
+  const scale    = useTransform(local, inRange, isFirst ? [1, 0.84] : isLast ? [0.84, 1] : [0.84, 1, 1, 0.84])
+  const blur     = useTransform(local, inRange, isFirst ? ["blur(0px)", "blur(10px)"] : isLast ? ["blur(10px)", "blur(0px)"] : ["blur(10px)", "blur(0px)", "blur(0px)", "blur(10px)"])
+  const opacity  = useTransform(local, inRange, isFirst ? [1, 0] : isLast ? [0, 1] : [0, 1, 1, 0])
+
+  return (
+    <motion.div
+      className="absolute inset-0 flex flex-col items-center justify-center"
+      style={{ scale, filter: blur, opacity, zIndex: i, transformOrigin: "50% 38%", padding: "72px 16px 0" }}
+    >
+      <div style={{ width: `${boxW}px` }}>
+        <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${boxH}px`, background: "#060f13" }}>
+          {"video" in item
+            ? <LazyVideo src={isPhone ? item.videoMobile : item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
+            : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={isPhone && item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
+          }
+        </div>
+        <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div>
+            <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
+            <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(22px, 6vw, 36px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
+          </div>
+          <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.5, opacity: 0.6 }}>{concept}</p>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
 function PortfolioSection() {
   const lang = useLang()
   const c = COPY[lang].portfolio
   const ref = useRef<HTMLDivElement>(null)
   useHorizontalSwipeToScroll(ref)
+  const mobileRef = useRef<HTMLDivElement>(null)
+  const mobileRawProgress = useScrollProgress(mobileRef, "end-end")
   const [vp, setVp] = useState(() => ({ w: window.innerWidth, h: window.innerHeight }))
   useEffect(() => {
     const onResize = () => setVp({ w: window.innerWidth, h: window.innerHeight })
@@ -883,10 +929,14 @@ function PortfolioSection() {
   }, [])
   const vpw = vp.w
 
-  // Cobre também os tablets — os vídeos verticais só fazem sentido com o
-  // carrossel vertical de um cartão de cada vez, por isso os dois (layout +
-  // fonte do vídeo) mudam juntos neste limite.
+  // isMobile decide o LAYOUT (pilha vertical vs carrossel horizontal do
+  // desktop) — cobre tablet também, já que o efeito de scroll/push-back
+  // faz sentido nos dois. isPhone é uma distinção mais fina, só para
+  // decidir o ENQUADRAMENTO do vídeo dentro dessa pilha: telemóvel usa o
+  // recorte vertical (vídeo 9:16 + caixa larga do Teentac); tablet usa
+  // exatamente o mesmo enquadramento 16:9 do desktop, só redimensionado.
   const isMobile = vpw < 1024
+  const isPhone  = vpw < 640
 
   // Desktop (scroll-jacked horizontal carousel) — inalterado, exceto o limite
   // de largura abaixo. A caixa de média é 16:9, por isso a altura do cartão
@@ -899,76 +949,90 @@ function PortfolioSection() {
   const targetX  = -(3 * (cardW + gap))
   const rawProgress    = useScrollProgress(ref, "end-end")
   const smoothProgress = useSpring(rawProgress, { stiffness: 55, damping: 22, restDelta: 0.0005 })
-  const x              = useTransform(smoothProgress, [0, 1], [0, targetX])
+  // Zonas de espera no início e no fim: enquanto o progresso do scroll está
+  // dentro destas margens, o carrossel fica exatamente parado no primeiro ou
+  // no último cartão — dá margem para soltar o scroll sem ter de acertar num
+  // pixel exato, e evita que se veja o meio de uma transição ao entrar/sair
+  // da secção.
+  const START_HOLD     = 0.07
+  const END_HOLD       = 0.07
+  const x               = useTransform(smoothProgress, [START_HOLD, 1 - END_HOLD], [0, targetX])
   const hintOpacity    = useTransform(rawProgress, [0, 0.06], [1, 0])
 
-  // Mobile/tablet (carrossel por swipe) — vertical 9:16 (igual aos ficheiros
-  // originais, sem recortar para horizontal). A média usa uma altura em vh
-  // (não a largura do cartão) para sobrar sempre espaço para o texto por
-  // baixo ler-se no mesmo ecrã, sem precisar de scroll extra dentro do
-  // cartão — e sem cortar a imagem/vídeo, já que a largura vem do 9:16.
-  // Ligeiramente maior do que antes (0.56 -> 0.60vh) a pedido.
-  const mMediaH = vp.h * 0.60
-  const mCardW  = mMediaH * (9 / 16)
-  const mGap    = 16
-  // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — bem mais larga que
-  // alta do que os cartões 9:16 dos vídeos. A ALTURA do cartão é SEMPRE
-  // mMediaH, tal como todos os outros — não se mexe nisto. Só a largura
-  // deste cartão é maior (mais destaque, é a única imagem do conjunto),
-  // limitada ao ecrã para nunca ultrapassar a página. Preenche a caixa a
-  // 100% (object-fit: cover, tal como os vídeos) — mas como a caixa fica
-  // mais larga-mas-baixa do que a foto, cobrir a altura corta algo dos
-  // lados. Em vez do recorte simétrico por omissão (centrado na FOTO), o
-  // objectPosition abaixo centra o recorte no ECRÃ do portátil (que não
-  // está mesmo ao centro da foto original) — para não cortar o ecrã.
-  const teentacW = Math.min(mMediaH * (4 / 3), vpw - 32)
+  // Mobile/tablet — projetos empilhados na VERTICAL (scroll normal para
+  // avançar, não swipe lateral). Cada projeto usa o ScrollBlock já existente
+  // no site (o mesmo efeito do Hero/Manifesto): ao avançar para o seguinte,
+  // o projeto atual encolhe, desfoca e esbate — como se fosse empurrado
+  // para trás — em vez de simplesmente desaparecer.
+
+  // ── Telemóvel: caixa em formato vertical exato 9:16 — o mesmo formato dos
+  // vídeos verticais (videoMobile) — para que não fiquem cortados. A altura
+  // vem de um orçamento em vh (0.60vh, deixa espaço por cima para o ícone
+  // fixo da mosca e por baixo para o texto); a largura seria altura*9/16,
+  // mas se ultrapassar o ecrã, a largura fica limitada e a altura
+  // recalculada a partir dela — mantém sempre o 9:16 exato.
+  const phoneMediaHRaw = vp.h * 0.60
+  const phoneMediaW    = Math.min(phoneMediaHRaw * (9 / 16), vpw - 32)
+  const phoneMediaH    = phoneMediaW * (16 / 9)
+  // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — mais larga do que a
+  // caixa 9:16, por isso usa object-fit: cover com o object-position
+  // calculado para centrar o ecrã do laptop em vez de cortar arbitrariamente.
   const TEENTAC_IMG_W = 1920, TEENTAC_IMG_H = 1440, TEENTAC_SCREEN_CENTER_X = 1030
-  const teentacCropW = (teentacW / mMediaH) * TEENTAC_IMG_H
+  const teentacCropW = (phoneMediaW / phoneMediaH) * TEENTAC_IMG_H
   const teentacTotalCrop = Math.max(0, TEENTAC_IMG_W - teentacCropW)
   const teentacObjX = teentacTotalCrop > 0
     ? Math.max(0, Math.min(100, ((TEENTAC_SCREEN_CENTER_X - teentacCropW / 2) / teentacTotalCrop) * 100))
     : 50
-  const mCardWidths = PORTFOLIO.map(item => item.client === "Teentac" ? teentacW : mCardW)
-  const { x: mx, dragConstraints, handleDragEnd } = useDragCarouselVariable(mCardWidths, mGap)
+
+  // ── Tablet: os vídeos ficavam demasiado cortados com o recorte vertical
+  // do telemóvel. Aqui a caixa é 16:9 — o MESMO enquadramento do desktop
+  // (fonte `video`, não `videoMobile`) — só redimensionada para caber no
+  // ecrã do tablet. A altura vem de um orçamento em vh; a largura seria
+  // altura*16/9, mas se isso ultrapassar o ecrã, a largura fica limitada e
+  // a altura recalculada a partir dela — mantém sempre o 16:9 exato (o
+  // mesmo enquadramento do desktop), nunca corta mais por causa do limite.
+  const tabletMediaHRaw = vp.h * 0.55
+  const tabletCardW     = Math.min(tabletMediaHRaw * (16 / 9), vpw - 64)
+  const tabletMediaH    = tabletCardW * (9 / 16)
+
+  const boxW = isPhone ? phoneMediaW : tabletCardW
+  const boxH = isPhone ? phoneMediaH : tabletMediaH
+
+  // Mobile/tablet: um único percurso de scroll partilhado por todos os
+  // cartões (ver MobilePortfolioCard) — sem sticky/unstick por projeto —
+  // para que a saída de um e a entrada do seguinte se sobreponham.
+  const MOBILE_PIN_PER_CARD_VH = 120
+  const n = PORTFOLIO.length
 
   if (isMobile) {
     return (
-      <div id="work" style={{ position: "relative", padding: "56px 0 40px", overflow: "hidden" }}>
-        <motion.div
-          drag="x"
-          dragConstraints={dragConstraints}
-          dragElastic={0.06}
-          onDragEnd={handleDragEnd}
-          style={{ x: mx, gap: `${mGap}px`, paddingLeft: `${(vpw - mCardWidths[0]) / 2}px`, touchAction: "pan-y" }}
-          className="flex items-stretch"
-        >
+      <div id="work" ref={mobileRef} style={{ height: `${n * MOBILE_PIN_PER_CARD_VH + 100}vh`, position: "relative" }}>
+        <div className="sticky top-0 h-screen overflow-hidden">
           {PORTFOLIO.map((item, i) => {
             const { services, concept } = portfolioText(item, lang)
             return (
-              <div key={i} className="shrink-0 flex flex-col overflow-hidden" style={{ width: `${mCardWidths[i]}px` }}>
-                <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${mMediaH}px`, background: "#060f13" }}>
-                  {"video" in item
-                    ? <LazyVideo src={item.videoMobile} className="size-full object-cover" style={{ background: "#060f13" }} />
-                    : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
-                  }
-                </div>
-                <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <div>
-                    <p style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, marginBottom: "6px" }}>{services}</p>
-                    <div style={{ color: GOLD, fontFamily: CAMPTON_BOLD, fontWeight: 700, fontSize: "clamp(22px, 6vw, 36px)", lineHeight: 1.0, letterSpacing: "-0.5px" }}>{item.client}</div>
-                  </div>
-                  <p style={{ color: "#fff", fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", lineHeight: 1.5, opacity: 0.6 }}>{concept}</p>
-                </div>
-              </div>
+              <MobilePortfolioCard
+                key={i}
+                item={item}
+                i={i}
+                n={n}
+                progress={mobileRawProgress}
+                boxW={boxW}
+                boxH={boxH}
+                isPhone={isPhone}
+                teentacObjX={teentacObjX}
+                services={services}
+                concept={concept}
+              />
             )
           })}
-        </motion.div>
+        </div>
       </div>
     )
   }
 
   return (
-    <div ref={ref} id="work" style={{ height: "560vh", position: "relative" }}>
+    <div ref={ref} id="work" style={{ height: "760vh", position: "relative" }}>
       <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center" style={{ paddingTop: "9vh" }}>
         <motion.div
           style={{ x, gap: `${gap}px`, paddingLeft: "56px" }}

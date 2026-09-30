@@ -2,8 +2,8 @@
 title: "Rebranding without losing your audience"
 excerpt: "Evolution versus revolution: how to modernise a brand identity while keeping the trust and familiarity your customers already associate with you."
 category: "Branding & Visual Identity"
-date: "March 2026"
-readTime: "6 min read"
+date: "2026-03-24"
+readTime: "2 min read"
 ---
 
 Every brand reaches a moment when its visual identity no longer reflects who it has become. The design that felt fresh five years ago now feels dated. The logo that worked at launch doesn't scale to a new digital context. The colour palette that made sense for one market no longer serves a broader audience. The question is not whether to evolve — it is how to do it without alienating the people who already trust you.

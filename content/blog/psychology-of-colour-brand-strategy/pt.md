@@ -2,8 +2,8 @@
 title: "A psicologia da cor na estratégia de marca"
 excerpt: "As cores não são decorativas — são decisões. Explicamos como as marcas de referência usam a cor para despertar emoção, construir reconhecimento e conquistar um posicionamento premium."
 category: "Branding & Visual Identity"
-date: "May 2026"
-readTime: "7 min de leitura"
+date: "2026-05-26"
+readTime: "2 min de leitura"
 ---
 
 A cor é uma das ferramentas mais imediatas e mais poderosas no arsenal de uma marca. Antes de um cliente ler a tua tagline ou perceber o que fazes, já registou uma sensação a partir das cores que vê. Isto acontece em milissegundos, e molda tudo o que vem a seguir.

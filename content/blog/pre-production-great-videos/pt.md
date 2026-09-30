@@ -2,8 +2,8 @@
 title: "É na pré-produção que se fazem os grandes vídeos"
 excerpt: "A maioria das falhas em vídeo acontece antes de a câmara começar a gravar. Um olhar sobre as decisões de planeamento, argumento e casting que determinam o sucesso de uma produção."
 category: "Video Production"
-date: "February 2026"
-readTime: "6 min de leitura"
+date: "2026-02-17"
+readTime: "1 min de leitura"
 ---
 
 O mito mais persistente na produção de vídeo é o de que os grandes resultados vêm de uma grande execução no dia. Na realidade, o dia da filmagem é onde colhes ou perdes aquilo que construíste na pré-produção. Quando a câmara começa a gravar, uma produção bem conduzida está apenas a executar um plano que já resolveu a maior parte dos problemas.

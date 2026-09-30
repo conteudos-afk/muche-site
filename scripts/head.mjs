@@ -37,25 +37,15 @@ const OG_IMAGE = `${BASE}/og-default.png`
 const OG_IMAGE_ALT = 'Muche — The Creative Agency'
 
 /* ─── datePublished ──────────────────────────────────────────────────────────
-   O frontmatter escreve a data como `"July 2026"`, que é o que aparece no
-   ecrã. O schema.org exige ISO 8601: entregue à letra, o Google ignora a
-   propriedade e regista um erro de dados estruturados na página. Aqui a data
-   é convertida para `"2026-07"`; se não parsear, a propriedade fica de fora —
-   um campo recomendado ausente é melhor do que um inválido. ──────────────── */
-const MESES = {
-  january: '01', february: '02', march: '03', april: '04',
-  may: '05', june: '06', july: '07', august: '08',
-  september: '09', october: '10', november: '11', december: '12',
-}
-
+   O frontmatter escreve a data como `"2026-07-15"`, e essa já é ISO 8601, que
+   é o que o schema.org exige: passa como está. O que não for uma data assim
+   deixa a propriedade de fora — um campo recomendado ausente é melhor do que
+   um inválido, que o Google ignora registando um erro de dados estruturados
+   na página. (No build isto nem chega a acontecer: o `validatePosts` recusa
+   antes qualquer data que não exista.) ───────────────────────────────────── */
 export function isoDate(date) {
   const texto = String(date ?? '').trim()
-  /* Já em ISO (`2026-07` ou `2026-07-15`) — passa como está. */
-  if (/^\d{4}-\d{2}(-\d{2})?$/.test(texto)) return texto
-  const m = /^([A-Za-z]+)\s+(\d{4})$/.exec(texto)
-  if (!m) return null
-  const mes = MESES[m[1].toLowerCase()]
-  return mes ? `${m[2]}-${mes}` : null
+  return /^\d{4}-\d{2}-\d{2}$/.test(texto) ? texto : null
 }
 
 /* ─── Canónico das páginas sem corpo próprio ─────────────────────────────────
