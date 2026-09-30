@@ -1791,14 +1791,15 @@ jobs:
           git commit -m "conteúdo: $(echo "$SLUGS" | tr ',' ' ')"
           git push -u origin "$ramo"
 
+          # Conta só o que já foi junto — é o mesmo critério do `decidir.mjs`.
+          # Somar os artigos deste PR faria o texto prometer um merge automático
+          # que o `decidir` não vai executar.
           publicados=$(node scripts/prazo/contar.mjs)
-          neste=$(echo "$SLUGS" | tr ',' '\n' | grep -c . || true)
-          depois=$((publicados + neste))
 
-          if [ "$depois" -le 10 ]; then
-            rampa="Este PR leva o blog a **$depois de 10 artigos** antes de o prazo automático entrar. Até lá, nada é publicado sem alguém carregar em *Merge*."
+          if [ "$publicados" -le 10 ]; then
+            rampa="Vão **$publicados artigos publicados** por esta via. Enquanto forem 10 ou menos, nada é publicado sem alguém carregar em *Merge* — este PR incluído."
           else
-            rampa="A rampa já terminou ($publicados artigos publicados). **Este PR é juntado automaticamente ao fim de 48 horas** se ninguém escrever nada aqui. Recebes um aviso às 24 horas."
+            rampa="Vão $publicados artigos publicados. **Este PR é juntado automaticamente ao fim de 48 horas** se ninguém escrever nada aqui. Recebes um aviso às 24 horas."
           fi
 
           lista=$(echo "$SLUGS" | tr ',' '\n' | sed 's|^|- `content/blog/|; s|$|/`|')
@@ -1990,9 +1991,12 @@ Expected: FAIL — `Cannot find module './decidir.mjs'`
    aconteça o que acontecer. É a travagem que não depende de nenhuma das
    outras estar bem.
 
-   **A contagem inclui os artigos deste PR.** Sem isso o 10.º artigo cairia num
-   limbo: o PR que o traz ainda conta 7 publicados, e o seguinte já conta 13. O
-   critério tem de ser o estado do blog depois deste merge, não antes.
+   **A contagem é só do que humanos já juntaram.** Uma versão anterior somava os
+   artigos do próprio PR, para evitar um limbo no 10.º artigo. Esse limbo não
+   existe — a rampa acaba nos 12 em vez de exatamente 10, e mais nada. O que a
+   soma fazia era deixar o PR vencer a rampa sozinho: com 9 publicados, um lote
+   de três satisfazia 9 + 3 > 10 e juntava-se, pelo que os artigos 10, 11 e 12
+   chegavam ao site sem ninguém os ter lido. **Não voltes a somar `pr.artigos`.**
 
    **O `buildVerde` pode ser `null`.** Correr um build custa três minutos, e
    esta função é chamada de hora a hora sobre todos os PRs abertos. Devolver
@@ -2007,10 +2011,9 @@ export const HORAS_MERGE = 48
 const nada = motivo => ({ acao: 'nada', motivo })
 
 export function decidir({ pr, artigosPublicados, agora }) {
-  const depoisDeste = artigosPublicados + pr.artigos
-  if (depoisDeste <= ARTIGOS_ANTES_DO_AUTOMATICO) {
+  if (artigosPublicados <= ARTIGOS_ANTES_DO_AUTOMATICO) {
     return nada(
-      `rampa: ficariam ${depoisDeste} artigos publicados, e o prazo só corre acima de ${ARTIGOS_ANTES_DO_AUTOMATICO}`
+      `rampa: há ${artigosPublicados} artigos publicados, e o prazo só corre acima de ${ARTIGOS_ANTES_DO_AUTOMATICO}`
     )
   }
 
@@ -2377,7 +2380,7 @@ Entre lotes, confirma que a contagem sobe:
 node scripts/prazo/contar.mjs
 ```
 
-Ao 4.º lote o contador passa dos 10 e a rampa termina — a partir daí os PRs
+Ao 5.º lote o contador passa dos 10 e a rampa termina — a partir daí os PRs
 passam a dizer no corpo que são juntados em 48 horas. Confirma que o corpo do
 PR mudou de texto. É a primeira vez que o prazo fica activo, e vale a pena
 olhar.

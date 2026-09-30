@@ -8,18 +8,8 @@
    rebenta de propósito: imprimir 0 por engano seria dizer «a rampa ainda não
    acabou» sem o saber. */
 import { execFileSync } from 'node:child_process'
-import { contarArtigos, ETIQUETA } from './contador.mjs'
+import { artigosPublicados } from './contador.mjs'
 
 const ghJson = args => JSON.parse(execFileSync('gh', args, { encoding: 'utf-8' }))
 
-const juntados = ghJson([
-  'pr', 'list', '--state', 'merged', '--label', ETIQUETA,
-  '--limit', '100', '--json', 'number',
-])
-
-const total = juntados.reduce((soma, pr) => {
-  const { files } = ghJson(['pr', 'view', String(pr.number), '--json', 'files'])
-  return soma + contarArtigos(files)
-}, 0)
-
-console.log(total)
+console.log(artigosPublicados(ghJson))
