@@ -19,9 +19,8 @@ fora de qualquer pasta sincronizada na cloud (Drive/Dropbox/iCloud).
   e eu adapto — senão uso a foto normal.
 
 ## Blog — `content/blog/<slug>/`
-- `info.md` (copiar de `_template`)
-- `body.md` (o texto do artigo, em inglês — a versão em português dos artigos
-  ainda não está feita, ver nota no `info.md`)
+Os artigos do blog não se tratam por aqui: são escritos pela automação, e cada
+um tem `pt.md` e `en.md`. Ver «Artigos do blog» no `COMO-PUBLICAR.md`.
 
 ## Depois de preencher
 Diz-me algo como: "processa a pasta content/work/nome-do-cliente" e eu:

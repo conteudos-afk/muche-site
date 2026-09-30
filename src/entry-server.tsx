@@ -18,10 +18,10 @@ import { POSTS, postsFor, postBySlug } from './lib/blog/posts'
 import { validatePosts } from './lib/blog/validate'
 import type { Lang, Post } from './lib/blog/types'
 
-/* Reexportados para o `prerender.mjs`: o `postsFor` traz a ordem editorial
-   (`sortPosts`) e o `postBySlug` traz o corpo inglês nos artigos PT que ainda
-   não estão traduzidos (`withBodyFallback`). Filtrar o `POSTS` à mão perderia
-   as duas coisas.
+/* Reexportados para o `prerender.mjs`: o `postsFor` traz a ordem da lista
+   (`sortPosts`, do mais recente para o mais antigo) e o `postBySlug` traz o
+   corpo inglês nos artigos PT que ainda não estão traduzidos
+   (`withBodyFallback`). Filtrar o `POSTS` à mão perderia as duas coisas.
 
    O `POSTS` e o `validatePosts` vão juntos e servem só para a validação do
    frontmatter no build: a lista por validar, e quem a valida. */

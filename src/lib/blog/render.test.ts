@@ -6,7 +6,7 @@ import type { Post } from './types'
 
 const post: Post = {
   slug: 'teste', lang: 'en', title: 'Um título', excerpt: 'Um excerto',
-  category: 'Branding & Visual Identity', date: 'September 2026',
+  category: 'Branding & Visual Identity', date: '2026-09-29',
   readTime: '3 min read', bodyHtml: '<h2>Cabeçalho</h2><p>Parágrafo.</p>',
 }
 
