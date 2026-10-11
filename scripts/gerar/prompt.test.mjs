@@ -226,7 +226,7 @@ test('o sistema diz ao modelo que o readTime é calculado depois e que qualquer 
    dispare — e depois aplica-se aos prompts. ─── */
 const ANTIGAS = [
   'directo', 'directas', 'exactamente', 'actuais', 'percepção', 'excepção', 'objectivo', 'colectivo',
-  'projecto', 'carácter', 'actor', 'dialecto', 'reflectir', 'óptimo', 'espectáculo', 'recepção',
+  'projecto', 'actor', 'dialecto', 'reflectir', 'óptimo', 'espectáculo', 'recepção',
   'concepção', 'factura', 'fractura', 'sector', 'Egipto', 'adopção', 'electrónico', 'arquitecto',
 ]
 
