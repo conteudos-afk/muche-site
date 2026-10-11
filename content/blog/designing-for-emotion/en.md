@@ -20,13 +20,13 @@ That somewhere else is made of small decisions, nearly all of them invisible in 
 
 Subtle animation — how elements arrive on screen, how interactions respond to the cursor, how transitions between states feel — is one of the most powerful tools available for communicating a brand's personality. A brand built on precision and quality should move differently from a brand built on energy and spontaneity. Motion design is brand design.
 
-In practice, this comes down to three variables we decide at the start of a project and then respect across the whole site.
+In practice, this comes down to three variables to decide at the start of a project and then respect across the whole site.
 
 - **Duration.** Short transitions, around two tenths of a second, read as efficiency and control. Longer transitions, closer to half a second, read as calm, weight, deliberation. The common mistake isn't choosing badly: it's choosing a different duration in every component, because they were built in different weeks. At that point the site isn't communicating anything — it's hesitating.
 - **Easing curve.** Movement that starts fast and decelerates at the end feels mechanical and safe. Movement with a slight overshoot at the end, pulling back a little before it settles, feels human and playful. The same animation, with the same duration, changes character entirely just from this. A consultancy can't have buttons that bounce. An ice cream brand can't have menus that open like a vault door.
 - **Distance.** How far an element travels when it appears. Small displacements, a handful of pixels, are almost subliminal and give a sense of solidity. Large ones draw attention to the effect itself — and a site full of blocks rising twenty centimetres up from the bottom of the screen ends up talking about itself instead of talking about the brand.
 
-There are two principles we apply without exception. The first: motion should respond, not announce. The most effective animations are the ones that happen as a result of something the person did — a hover state, a form field taking focus, a button confirming it received the click. Those make the site feel alive and attentive. Animations that happen simply because the page loaded tend to delay reading and irritate anyone arriving for the second time.
+There are two principles worth applying without exception. The first: motion should respond, not announce. The most effective animations are the ones that happen as a result of something the person did — a hover state, a form field taking focus, a button confirming it received the click. Those make the site feel alive and attentive. Animations that happen simply because the page loaded tend to delay reading and irritate anyone arriving for the second time.
 
 The second: motion is a preference, not a given. There are people for whom large animations cause genuine physical discomfort, and their operating system lets them say so. Respecting that preference, by reducing or removing the movement, is part of the job — and it isn't a concession, because a site that works without animation is a site where the animation is adding something rather than holding it up.
 
@@ -38,7 +38,7 @@ The problem is that space is the first thing to get sacrificed. Nobody decides t
 
 Two things help keep this standing up over the course of a project.
 
-**A scale, not loose values.** We define a small set of spacing measurements and use only those. When every section has its own improvised margin, the eye doesn't understand why, but it senses something is out of step. When there's a scale, the vertical rhythm of the page becomes predictable — and predictability is one of the few things the brain reliably reads as quality.
+**A scale, not loose values.** Define a small set of spacing measurements and use only those. When every section has its own improvised margin, the eye doesn't understand why, but it senses something is out of step. When there's a scale, the vertical rhythm of the page becomes predictable — and predictability is one of the few things the brain reliably reads as quality.
 
 **Proximity with meaning.** Space isn't only there to air things out: it's there to group them. A heading sitting close to its paragraph and well clear of the next block explains the structure of the page without a single dividing line. When every gap is identical, the page manages to be airy and illegible at once — a sequence of elements with no hierarchy, where nothing belongs to anything.
 
@@ -77,6 +77,6 @@ This isn't creative copy written to show off personality. It's the same brand sp
 
 Each of these decisions, on its own, is small. What produces the sense that «this feels right» is the decisions agreeing with each other: the motion having the same character as the typography, the spacing carrying the same calm as the tone of voice, the contrast supporting the same hierarchy the page structure proposes.
 
-The test we run before considering a site finished is simple, and it isn't technical. We show a page to someone who doesn't know the project, for a few seconds, cover the screen and ask two questions: what does this company do, and what kind of company does it seem to be. The first answer assesses the structure. The second assesses everything this article is about — and it's usually the one that brings bad news.
+The test to run before considering a site finished is simple, and it isn't technical. Show a page to someone who doesn't know the project, for a few seconds, cover the screen and ask two questions: what does this company do, and what kind of company does it seem to be. The first answer assesses the structure. The second assesses everything this article is about — and it's usually the one that brings bad news.
 
-The websites we're proudest of are the ones where clients tell us they can't quite explain why, but it simply feels right. That feeling is the product of hundreds of small decisions taken with care and consistency. It's invisible when it works. It's immediately obvious when it doesn't.
+The best websites are the ones where people can't quite explain why, but say it simply feels right. That feeling is the product of hundreds of small decisions taken with care and consistency. It's invisible when it works. It's immediately obvious when it doesn't.

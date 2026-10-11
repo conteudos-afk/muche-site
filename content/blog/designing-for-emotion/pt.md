@@ -20,13 +20,13 @@ Esse plano é feito de decisões pequenas, quase todas invisíveis isoladamente:
 
 A animação subtil — como os elementos entram no ecrã, como as interações respondem ao movimento do cursor, como se sentem as transições entre estados — é uma das ferramentas mais poderosas para comunicar a personalidade de uma marca. Uma marca que valoriza a precisão e a qualidade deve mover-se de forma diferente de uma marca que valoriza a energia e a espontaneidade. Motion design é design de marca.
 
-Na prática, isto reduz-se a três variáveis que decidimos no início de um projeto e depois respeitamos em todo o site.
+Na prática, isto reduz-se a três variáveis a decidir no início de um projeto e depois a respeitar em todo o site.
 
 - **Duração.** Transições curtas, na casa dos dois décimos de segundo, leem-se como eficiência e controlo. Transições mais longas, perto do meio segundo, leem-se como calma, peso, deliberação. O erro comum não é escolher mal: é escolher uma duração diferente em cada componente, porque foram construídos em semanas diferentes. Aí o site não comunica nada — hesita.
 - **Curva de aceleração.** Um movimento que arranca depressa e desacelera no fim parece mecânico e seguro. Um movimento com uma ligeira ultrapassagem no fim, que volta atrás um pouco antes de assentar, parece humano e brincalhão. A mesma animação, com a mesma duração, muda completamente de carácter só por aqui. Uma consultora não pode ter botões que saltitam. Uma marca de gelados não pode ter menus que abrem como uma porta de cofre.
 - **Distância.** Quanto um elemento se desloca quando aparece. Deslocamentos pequenos, de poucos pixéis, são quase subliminares e dão uma sensação de solidez. Deslocamentos grandes chamam atenção para o próprio efeito — e um site cheio de blocos que sobem vinte centímetros do fundo do ecrã acaba a falar de si mesmo em vez de falar da marca.
 
-Há dois princípios que aplicamos sempre. O primeiro: o movimento tem de responder, não anunciar. As animações mais eficazes são as que acontecem em resultado de uma ação da pessoa — um estado de hover, um campo de formulário que ganha foco, um botão que confirma que recebeu o clique. Essas dão a sensação de que o site está vivo e atento. As animações que acontecem só porque a página carregou tendem a atrasar a leitura e a irritar quem volta pela segunda vez.
+Há dois princípios a aplicar sempre. O primeiro: o movimento tem de responder, não anunciar. As animações mais eficazes são as que acontecem em resultado de uma ação da pessoa — um estado de hover, um campo de formulário que ganha foco, um botão que confirma que recebeu o clique. Essas dão a sensação de que o site está vivo e atento. As animações que acontecem só porque a página carregou tendem a atrasar a leitura e a irritar quem volta pela segunda vez.
 
 O segundo: movimento é uma preferência, não um dado. Há pessoas para quem animações amplas causam desconforto físico, e o sistema operativo permite-lhes sinalizar isso. Respeitar essa preferência, reduzindo ou eliminando os deslocamentos, faz parte do trabalho — e não é uma concessão, porque um site que funciona sem animação é um site em que a animação está a acrescentar e não a sustentar.
 
@@ -34,11 +34,11 @@ O segundo: movimento é uma preferência, não um dado. Há pessoas para quem an
 
 Um espaço em branco generoso é o sinal de marca premium mais imediatamente legível online. Diz: não temos medo de deixar espaço. Confiamos que aquilo que temos é suficiente. Layouts apertados e densos em informação comunicam ansiedade. Espaço para respirar comunica segurança.
 
-O problema é que o espaço é a primeira coisa a ser sacrificada. Ninguém decide fazer um site apertado; o site fica apertado porque houve mais quatro mensagens a entrar na homepage na terceira ronda de revisões, e cada uma delas roubou margem à anterior. É por isso que o espaçamento é uma decisão de estratégia antes de ser uma decisão visual: só conseguimos dar espaço ao que existe se o cliente aceitar que não cabe tudo.
+O problema é que o espaço é a primeira coisa a ser sacrificada. Ninguém decide fazer um site apertado; o site fica apertado porque houve mais quatro mensagens a entrar na homepage na terceira ronda de revisões, e cada uma delas roubou margem à anterior. É por isso que o espaçamento é uma decisão de estratégia antes de ser uma decisão visual: só consegues dar espaço ao que existe se o cliente aceitar que não cabe tudo.
 
 Duas coisas ajudam a manter isto de pé ao longo de um projeto.
 
-**Uma escala, não valores soltos.** Definimos um conjunto pequeno de medidas de espaçamento e usamos só essas. Quando cada secção tem a sua margem improvisada, o olho não percebe porquê, mas sente desalinho. Quando existe uma escala, o ritmo vertical da página torna-se previsível — e a previsibilidade é uma das poucas coisas que o cérebro lê como qualidade.
+**Uma escala, não valores soltos.** Define um conjunto pequeno de medidas de espaçamento e usa só essas. Quando cada secção tem a sua margem improvisada, o olho não percebe porquê, mas sente desalinho. Quando existe uma escala, o ritmo vertical da página torna-se previsível — e a previsibilidade é uma das poucas coisas que o cérebro lê como qualidade.
 
 **Proximidade com significado.** O espaço não serve só para arejar: serve para agrupar. Um título encostado ao seu parágrafo e bem afastado do bloco seguinte explica a estrutura da página sem uma única linha divisória. Quando todos os espaços são iguais, a página fica arejada e ilegível ao mesmo tempo — uma sequência de elementos sem hierarquia, em que nada pertence a nada.
 
@@ -46,7 +46,7 @@ Duas coisas ajudam a manter isto de pé ao longo de um projeto.
 
 Os títulos na web não são apenas texto grande — são a primeira e muitas vezes a única coisa que um visitante lê antes de decidir se continua. A escala, o peso e a entrelinha de um título moldam o registo emocional de toda a página. Acertar nisto é tanto uma decisão de marca como uma decisão tipográfica.
 
-O erro mais frequente é tratar um título como o corpo de texto ampliado. Não é. A entrelinha que funciona num parágrafo de dezesseis pixéis é excessiva num título de sessenta: o título desmancha-se em linhas soltas e perde-se a sensação de bloco. O espaçamento entre letras que é neutro em corpo pequeno parece frouxo em corpo grande. Um título grande quase sempre pede entrelinha mais fechada e uma ligeira redução do espaço entre letras — e é esse ajuste, que ninguém vê, que faz a diferença entre parecer composto e parecer despejado.
+O erro mais frequente é tratar um título como o corpo de texto ampliado. Não é. A entrelinha que funciona num parágrafo de dezasseis pixéis é excessiva num título de sessenta: o título desmancha-se em linhas soltas e perde-se a sensação de bloco. O espaçamento entre letras que é neutro em corpo pequeno parece frouxo em corpo grande. Um título grande quase sempre pede entrelinha mais fechada e uma ligeira redução do espaço entre letras — e é esse ajuste, que ninguém vê, que faz a diferença entre parecer composto e parecer despejado.
 
 Depois há o registo. Um título em maiúsculas, peso médio, letras afastadas, diz uma coisa: instituição, rigor, autoridade. O mesmo texto em caixa baixa, peso alto, muito grande e com as linhas quase a tocar-se, diz outra: confiança, informalidade, presença. Nenhum é melhor. Só um deles é a marca com que estás a trabalhar.
 
@@ -77,6 +77,6 @@ Isto não é copy criativo para mostrar personalidade. É a mesma marca a falar 
 
 Cada uma destas decisões, isolada, é pequena. O que produz a sensação de «isto parece certo» é as decisões concordarem entre si: o movimento ter o mesmo carácter que a tipografia, o espaçamento ter a mesma serenidade que o tom de voz, o contraste sustentar a mesma hierarquia que a estrutura da página propõe.
 
-O teste que fazemos antes de considerar um site fechado é simples e não é técnico. Mostramos uma página a alguém que não conhece o projeto durante poucos segundos, tapamos o ecrã e perguntamos duas coisas: o que é que esta empresa faz, e que tipo de empresa te parece ser. A primeira resposta avalia a estrutura. A segunda avalia tudo o que este artigo discute — e é normalmente a que traz más notícias.
+O teste a fazer antes de considerares um site fechado é simples e não é técnico. Mostra uma página a alguém que não conhece o projeto durante poucos segundos, tapa o ecrã e pergunta duas coisas: o que é que esta empresa faz, e que tipo de empresa te parece ser. A primeira resposta avalia a estrutura. A segunda avalia tudo o que este artigo discute — e é normalmente a que traz más notícias.
 
-Os websites de que mais nos orgulhamos são aqueles em que os clientes nos dizem que não sabem explicar bem porquê, mas que aquilo parece simplesmente certo. Essa sensação é o produto de centenas de pequenas decisões tomadas com cuidado e coerência. É invisível quando resulta. É imediatamente óbvia quando não resulta.
+Os melhores websites são aqueles em que quem os visita não sabe explicar bem porquê, mas diz que aquilo parece simplesmente certo. Essa sensação é o produto de centenas de pequenas decisões tomadas com cuidado e coerência. É invisível quando resulta. É imediatamente óbvia quando não resulta.
