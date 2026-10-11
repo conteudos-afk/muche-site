@@ -43,6 +43,24 @@ test('o sistema fixa a ortografia do novo Acordo Ortográfico, com pares concret
   expect(SISTEMA).toContain('«outubro», nunca «Outubro»')
 })
 
+test('o sistema fixa os numerais europeus: dezasseis, dezassete, dezanove, nunca as formas com «ze»', () => {
+  expect(SISTEMA).toContain('«dezasseis», «dezassete», «dezanove» — nunca «dezesseis», «dezessete», «dezenove»')
+})
+
+/* O primeiro artigo real saiu com «dezesseis» e o detetor de grafia não o viu,
+   porque não é uma consoante muda. A regra tem de estar no prompt. */
+test('o sistema proíbe inventar práticas, processos e casos em nome da agência, com um exemplo errado e um certo', () => {
+  expect(SISTEMA).toContain('falsas sob o nome da agência')
+  expect(SISTEMA).toContain('«nós fazemos assim», «o teste que fazemos», «os clientes dizem-nos»')
+  const errado = SISTEMA.match(/^ *- Errado: «([^»]+)»/m)?.[1]
+  const certo = SISTEMA.match(/^ *- Certo: «([^»]+)»/m)?.[1]
+  expect(errado, 'falta o exemplo «Errado»').toBeTruthy()
+  expect(certo, 'falta o exemplo «Certo»').toBeTruthy()
+  /* O errado afirma uma prática da agência na 1.ª pessoa do plural; o certo é conselho ao leitor. */
+  expect(errado).toMatch(/mos\b/)
+  expect(certo).not.toMatch(/mos\b/)
+})
+
 test('o sistema proíbe qualquer coisa a seguir à última linha do artigo', () => {
   expect(SISTEMA).toContain('última linha do artigo')
   expect(SISTEMA).toContain('comentário sobre o próprio artigo')
