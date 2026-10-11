@@ -42,3 +42,56 @@ test('o aviso sai no idioma da página', () => {
   const html = renderToString(createElement(ArticleView, { post: en, lang: 'en' }))
   expect(html).toContain('available in English only')
 })
+
+/* ─── Estilos do corpo ────────────────────────────────────────────────────────
+   O `src/styles` tira os marcadores às listas e o peso ao negrito, por isso um
+   elemento que o `marked` emita sem regra no `BODY_CSS` renderiza como texto
+   sem forma — foi o que aconteceu às listas. Este teste corre o `marked`
+   sobre Markdown com cada construção que o gerador usa (e as que um artigo
+   escrito à mão pode trazer) e exige uma regra para cada elemento que sai. */
+import { parsePost } from './parsePost'
+
+const MARKDOWN = [
+  '---', 'title: "T"', 'excerpt: "E"', 'category: "C"', 'date: "2026-01-01"', 'readTime: "1 min"', '---', '',
+  '## Dois', '', '### Três', '',
+  'Texto com **negrito**, *itálico*, [ligação](https://exemplo.pt) e `código`.', '',
+  '- **Duração.** Item de lista.', '- Outro item', '  - Sub-item', '',
+  '1. Um', '2. Dois', '',
+  '- Solto um', '', '- Solto dois', '',
+  '> Citação', '', '---', '',
+  '```', 'bloco', '```', '',
+  '| A | B |', '|---|---|', '| 1 | 2 |', '',
+  '![alt](x.png)',
+].join('\n')
+
+/* Estruturais ou sem aparência própria: herdam do que os rodeia. */
+const SEM_REGRA_PROPRIA = new Set(['thead', 'tbody', 'tr', 'br'])
+
+test('o BODY_CSS tem regra para todos os elementos que o marked emite', () => {
+  const corpo = parsePost(MARKDOWN, 'estilos', 'pt').bodyHtml
+  const emitidos = new Set([...corpo.matchAll(/<([a-z][a-z0-9]*)[\s>/]/g)].map(m => m[1]))
+  const pagina = renderToString(createElement(ArticleView, { post: { ...post, bodyHtml: corpo }, lang: 'pt' }))
+  const css = pagina.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? ''
+
+  /* Garante que o Markdown de teste continua a produzir o que se quer cobrir. */
+  for (const tag of ['ul', 'ol', 'li', 'strong', 'em', 'a', 'blockquote', 'h2', 'h3', 'code', 'pre', 'hr', 'table']) {
+    expect(emitidos, `o marked deixou de emitir <${tag}>`).toContain(tag)
+  }
+  const semRegra = [...emitidos].filter(t => !SEM_REGRA_PROPRIA.has(t) && !new RegExp(`\\.blog-article-body[^{}]*\\b${t}\\b`).test(css))
+  expect(semRegra).toEqual([])
+})
+
+test('a lista leva marcador próprio e o item tem ritmo próprio', () => {
+  const pagina = renderToString(createElement(ArticleView, { post, lang: 'en' }))
+  const css = pagina.match(/<style>([\s\S]*?)<\/style>/)?.[1] ?? ''
+  expect(css).toMatch(/ul > li::before\s*{[^}]*content: ""/)
+  expect(css).toMatch(/\.blog-article-body li\s*{[^}]*margin: 0 0 14px/)
+})
+
+/* O estilo vai dentro do componente: tem de estar no HTML do servidor, antes do
+   corpo, para a página pré-renderizada nascer já formatada, sem JavaScript. */
+test('o <style> do corpo sai no HTML do servidor, antes do texto', () => {
+  const pagina = renderToString(createElement(ArticleView, { post, lang: 'en' }))
+  expect(pagina.indexOf('<style>')).toBeGreaterThan(-1)
+  expect(pagina.indexOf('<style>')).toBeLessThan(pagina.indexOf('class="blog-article-body"'))
+})
