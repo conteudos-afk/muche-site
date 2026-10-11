@@ -58,6 +58,13 @@ test('«captivante», «captivar» e «succinto» são a forma antiga', () => {
   }
 })
 
+/* O `c` de «carácter» pronuncia-se, por isso o Acordo mantém-no em Portugal
+   (no Brasil é «caráter»). O detetor chegou a tratá-lo como forma antiga, e um
+   artigo real e correto, com «carácter», punha a lista dos aprovados vermelha. */
+test('«carácter» e «caracteres» são legítimos', () => {
+  for (const pal of ['carácter', 'caracteres', 'característica', 'caracterizar']) expect(dispara(pal), pal).toEqual([])
+})
+
 test('captar, capturar e sucção continuam legítimos, em todas as flexões', () => {
   const certas = [
     'captar', 'capta', 'captam', 'captou', 'captei', 'captámos', 'captando', 'captado',

@@ -66,7 +66,8 @@ const PREFIXOS = '(?:in|des|re|inter){0,2}'
 const RAIZES = [
   'fact(?:o|os|ual|uais)(?:mente)?$', 'artefact', 'fractal', 'fractais$',
   'contact', 'impact', 'pact', 'compact', 'intact', 'tact(?:o|os)$', 'cact',
-  'caract', 'expect', 'convic', 'dicç', 'conect',
+  /* «carácter» (com acento) é a forma europeia no Acordo — o `c` lê-se. */
+  'car[aá]ct', 'expect', 'convic', 'dicç', 'conect',
   'espectador', 'espectr', 'pict', 'intelect', 'oct[oó]',
   '(?:inter|dis)?secç', 'cript', 'recept', 'conceptual',
   'adapt', 'apt(?:o|a|os|as|idão|idões)$', 'adept',
