@@ -135,7 +135,7 @@ Uma GitHub Action corre **duas vezes por semana**:
 4. Cria branch e abre Pull Request
 5. O Cloudflare Pages gera a pré-visualização automaticamente
 
-Requer `ANTHROPIC_API_KEY` como secret do repositório. Custo por artigo na ordem dos cêntimos.
+Já não requer a `ANTHROPIC_API_KEY` como secret: a autenticação passou a ser por federação de identidade (ver o desenho de 2026-09-28). Custo por artigo na ordem dos cêntimos.
 
 ### Revisão
 

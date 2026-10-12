@@ -143,7 +143,7 @@ O primeiro artigo real custou $0,37, contra os $0,30 estimados. Os valores acima
 já são os corrigidos. O gerador calcula o custo a partir dos tokens que a API
 devolve, por isso cada execução diz o que gastou.
 
-Requer `ANTHROPIC_API_KEY` como secret do repositório, criada pelo dono do site.
+A autenticação na API é por federação de identidade (OIDC), sem chave guardada: o GitHub assina um token de curta duração por execução e a Anthropic troca-o por um acesso também de curta duração. Requer a regra de federação criada pelo dono do site na consola da Anthropic, que só aceita este repositório e o ramo `main`. Os identificadores da regra estão no workflow e não são segredos. O secret `ANTHROPIC_API_KEY` já não é usado e pode ser apagado (a chave estática anterior caducou sem aviso e a automação falhou doze dias seguidos). Numa máquina local não há fornecedor de OIDC, e `npm run gerar` usa a `ANTHROPIC_API_KEY` do ambiente.
 
 *Prompt caching* foi considerado e rejeitado: cortaria ~90% da entrada, mas a entrada são $0,05 dos $0,37. Poupava cêntimos e acrescentava complexidade.
 

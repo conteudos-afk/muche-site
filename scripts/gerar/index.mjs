@@ -238,7 +238,7 @@ export async function gerarLote({ cliente, modo, alvos, artigosPt, artigosEn, co
 
 async function principal() {
   const { modo, lote, slugs } = lerArgumentos(process.argv.slice(2))
-  const cliente = criarCliente(process.env.ANTHROPIC_API_KEY)
+  const cliente = await criarCliente()
 
   const artigosPt = lerArtigosMarkdown(CONTENT_DIR, 'pt')
   const artigosEn = lerArtigosMarkdown(CONTENT_DIR, 'en')
