@@ -19,6 +19,8 @@ import imgTeamOv2  from "@/imports/Equipa/147c0dc1f2d747da38ed29077bb5ca6a2131f4
 import imgTeamOv3  from "@/imports/Equipa/f54adf1f173bd3d652fbb4045cf6b96b0314465f.png"
 import imgTeamOv4  from "@/imports/Equipa/6b262635396e81047e7283b201ec9ec494f79879.png"
 import { LangProvider, useLang, useLangControls, useLangFromPath, langFromPath, blogPathIn, COPY, type Lang } from "./i18n"
+import { pageMeta } from "./pageMeta"
+import { ARRANCOU_PRERENDERIZADO, useEntradaInstantanea } from "./primeiraPintura"
 import { ArticleView } from "./blog/ArticleView"
 import { ArticleNotFound } from "./blog/ArticleNotFound"
 import { BlogListView } from "./blog/BlogListView"
@@ -1488,7 +1490,8 @@ function TeamPage() {
 function BlogPage() {
   const lang = useLang()
   const navigate = useNavigate()
-  return <BlogListView posts={postsFor(lang)} lang={lang} onNavigate={navigate} />
+  const instant = useEntradaInstantanea()
+  return <BlogListView posts={postsFor(lang)} lang={lang} onNavigate={navigate} instant={instant} />
 }
 
 function ArticlePage() {
@@ -1496,11 +1499,12 @@ function ArticlePage() {
   const navigate = useNavigate()
   const { slug } = useParams<{ slug: string }>()
   const post = slug ? postBySlug(slug, lang) : undefined
+  const instant = useEntradaInstantanea()
 
   useEffect(() => { window.scrollTo(0, 0) }, [slug])
 
   if (!post) return <ArticleNotFound lang={lang} onNavigate={navigate} />
-  return <ArticleView post={post} lang={lang} onNavigate={navigate} />
+  return <ArticleView post={post} lang={lang} onNavigate={navigate} instant={instant} />
 }
 
 /* ─── Home Page ──────────────────────────────────────────────────────────── */
@@ -1525,6 +1529,19 @@ function ScrollToTop() {
   return null
 }
 
+/* ─── Título e descrição do separador ────────────────────────────────────────
+   Segue a página e o idioma, não só o idioma: o HTML pré-renderizado de um
+   artigo traz o título do artigo, e um efeito que pusesse o do site em cima
+   dele deixava todos os separadores com o mesmo nome. Ver `pageMeta.ts`. */
+function useDocumentMeta(pathname: string) {
+  const lang = useLang()
+  useEffect(() => {
+    const meta = pageMeta(pathname, lang)
+    document.title = meta.title
+    document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description)
+  }, [pathname, lang])
+}
+
 /* ─── Layout (global background + nav + outlet) ──────────────────────────── */
 function Layout() {
   /* O `pathname` só é observável aqui dentro do router — é o que permite ao
@@ -1533,6 +1550,7 @@ function Layout() {
      em `i18n.tsx`. */
   const { pathname } = useLocation()
   useLangFromPath(pathname)
+  useDocumentMeta(pathname)
   return (
     <div>
       <ScrollToTop />
@@ -1638,7 +1656,7 @@ export default function App() {
         {!gated && <LoadingScreen key="loading" progress={progress} />}
       </AnimatePresence>
       {gated && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
+        <motion.div initial={ARRANCOU_PRERENDERIZADO ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>
           <RouterProvider router={router} />
         </motion.div>
       )}

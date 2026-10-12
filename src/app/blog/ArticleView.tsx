@@ -269,8 +269,13 @@ ${BODY_TEXT}  margin: 0 0 14px;
 .${BODY_CLASS} img { max-width: 100%; height: auto; }
 `
 
-export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang; onNavigate?: OnNavigate }) {
+/* `instant`: a página já está pintada (veio pré-renderizada) e o `motion` não
+   deve voltar a animar a entrada por cima do texto que o leitor já vê — ver
+   `primeiraPintura.ts`. No servidor fica sempre `false`: é o que escreve o
+   estado inicial que o `revealInitialState` neutraliza. */
+export function ArticleView({ post, lang, onNavigate, instant = false }: { post: Post; lang: Lang; onNavigate?: OnNavigate; instant?: boolean }) {
   const cBlog = COPY[lang].blog
+  const entra = <T,>(inicial: T): T | false => (instant ? false : inicial)
   /* O destino depende do idioma: `/blog/` em pt, `/en/blog/` em inglês. */
   const toBlog = linkProps(blogHref(lang), onNavigate)
 
@@ -291,7 +296,7 @@ export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang
         </motion.a>
 
         {/* Meta */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: "easeOut" }}>
+        <motion.div initial={entra({ opacity: 0, y: 16 })} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: "easeOut" }}>
           <div className="flex flex-wrap items-center gap-3 md:gap-6" style={{ marginBottom: "28px" }}>
             <span style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "10px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.4 }}>{translateCategory(post.category, lang)}</span>
             <span className="hidden sm:inline" style={{ color: GOLD, opacity: 0.2, fontSize: "10px" }}>·</span>
@@ -303,7 +308,7 @@ export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang
 
         {/* Title */}
         <motion.h1
-          initial={{ opacity: 0, y: 24 }}
+          initial={entra({ opacity: 0, y: 24 })}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
           style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(26px, 4.5vw, 64px)", lineHeight: 1.08, letterSpacing: "0.01em", marginBottom: "20px" }}
@@ -324,10 +329,10 @@ export function ArticleView({ post, lang, onNavigate }: { post: Post; lang: Lang
         )}
 
         {/* Divider */}
-        <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.8, delay: 0.25, ease: "easeOut" }} style={{ height: "1px", background: `${GOLD}25`, marginBottom: "48px", transformOrigin: "left" }} />
+        <motion.div initial={entra({ scaleX: 0 })} animate={{ scaleX: 1 }} transition={{ duration: 0.8, delay: 0.25, ease: "easeOut" }} style={{ height: "1px", background: `${GOLD}25`, marginBottom: "48px", transformOrigin: "left" }} />
 
         {/* Body */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}>
+        <motion.div initial={entra({ opacity: 0, y: 20 })} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.3, ease: "easeOut" }}>
           <style dangerouslySetInnerHTML={{ __html: BODY_CSS }} />
           <div className={BODY_CLASS} dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
         </motion.div>

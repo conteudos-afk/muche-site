@@ -61,6 +61,25 @@ export function isoDate(date) {
 const canonicalFor = (lang, bodyLang, pathFor) =>
   bodyLang && bodyLang !== lang ? pathFor(bodyLang) : pathFor(lang)
 
+/* ─── Título e descrição que o cliente também precisa ────────────────────────
+   O HTML pré-renderizado já traz o `<title>` e a `<meta description>` de cada
+   página, mas assim que o JavaScript arranca é o cliente que passa a mantê-los
+   (navegação entre páginas, troca PT/EN). Se o cliente os recompusesse à sua
+   maneira, o título do separador mudava no instante em que a página carrega —
+   era exatamente o defeito que isto veio corrigir. Daí estes dois pedaços
+   viverem aqui e serem importados pelos dois lados: o texto sai de um sítio
+   só. ───────────────────────────────────────────────────────────────────── */
+export const fullTitle = (title) => `${title} — Muche`
+
+export function listMeta(lang) {
+  return {
+    title: 'Blog',
+    description: lang === 'pt'
+      ? 'Textos sobre branding, design, vídeo, fotografia, web e podcast — o que aprendemos a fazer e porquê.'
+      : 'Writing on branding, design, video, photography, web and podcasts — what we have learned and why.',
+  }
+}
+
 export function buildHead({ title, excerpt, lang, slug, category, date, bodyLang }) {
   const pathPt = articlePath(slug, 'pt')
   const pathEn = articlePath(slug, 'en')
@@ -83,7 +102,7 @@ export function buildHead({ title, excerpt, lang, slug, category, date, bodyLang
     mainEntityOfPage: BASE + self,
   }
   return [
-    `<title>${esc(title)} — Muche</title>`,
+    `<title>${esc(fullTitle(title))}</title>`,
     `<meta name="description" content="${esc(excerpt)}" />`,
     `<link rel="canonical" href="${BASE}${self}" />`,
     `<link rel="alternate" hreflang="pt" href="${BASE}${pathPt}" />`,
@@ -107,26 +126,23 @@ export function buildListHead({ lang }) {
   const pathPt = listPath('pt')
   const pathEn = listPath('en')
   const self = listPath(lang)
-  const title = 'Blog'
-  const excerpt = lang === 'pt'
-    ? 'Textos sobre branding, design, vídeo, fotografia, web e podcast — o que aprendemos a fazer e porquê.'
-    : 'Writing on branding, design, video, photography, web and podcasts — what we have learned and why.'
+  const { title, description: excerpt } = listMeta(lang)
   const jsonld = {
     '@context': 'https://schema.org',
     '@type': 'Blog',
-    name: `${title} — Muche`,
+    name: fullTitle(title),
     description: excerpt,
     inLanguage: lang,
     publisher: { '@type': 'Organization', name: 'Muche', url: BASE },
     mainEntityOfPage: BASE + self,
   }
   return [
-    `<title>${esc(title)} — Muche</title>`,
+    `<title>${esc(fullTitle(title))}</title>`,
     `<meta name="description" content="${esc(excerpt)}" />`,
     `<link rel="canonical" href="${BASE}${self}" />`,
     `<link rel="alternate" hreflang="pt" href="${BASE}${pathPt}" />`,
     `<link rel="alternate" hreflang="en" href="${BASE}${pathEn}" />`,
-    `<meta property="og:title" content="${esc(title)} — Muche" />`,
+    `<meta property="og:title" content="${esc(fullTitle(title))}" />`,
     `<meta property="og:description" content="${esc(excerpt)}" />`,
     `<meta property="og:url" content="${BASE}${self}" />`,
     `<meta property="og:type" content="website" />`,
@@ -147,11 +163,15 @@ export function buildListHead({ lang }) {
    JavaScript. Ou seja, exatamente o público para quem a pré-renderização foi
    feita.
 
-   Por isso o estado inicial é neutralizado no HTML gerado. Não há aqui risco
-   de estragar as animações: o `main.tsx` usa `createRoot().render()`, não
-   `hydrateRoot()`, por isso o browser deita fora este HTML e volta a desenhar
-   tudo do zero assim que o JavaScript carrega. Este HTML só é visto por quem
-   nunca chega a essa fase.
+   Por isso o estado inicial é neutralizado no HTML gerado. Esta troca só
+   existe para esse HTML: no cliente, a primeira pintura de uma página
+   pré-renderizada nasce já com o estado final (`instant`, nas vistas do blog),
+   por isso o `motion` não volta a animar por cima de texto que já estava no
+   ecrã.
+
+   Isto também explica por que não há `hydrateRoot`: o `main.tsx` usa
+   `createRoot().render()` e o React deita fora este HTML para o refazer, e
+   o servidor não desenha a mesma árvore que o cliente (ver o `main.tsx`).
 
    As trocas são estreitas de propósito. O `opacity:0` só conta quando acaba
    ali (`(?=[;"])`), senão apanhava também o `opacity:0.5` do texto secundário;

@@ -8,7 +8,9 @@ import { articleHref, linkProps, type OnNavigate } from "./navigate"
    build — ver `src/lib/blog/categories.ts`. */
 import { BLOG_CATEGORIES, type BlogCategory } from "@/lib/blog/categories"
 
-export function BlogListView({ posts, lang, onNavigate }: { posts: Post[]; lang: Lang; onNavigate?: OnNavigate }) {
+/* `instant`: ver o `ArticleView` e `primeiraPintura.ts`. */
+export function BlogListView({ posts, lang, onNavigate, instant = false }: { posts: Post[]; lang: Lang; onNavigate?: OnNavigate; instant?: boolean }) {
+  const entra = <T,>(inicial: T): T | false => (instant ? false : inicial)
   const cBack = COPY[lang].back
   const cBlog = COPY[lang].blog
   const [active, setActive] = useState<BlogCategory | null>(null)
@@ -35,7 +37,7 @@ export function BlogListView({ posts, lang, onNavigate }: { posts: Post[]; lang:
         </motion.a>
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}>
+        <motion.div initial={entra({ opacity: 0, y: 20 })} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}>
           <h1 style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(36px, 7vw, 100px)", letterSpacing: "0.01em", lineHeight: 0.9, marginBottom: "52px" }}>
             {cBlog.title}
           </h1>
@@ -43,7 +45,7 @@ export function BlogListView({ posts, lang, onNavigate }: { posts: Post[]; lang:
 
         {/* Category filters */}
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={entra({ opacity: 0, y: 12 })}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.15, ease: "easeOut" }}
           className="flex flex-wrap gap-3"
@@ -98,7 +100,7 @@ export function BlogListView({ posts, lang, onNavigate }: { posts: Post[]; lang:
             <motion.a
               key={post.slug}
               {...linkProps(articleHref(post.slug, lang), onNavigate)}
-              initial={{ opacity: 0, y: 20 }}
+              initial={entra({ opacity: 0, y: 20 })}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: i * 0.05, ease: "easeOut" }}
               className="group cursor-pointer flex flex-col sm:flex-row sm:items-start sm:justify-between sm:gap-16 py-8 md:py-10"

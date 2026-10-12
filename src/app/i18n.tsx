@@ -75,14 +75,16 @@ export function LangProvider({ children }: { children: ReactNode }) {
       // ignore write failures (e.g. private browsing)
     }
   }
-  /* O idioma é escolhido no cliente, por isso o <html lang> e o <title> que vêm
-     no index.html ficam desatualizados assim que alguém troca para inglês.
-     Mantém os dois a par do conteúdo que está realmente a ser mostrado. */
+  /* O idioma é escolhido no cliente, por isso o <html lang> que vem no
+     index.html fica desatualizado assim que alguém troca para inglês. Mantém-no
+     a par do conteúdo que está realmente a ser mostrado.
+
+     O <title> e a <meta description> já não são daqui: dependem da página e
+     não só do idioma, e este efeito, que só conhece o idioma, repunha o título
+     genérico do site por cima do que o HTML pré-renderizado trazia — ver
+     `pageMeta.ts` e o `useDocumentMeta` do `App`. */
   useEffect(() => {
-    const meta = COPY[lang].meta
     document.documentElement.lang = lang
-    document.title = meta.title
-    document.querySelector('meta[name="description"]')?.setAttribute("content", meta.description)
   }, [lang])
 
   return <LangContext.Provider value={{ lang, setLang, forceLang: setLangState }}>{children}</LangContext.Provider>
