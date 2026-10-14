@@ -125,3 +125,13 @@ texto. Abre um PR como qualquer outro: esses nunca se juntam sozinhos.
 **Passaram semanas e não apareceu nada?** O GitHub desliga as tarefas agendadas
 de um repositório sem atividade durante 60 dias. Em *Actions*, procura o aviso
 a dizer que o workflow foi desativado e volta a ativá-lo.
+
+**A execução de *Gerar artigos* ficou vermelha com um erro de autenticação?**
+A automação não guarda nenhuma chave, por isso não há nada que renovar: em cada
+execução o GitHub assina um token de curta duração e a Anthropic troca-o por um
+acesso, segundo uma *regra de federação* criada na consola da Anthropic (página
+*Workload identity*). Se a regra for apagada ou desativada, ou deixar de aceitar
+este repositório e o ramo `main`, a troca falha, e a página da consola mostra o
+motivo nos eventos de autenticação. O secret `ANTHROPIC_API_KEY` do repositório
+já não é usado e pode ser apagado. Num terminal, `npm run gerar` continua a
+precisar de uma `ANTHROPIC_API_KEY` no ambiente.

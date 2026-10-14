@@ -21,6 +21,9 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  # Sem esta, o GitHub não emite o token de identidade (OIDC) que o passo
+  # «Obter o token de identidade» pede, e a troca por um acesso à API falha.
+  id-token: write
 
 concurrency:
   group: gerar-artigos
@@ -77,11 +80,62 @@ jobs:
       - run: npm ci
         if: steps.guarda.outputs.saltar != 'true'
 
+      # Autenticação na API por federação de identidade (OIDC): o GitHub assina
+      # um token de curta duração para esta execução, e a Anthropic troca-o por
+      # um acesso também de curta duração. Não há chave guardada em lado nenhum,
+      # logo não há nada que possa caducar em silêncio, que foi o que a chave
+      # estática fez: falhou durante doze dias e só se viu pelo 401.
+      #
+      # O SDK não sabe pedir o token ao GitHub, e quer um **ficheiro** com ele
+      # (`ANTHROPIC_IDENTITY_TOKEN_FILE`), não o valor. Escreve-se aqui, mesmo
+      # antes do passo que o usa, para estar fresco quando for lido.
+      #
+      # O ficheiro vai para `$RUNNER_TEMP` (`/home/runner/work/_temp`), que fica
+      # ao lado do checkout e não dentro dele (`$GITHUB_WORKSPACE`). O script
+      # recusa-se a continuar se um dia deixar de ser assim, e o commit só leva
+      # `content/blog/` de qualquer maneira: duas barreiras, não uma.
+      - name: Obter o token de identidade
+        id: oidc
+        if: steps.guarda.outputs.saltar != 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('node:fs')
+            const path = require('node:path')
+
+            const token = await core.getIDToken('https://api.anthropic.com')
+            // Antes de qualquer outra coisa: a partir daqui o valor nunca chega
+            // a um registo, nem por engano.
+            core.setSecret(token)
+
+            const ficheiro = path.join(process.env.RUNNER_TEMP, 'anthropic-oidc-token')
+            const relativo = path.relative(process.env.GITHUB_WORKSPACE, ficheiro)
+            if (!relativo.startsWith('..') && !path.isAbsolute(relativo)) {
+              throw new Error('o ficheiro do token ficaria dentro do checkout: ' + ficheiro)
+            }
+
+            fs.writeFileSync(ficheiro, token, { mode: 0o600 })
+            // O caminho não é segredo; é o ficheiro que o passo seguinte precisa de saber onde está.
+            core.setOutput('ficheiro', ficheiro)
+
       - name: Gerar
         id: gerar
         if: steps.guarda.outputs.saltar != 'true'
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Estes quatro identificadores vêm do teste que a consola da Anthropic
+          # mostra ao criar a regra de federação. São configuração, não
+          # credenciais, e por isso estão aqui e não em `secrets`: sem um token
+          # OIDC assinado pelo GitHub para este repositório e para o ramo `main`,
+          # não servem para nada. (A consola também os põe num workflow.)
+          # Consequência: um `workflow_dispatch` corrido a partir de outro ramo
+          # que não o `main` é recusado pela regra, e é assim que se quer.
+          ANTHROPIC_FEDERATION_RULE_ID: fdrl_01XAxS2jvMHUojSjvtf14A5x
+          ANTHROPIC_ORGANIZATION_ID: c99e6f25-0679-43cb-8dec-da3e8c7b68ba
+          ANTHROPIC_SERVICE_ACCOUNT_ID: svac_01VqeUyndXHB2Y5RnVzsCdR2
+          ANTHROPIC_WORKSPACE_ID: wrkspc_019nKYk8pw6bkJHszVY5MNUE
+          # O quinto é o caminho do ficheiro do passo anterior (o SDK lê-o ele
+          # próprio, e só o caminho passa pelo ambiente, nunca o token).
+          ANTHROPIC_IDENTITY_TOKEN_FILE: ${{ steps.oidc.outputs.ficheiro }}
           # Os valores do formulário do `workflow_dispatch` passam por variáveis
           # de ambiente e nunca são escritos dentro do script: o `lote` é texto
           # livre, e uma expressão `${{ }}` dentro do `run` seria interpretada
