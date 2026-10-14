@@ -3,6 +3,7 @@ import { translateCategory, translateDate, translateReadTime, COPY } from "../i1
 import type { Lang, Post } from "@/lib/blog/types"
 import { GOLD, SANS, SERIF, CAMPTON_BOOK } from "./tokens"
 import { blogHref, linkProps, type OnNavigate } from "./navigate"
+import { PageFooter } from "../legal/LegalFooter"
 
 /* ─── Estilos do corpo do artigo ─────────────────────────────────────────────
    Antes da migração para Markdown o corpo era um array de blocos e os estilos
@@ -35,7 +36,7 @@ import { blogHref, linkProps, type OnNavigate } from "./navigate"
    o texto corrido fica visualmente igual e o destaque pode subir de tom.
    Os títulos mantêm a `opacity` de sempre — nada lá dentro precisa de ser
    mais claro do que eles. ─────────────────────────────────────────────────── */
-const BODY_CLASS = "blog-article-body"
+export const BODY_CLASS = "blog-article-body"
 
 /* Tons do texto, em alfa sobre o dourado: corrido 65 % (o antigo
    `opacity: 0.65`), destaque 95 %, citação 85 %, marcadores e filetes mais
@@ -56,7 +57,7 @@ const BODY_TEXT = `
   line-height: 1.85;
 `
 
-const BODY_CSS = `
+export const BODY_CSS = `
 .${BODY_CLASS} { overflow-wrap: break-word; }
 
 /* ── Títulos ── */
@@ -349,6 +350,8 @@ export function ArticleView({ post, lang, onNavigate, instant = false }: { post:
           </motion.a>
         </div>
       </div>
+
+      <PageFooter lang={lang} onNavigate={onNavigate} />
     </div>
   )
 }

@@ -18,7 +18,7 @@ import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a
 import imgTeamOv2  from "@/imports/Equipa/147c0dc1f2d747da38ed29077bb5ca6a2131f401.png"
 import imgTeamOv3  from "@/imports/Equipa/f54adf1f173bd3d652fbb4045cf6b96b0314465f.png"
 import imgTeamOv4  from "@/imports/Equipa/6b262635396e81047e7283b201ec9ec494f79879.png"
-import { LangProvider, useLang, useLangControls, useLangFromPath, langFromPath, blogPathIn, COPY, type Lang } from "./i18n"
+import { LangProvider, useLang, useLangControls, useLangFromPath, langFromPath, pagePathIn, COPY, type Lang } from "./i18n"
 import { pageMeta } from "./pageMeta"
 import { ARRANCOU_PRERENDERIZADO, useEntradaInstantanea } from "./primeiraPintura"
 import { ArticleView } from "./blog/ArticleView"
@@ -27,6 +27,10 @@ import { BlogListView } from "./blog/BlogListView"
 import { blogHref } from "./blog/navigate"
 import { GOLD, CAMPTON_BOLD, CAMPTON_BOOK, SANS, SERIF } from "./blog/tokens"
 import { postsFor, postBySlug } from "@/lib/blog/posts"
+import { TeentacInteractiveMockup } from "./TeentacMockup"
+import { LegalView } from "./legal/LegalView"
+import { LegalLinks, PageFooter } from "./legal/LegalFooter"
+import type { LegalPage } from "./legal/content"
 
 /* ─── Custom scroll progress — bypasses framer-motion container position check */
 function useScrollProgress(
@@ -135,99 +139,6 @@ function LazyVideo({ src, className, style }: { src: string; className?: string;
   )
 }
 
-/* ─── Teentac portfolio mockup — real site loaded inside the laptop screen ───
-   The screen in the mockup photo is a slightly rotated trapezoid (real
-   perspective, not a parallelogram — its diagonals' midpoints don't
-   coincide), so a best-fit *affine* transform (no perspective term) leaves a
-   visible ~10px-per-corner residual, which reads as the whole overlay
-   sitting slightly crooked relative to the bezel. We corner-pin instead with
-   a true projective transform (unit-square-to-quad, Heckbert's classic
-   mapping) expressed as a CSS matrix3d, which matches all four measured
-   corners exactly. The four corners are re-projected into the container's
-   own box on every resize using the same math the browser uses for
-   object-fit: cover, so the fit stays correct at any card width/height. */
-const TEENTAC_IMG_W = 1920
-const TEENTAC_IMG_H = 1440
-const TEENTAC_SCREEN_CORNERS: { tl: [number, number]; tr: [number, number]; br: [number, number]; bl: [number, number] } = {
-  tl: [625.7, 358.1],
-  tr: [1490.8, 334.8],
-  br: [1452.4, 910.7],
-  bl: [550.6, 898.6],
-}
-
-// Classic unit-square (0,0)-(1,0)-(1,1)-(0,1) -> quad projective mapping.
-function squareToQuad(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) {
-  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3
-  const dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3
-  let a: number, b: number, d: number, e: number, g: number, h: number
-  if (dx3 === 0 && dy3 === 0) {
-    a = x1 - x0; b = x2 - x1; d = y1 - y0; e = y2 - y1; g = 0; h = 0
-  } else {
-    const denom = dx1 * dy2 - dx2 * dy1
-    g = (dx3 * dy2 - dx2 * dy3) / denom
-    h = (dx1 * dy3 - dx3 * dy1) / denom
-    a = x1 - x0 + g * x1
-    b = x3 - x0 + h * x3
-    d = y1 - y0 + g * y1
-    e = y3 - y0 + h * y3
-  }
-  return { a, b, c: x0, d, e, f: y0, g, h }
-}
-
-function TeentacInteractiveMockup({ img, className }: { img: string; className?: string }) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null)
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      setBox({ w: width, h: height })
-    })
-    ro.observe(el)
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setVisible(true); io.disconnect() }
-    }, { rootMargin: "800px" })
-    io.observe(el)
-    return () => { ro.disconnect(); io.disconnect() }
-  }, [])
-
-  const IFRAME_W = 1280
-  const IFRAME_H = 800
-
-  const matrix3d = (() => {
-    if (!box || box.w === 0 || box.h === 0) return null
-    // Same math as object-fit: cover, so the corners stay locked to the
-    // laptop's actual screen regardless of how the photo itself is cropped.
-    const scale = Math.max(box.w / TEENTAC_IMG_W, box.h / TEENTAC_IMG_H)
-    const offsetX = (box.w - TEENTAC_IMG_W * scale) / 2
-    const offsetY = (box.h - TEENTAC_IMG_H * scale) / 2
-    const toBox = ([px, py]: [number, number]): [number, number] => [offsetX + px * scale, offsetY + py * scale]
-    const [x0, y0] = toBox(TEENTAC_SCREEN_CORNERS.tl)
-    const [x1, y1] = toBox(TEENTAC_SCREEN_CORNERS.tr)
-    const [x2, y2] = toBox(TEENTAC_SCREEN_CORNERS.br)
-    const [x3, y3] = toBox(TEENTAC_SCREEN_CORNERS.bl)
-    const sq = squareToQuad(x0, y0, x1, y1, x2, y2, x3, y3)
-    return `matrix3d(${sq.a / IFRAME_W}, ${sq.d / IFRAME_W}, 0, ${sq.g / IFRAME_W}, ${sq.b / IFRAME_H}, ${sq.e / IFRAME_H}, 0, ${sq.h / IFRAME_H}, 0, 0, 1, 0, ${sq.c}, ${sq.f}, 0, 1)`
-  })()
-
-  return (
-    <div ref={containerRef} className={className} style={{ position: "relative" }}>
-      <img src={img} alt="Teentac" className="size-full object-cover" style={{ position: "absolute", inset: 0 }} />
-      {matrix3d && (
-        <iframe
-          src={visible ? "https://www.teentac.pt/" : undefined}
-          title="Teentac — pré-visualização em direto"
-          className="absolute"
-          style={{ left: 0, top: 0, width: `${IFRAME_W}px`, height: `${IFRAME_H}px`, border: 0, transformOrigin: "0 0", transform: matrix3d, background: "#fff" }}
-        />
-      )}
-    </div>
-  )
-}
-
 /* GOLD, PALMORE, CAMPTON_BOLD, CAMPTON_BOOK, SANS e SERIF vivem agora em
    `./blog/tokens`, para que os componentes do blog os possam usar sem
    importar o App inteiro. Os valores são exatamente os mesmos. */
@@ -255,7 +166,8 @@ function LangSwitch({ variant = "nav", onNavigated }: { variant?: "nav" | "menu"
      página recarrega. Trocar só o estado deixava o URL a dizer `/en` com o
      texto em português — e o recarregar desfazia a escolha. Por isso aqui a
      troca leva também para a versão correspondente da mesma página. Fora do
-     blog não há par de endereços e o `blogPathIn` devolve `null`.
+     blog e das páginas legais não há par de endereços e o `pagePathIn`
+     devolve `null`.
 
      `replace: true` — troca de idioma não é um novo passo no histórico, é a
      mesma página noutra língua. Sem isto, o botão Voltar do browser tinha de
@@ -263,7 +175,7 @@ function LangSwitch({ variant = "nav", onNavigated }: { variant?: "nav" | "menu"
      idioma, sem efeito visível, e só a seguir a navegação real). */
   const escolher = (l: Lang) => {
     setLang(l)
-    const destino = blogPathIn(location.pathname, l)
+    const destino = pagePathIn(location.pathname, l)
     if (destino && destino !== location.pathname) navigate(destino, { replace: true })
     /* No menu móvel isto vive dentro do overlay a tapar o ecrã — os restantes
        botões desse overlay fecham-no ao navegar (via `go()`), e este tinha
@@ -918,6 +830,7 @@ function MobilePortfolioCard({
 
 function PortfolioSection() {
   const lang = useLang()
+  const navigate = useNavigate()
   const c = COPY[lang].portfolio
   const ref = useRef<HTMLDivElement>(null)
   useHorizontalSwipeToScroll(ref)
@@ -1049,7 +962,7 @@ function PortfolioSection() {
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : item.client === "Teentac"
-                      ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" />
+                      ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" onNavigate={navigate} />
                       : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
                   }
                 </div>
@@ -1100,7 +1013,7 @@ function ContactSection() {
   const c = COPY[lang].contact
   const labelStyle: React.CSSProperties = { color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(20px, 2.36vw, 34px)", lineHeight: 1.1, letterSpacing: "0.01em" }
   const sep = <span style={{ color: GOLD, opacity: 0.35, fontSize: "clamp(15px, 1.39vw, 20px)" }}> // </span>
-  const footerLink: React.CSSProperties = { color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "clamp(11px, 0.85vw, 13px)", opacity: 0.4, letterSpacing: "2px", textTransform: "uppercase", textDecoration: "none" }
+  const navigate = useNavigate()
 
   return (
     <div className="relative min-h-screen flex flex-col justify-end pb-10 md:pb-16 pt-24 md:pt-0" id="contact">
@@ -1128,12 +1041,10 @@ function ContactSection() {
           </div>
         </motion.div>
 
-        {/* Footer — 3 separate links + copyright */}
+        {/* Footer — Privacidade e Cookies (páginas do site), Termos (iubenda) + copyright */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-5 gap-4" style={{ borderTop: `1px solid ${GOLD}1a` }}>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-8">
-            <a href="https://www.iubenda.com/privacy-policy/48985541" target="_blank" rel="noopener noreferrer" style={footerLink}>{c.privacy}</a>
-            <a href="https://www.iubenda.com/privacy-policy/48985541/cookie-policy" target="_blank" rel="noopener noreferrer" style={footerLink}>{c.cookies}</a>
-            <a href="https://www.iubenda.com/termos-e-condicoes/48985541" target="_blank" rel="noopener noreferrer" style={footerLink}>{c.terms}</a>
+            <LegalLinks lang={lang} onNavigate={navigate} />
           </div>
           <div className="flex items-center gap-5">
             <LangSwitch />
@@ -1507,6 +1418,15 @@ function ArticlePage() {
   return <ArticleView post={post} lang={lang} onNavigate={navigate} instant={instant} />
 }
 
+/* As políticas legais: o idioma vem do endereço (ver `langFromPath`), por isso
+   o `lang` aqui já é o da página. */
+function LegalPageRoute({ page }: { page: LegalPage }) {
+  const lang = useLang()
+  const navigate = useNavigate()
+  const instant = useEntradaInstantanea()
+  return <LegalView page={page} lang={lang} onNavigate={navigate} instant={instant} />
+}
+
 /* ─── Home Page ──────────────────────────────────────────────────────────── */
 function HomePage() {
   return (
@@ -1551,12 +1471,19 @@ function Layout() {
   const { pathname } = useLocation()
   useLangFromPath(pathname)
   useDocumentMeta(pathname)
+  const lang = useLang()
+  const navigate = useNavigate()
+  /* O blog e as políticas trazem o seu rodapé dentro das próprias vistas (que
+     também se renderizam no servidor); a página inicial tem o rodapé grande,
+     na secção de contacto. Faltavam estas duas. */
+  const rodapePequeno = /^\/(team|services)\/?$/.test(pathname)
   return (
     <div>
       <ScrollToTop />
       <BackgroundVideo />
       <SiteNav />
       <Outlet />
+      {rodapePequeno && <PageFooter lang={lang} onNavigate={navigate} />}
     </div>
   )
 }
@@ -1579,6 +1506,12 @@ const router = createBrowserRouter([
          assim que o JavaScript montasse. */
       { path: "en/blog",       Component: BlogPage },
       { path: "en/blog/:slug", Component: ArticlePage },
+      /* As políticas de privacidade e de cookies, também uma por idioma — os
+         endereços são os de `scripts/legal.mjs`. */
+      { path: "privacidade",   element: <LegalPageRoute page="privacy" /> },
+      { path: "cookies",       element: <LegalPageRoute page="cookies" /> },
+      { path: "en/privacy",    element: <LegalPageRoute page="privacy" /> },
+      { path: "en/cookies",    element: <LegalPageRoute page="cookies" /> },
     ],
   },
 ])
@@ -1641,9 +1574,10 @@ function LoadingScreen({ progress }: { progress: number }) {
   )
 }
 
-/* As páginas do blog são pré-renderizadas em HTML. Se ficassem à espera do
+/* As páginas do blog e as legais são pré-renderizadas em HTML. Se ficassem à espera do
    vídeo do hero, o visitante olhava para o ecrã de carregamento enquanto o
-   texto já estava na página — por isso nestas rotas o preloader é ignorado. */
+   texto já estava na página — por isso nestas rotas o preloader é ignorado (o mesmo vale para as
+   políticas legais, que o `langFromPath` também reconhece). */
 const isBlogPath = (pathname: string) => langFromPath(pathname) !== null
 
 export default function App() {

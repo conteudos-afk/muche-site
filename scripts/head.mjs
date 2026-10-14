@@ -9,6 +9,8 @@
    Este módulo produz esse bloco. É `.mjs` simples e sem dependências porque é
    chamado pelo `prerender.mjs`, que corre no Node depois do `vite build`, sem
    passar pelo compilador. ─────────────────────────────────────────────────── */
+import { legalMeta, legalPath } from './legal.mjs'
+
 const BASE = 'https://www.muche.pt'
 
 /* ─── Barra final ────────────────────────────────────────────────────────────
@@ -151,6 +153,32 @@ export function buildListHead({ lang }) {
     `<meta property="og:image:alt" content="${esc(OG_IMAGE_ALT)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<script type="application/ld+json">${jsonLd(jsonld)}</script>`,
+  ].join('\n    ')
+}
+
+/* ─── As páginas legais ──────────────────────────────────────────────────────
+   A política de privacidade e a de cookies, cada uma em pt e en. Os endereços
+   e os textos do `<head>` vêm do `legal.mjs` — ver lá. Como o resto do site,
+   cada uma declara o par pt/en e tem o seu próprio canónico, com barra final.
+   Não levam JSON-LD: não são artigos nem uma coleção, e um `WebPage` sem mais
+   nada não diz nada que o `<title>` não diga. */
+export function buildLegalHead({ page, lang }) {
+  const { title, description } = legalMeta(page, lang)
+  const self = legalPath(page, lang)
+  return [
+    `<title>${esc(fullTitle(title))}</title>`,
+    `<meta name="description" content="${esc(description)}" />`,
+    `<link rel="canonical" href="${BASE}${self}" />`,
+    `<link rel="alternate" hreflang="pt" href="${BASE}${legalPath(page, 'pt')}" />`,
+    `<link rel="alternate" hreflang="en" href="${BASE}${legalPath(page, 'en')}" />`,
+    `<meta property="og:title" content="${esc(fullTitle(title))}" />`,
+    `<meta property="og:description" content="${esc(description)}" />`,
+    `<meta property="og:url" content="${BASE}${self}" />`,
+    `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="Muche" />`,
+    `<meta property="og:image" content="${OG_IMAGE}" />`,
+    `<meta property="og:image:alt" content="${esc(OG_IMAGE_ALT)}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
   ].join('\n    ')
 }
 

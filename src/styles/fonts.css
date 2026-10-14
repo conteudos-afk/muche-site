@@ -1,6 +1,23 @@
 /* Palmore e Campton — fontes de marca da MUCHE, embutidas via @font-face.
-   Google Fonts continuam como fallback caso um ficheiro de fonte falhe a carregar. */
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,200;1,300;1,400&family=Jost:wght@300;400;500;600;700&display=swap');
+   Jost e Cormorant Garamond são as de recurso (ver `tokens.ts`) e vêm do
+   nosso próprio domínio, através dos pacotes `@fontsource`.
+
+   Antes vinham de um `@import` ao `fonts.googleapis.com`, o que fazia o
+   browser de cada visitante contactar a Google, e entregar-lhe o IP, só por
+   abrir o site — sem aviso e sem consentimento. Servidas daqui, nenhum
+   pedido sai do domínio. Os pesos são os que o `@import` pedia (Jost 300–700;
+   Cormorant 300 e 400, normal e itálico), só no subconjunto latino, que
+   chega para o português e o inglês. O teste `semTerceiros.test.ts` impede
+   que um endereço de fora volte a entrar aqui. */
+@import '@fontsource/jost/latin-300.css';
+@import '@fontsource/jost/latin-400.css';
+@import '@fontsource/jost/latin-500.css';
+@import '@fontsource/jost/latin-600.css';
+@import '@fontsource/jost/latin-700.css';
+@import '@fontsource/cormorant-garamond/latin-300.css';
+@import '@fontsource/cormorant-garamond/latin-400.css';
+@import '@fontsource/cormorant-garamond/latin-300-italic.css';
+@import '@fontsource/cormorant-garamond/latin-400-italic.css';
 
 @font-face {
   font-family: 'Palmore';
