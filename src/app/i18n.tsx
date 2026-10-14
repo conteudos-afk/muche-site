@@ -134,7 +134,17 @@ export const COPY = {
       sub: "always guided by the same principle:",
       quote: "Have you relax while we turn challenges into thoughtful, effective creative work.",
     },
-    portfolio: { concept: "Concept", client: "Client", scroll: "Scroll" },
+    portfolio: {
+      concept: "Concept", client: "Client", scroll: "Scroll",
+      /* A pré-visualização do Teentac só carrega depois de o visitante a
+         pedir: o texto tem de dizer, antes do clique, o que o clique faz. */
+      teentac: {
+        title: "Teentac — live preview",
+        load: "Load live preview",
+        note: "Opens Teentac's real website in here. Once it loads, teentac.pt can see your IP address and may set its own cookies.",
+        more: "Find out more",
+      },
+    },
     contact: {
       heading: ["let's", "Talk?"],
       email: "Email",
@@ -175,7 +185,15 @@ export const COPY = {
       sub: "sempre guiados pelo mesmo princípio:",
       quote: "Relaxar os nossos clientes enquanto transformamos os desafios em propostas criativas, cuidadas e eficazes.",
     },
-    portfolio: { concept: "Conceito", client: "Cliente", scroll: "Scroll" },
+    portfolio: {
+      concept: "Conceito", client: "Cliente", scroll: "Scroll",
+      teentac: {
+        title: "Teentac — pré-visualização em direto",
+        load: "Carregar pré-visualização",
+        note: "Abre aqui dentro o site real do Teentac. Ao carregar, o teentac.pt fica a ver o teu endereço IP e pode guardar cookies próprios.",
+        more: "Saber mais",
+      },
+    },
     contact: {
       heading: ["vamos", "Falar?"],
       email: "Email",

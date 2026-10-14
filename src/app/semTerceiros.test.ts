@@ -48,3 +48,10 @@ test('o localStorage só guarda o idioma, e só o i18n lhe toca', () => {
   for (const c of chaves) expect(c).toBe('STORAGE_KEY')
   expect(ler('src/app/i18n.tsx')).toMatch(/const STORAGE_KEY = "muche-lang"/)
 })
+
+test('nenhum <script> nem <iframe> de fora: o único iframe é o do Teentac', () => {
+  const comIframe = CODIGO.filter(f => /<iframe/.test(ler(f)))
+  expect(comIframe).toEqual([path.join('src', 'app', 'TeentacMockup.tsx')])
+  for (const f of CODIGO) expect(ler(f), f).not.toMatch(/<script/)
+  expect(ler('index.html').match(/<script/g)).toHaveLength(1)
+})

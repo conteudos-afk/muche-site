@@ -27,6 +27,7 @@ import { BlogListView } from "./blog/BlogListView"
 import { blogHref } from "./blog/navigate"
 import { GOLD, CAMPTON_BOLD, CAMPTON_BOOK, SANS, SERIF } from "./blog/tokens"
 import { postsFor, postBySlug } from "@/lib/blog/posts"
+import { TeentacInteractiveMockup } from "./TeentacMockup"
 
 /* ─── Custom scroll progress — bypasses framer-motion container position check */
 function useScrollProgress(
@@ -132,99 +133,6 @@ function LazyVideo({ src, className, style }: { src: string; className?: string;
       className={className}
       style={style}
     />
-  )
-}
-
-/* ─── Teentac portfolio mockup — real site loaded inside the laptop screen ───
-   The screen in the mockup photo is a slightly rotated trapezoid (real
-   perspective, not a parallelogram — its diagonals' midpoints don't
-   coincide), so a best-fit *affine* transform (no perspective term) leaves a
-   visible ~10px-per-corner residual, which reads as the whole overlay
-   sitting slightly crooked relative to the bezel. We corner-pin instead with
-   a true projective transform (unit-square-to-quad, Heckbert's classic
-   mapping) expressed as a CSS matrix3d, which matches all four measured
-   corners exactly. The four corners are re-projected into the container's
-   own box on every resize using the same math the browser uses for
-   object-fit: cover, so the fit stays correct at any card width/height. */
-const TEENTAC_IMG_W = 1920
-const TEENTAC_IMG_H = 1440
-const TEENTAC_SCREEN_CORNERS: { tl: [number, number]; tr: [number, number]; br: [number, number]; bl: [number, number] } = {
-  tl: [625.7, 358.1],
-  tr: [1490.8, 334.8],
-  br: [1452.4, 910.7],
-  bl: [550.6, 898.6],
-}
-
-// Classic unit-square (0,0)-(1,0)-(1,1)-(0,1) -> quad projective mapping.
-function squareToQuad(x0: number, y0: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number) {
-  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3
-  const dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3
-  let a: number, b: number, d: number, e: number, g: number, h: number
-  if (dx3 === 0 && dy3 === 0) {
-    a = x1 - x0; b = x2 - x1; d = y1 - y0; e = y2 - y1; g = 0; h = 0
-  } else {
-    const denom = dx1 * dy2 - dx2 * dy1
-    g = (dx3 * dy2 - dx2 * dy3) / denom
-    h = (dx1 * dy3 - dx3 * dy1) / denom
-    a = x1 - x0 + g * x1
-    b = x3 - x0 + h * x3
-    d = y1 - y0 + g * y1
-    e = y3 - y0 + h * y3
-  }
-  return { a, b, c: x0, d, e, f: y0, g, h }
-}
-
-function TeentacInteractiveMockup({ img, className }: { img: string; className?: string }) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [box, setBox] = useState<{ w: number; h: number } | null>(null)
-  const [visible, setVisible] = useState(false)
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      const { width, height } = entry.contentRect
-      setBox({ w: width, h: height })
-    })
-    ro.observe(el)
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setVisible(true); io.disconnect() }
-    }, { rootMargin: "800px" })
-    io.observe(el)
-    return () => { ro.disconnect(); io.disconnect() }
-  }, [])
-
-  const IFRAME_W = 1280
-  const IFRAME_H = 800
-
-  const matrix3d = (() => {
-    if (!box || box.w === 0 || box.h === 0) return null
-    // Same math as object-fit: cover, so the corners stay locked to the
-    // laptop's actual screen regardless of how the photo itself is cropped.
-    const scale = Math.max(box.w / TEENTAC_IMG_W, box.h / TEENTAC_IMG_H)
-    const offsetX = (box.w - TEENTAC_IMG_W * scale) / 2
-    const offsetY = (box.h - TEENTAC_IMG_H * scale) / 2
-    const toBox = ([px, py]: [number, number]): [number, number] => [offsetX + px * scale, offsetY + py * scale]
-    const [x0, y0] = toBox(TEENTAC_SCREEN_CORNERS.tl)
-    const [x1, y1] = toBox(TEENTAC_SCREEN_CORNERS.tr)
-    const [x2, y2] = toBox(TEENTAC_SCREEN_CORNERS.br)
-    const [x3, y3] = toBox(TEENTAC_SCREEN_CORNERS.bl)
-    const sq = squareToQuad(x0, y0, x1, y1, x2, y2, x3, y3)
-    return `matrix3d(${sq.a / IFRAME_W}, ${sq.d / IFRAME_W}, 0, ${sq.g / IFRAME_W}, ${sq.b / IFRAME_H}, ${sq.e / IFRAME_H}, 0, ${sq.h / IFRAME_H}, 0, 0, 1, 0, ${sq.c}, ${sq.f}, 0, 1)`
-  })()
-
-  return (
-    <div ref={containerRef} className={className} style={{ position: "relative" }}>
-      <img src={img} alt="Teentac" className="size-full object-cover" style={{ position: "absolute", inset: 0 }} />
-      {matrix3d && (
-        <iframe
-          src={visible ? "https://www.teentac.pt/" : undefined}
-          title="Teentac — pré-visualização em direto"
-          className="absolute"
-          style={{ left: 0, top: 0, width: `${IFRAME_W}px`, height: `${IFRAME_H}px`, border: 0, transformOrigin: "0 0", transform: matrix3d, background: "#fff" }}
-        />
-      )}
-    </div>
   )
 }
 
@@ -918,6 +826,7 @@ function MobilePortfolioCard({
 
 function PortfolioSection() {
   const lang = useLang()
+  const navigate = useNavigate()
   const c = COPY[lang].portfolio
   const ref = useRef<HTMLDivElement>(null)
   useHorizontalSwipeToScroll(ref)
@@ -1049,7 +958,7 @@ function PortfolioSection() {
                   {"video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : item.client === "Teentac"
-                      ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" />
+                      ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" onNavigate={navigate} />
                       : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
                   }
                 </div>
