@@ -27,6 +27,8 @@ test('inclui as páginas de lista do blog, mesmo sem artigos, cada uma a apontar
 test('nenhum endereço do sitemap fica sem barra final', () => {
   const xml = buildSitemap([{ slug: 'teste', lang: 'pt' }, { slug: 'teste', lang: 'en' }])
   const enderecos = [...xml.matchAll(/(?:<loc>|href=")(https:\/\/[^<"]+)/g)].map(m => m[1])
-  expect(enderecos.length).toBe(4 + 8)
+  /* 4 das listas, 12 das quatro páginas legais (1 `loc` + 2 `hreflang` cada),
+     8 dos dois artigos. */
+  expect(enderecos.length).toBe(4 + 12 + 8)
   for (const url of enderecos) expect(url.endsWith('/')).toBe(true)
 })

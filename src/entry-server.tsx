@@ -14,6 +14,8 @@
 import { renderToString } from 'react-dom/server'
 import { ArticleView } from './app/blog/ArticleView'
 import { BlogListView } from './app/blog/BlogListView'
+import { LegalView } from './app/legal/LegalView'
+import type { LegalPage } from './app/legal/content'
 import { POSTS, postsFor, postBySlug } from './lib/blog/posts'
 import { validatePosts } from './lib/blog/validate'
 import type { Lang, Post } from './lib/blog/types'
@@ -35,4 +37,10 @@ export function renderArticle(post: Post, lang: Lang): string {
 
 export function renderList(posts: Post[], lang: Lang): string {
   return renderToString(<BlogListView posts={posts} lang={lang} />)
+}
+
+/* As políticas de privacidade e de cookies: a mesma vista que o cliente usa,
+   sem `onNavigate` — são `<a href>` a sério no HTML estático. */
+export function renderLegal(page: LegalPage, lang: Lang): string {
+  return renderToString(<LegalView page={page} lang={lang} />)
 }

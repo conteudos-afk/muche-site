@@ -11,6 +11,8 @@
    Tal como o `head.mjs`, isto é `.mjs` simples e sem dependências: corre no
    Node, chamado pelo `prerender.mjs` depois do `vite build`, sem passar pelo
    compilador. ─────────────────────────────────────────────────────────────── */
+import { LEGAL_PAGES, legalPath } from './legal.mjs'
+
 const BASE = 'https://www.muche.pt'
 
 /* Os `<loc>` terminam em barra porque é essa a forma que a Cloudflare Pages
@@ -35,10 +37,14 @@ export function buildSitemap(posts) {
     urlEntry(listUrlFor('pt'), listUrlFor('pt'), listUrlFor('en')),
     urlEntry(listUrlFor('en'), listUrlFor('pt'), listUrlFor('en')),
   ]
+  /* As políticas legais: quatro páginas, duas por documento, cada par com os
+     dois `hreflang`. Entram sempre, como as listas — não dependem dos artigos. */
+  const legais = LEGAL_PAGES.flatMap(page => ['pt', 'en'].map(lang =>
+    urlEntry(BASE + legalPath(page, lang), BASE + legalPath(page, 'pt'), BASE + legalPath(page, 'en'))))
   const artigos = posts.map(({ slug, lang }) =>
     urlEntry(urlFor(slug, lang), urlFor(slug, 'pt'), urlFor(slug, 'en')))
 
-  const entries = [...listas, ...artigos].join('\n')
+  const entries = [...listas, ...legais, ...artigos].join('\n')
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">

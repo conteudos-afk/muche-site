@@ -18,7 +18,7 @@ import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a
 import imgTeamOv2  from "@/imports/Equipa/147c0dc1f2d747da38ed29077bb5ca6a2131f401.png"
 import imgTeamOv3  from "@/imports/Equipa/f54adf1f173bd3d652fbb4045cf6b96b0314465f.png"
 import imgTeamOv4  from "@/imports/Equipa/6b262635396e81047e7283b201ec9ec494f79879.png"
-import { LangProvider, useLang, useLangControls, useLangFromPath, langFromPath, blogPathIn, COPY, type Lang } from "./i18n"
+import { LangProvider, useLang, useLangControls, useLangFromPath, langFromPath, pagePathIn, COPY, type Lang } from "./i18n"
 import { pageMeta } from "./pageMeta"
 import { ARRANCOU_PRERENDERIZADO, useEntradaInstantanea } from "./primeiraPintura"
 import { ArticleView } from "./blog/ArticleView"
@@ -28,6 +28,9 @@ import { blogHref } from "./blog/navigate"
 import { GOLD, CAMPTON_BOLD, CAMPTON_BOOK, SANS, SERIF } from "./blog/tokens"
 import { postsFor, postBySlug } from "@/lib/blog/posts"
 import { TeentacInteractiveMockup } from "./TeentacMockup"
+import { LegalView } from "./legal/LegalView"
+import { LegalLinks, PageFooter } from "./legal/LegalFooter"
+import type { LegalPage } from "./legal/content"
 
 /* ─── Custom scroll progress — bypasses framer-motion container position check */
 function useScrollProgress(
@@ -163,7 +166,8 @@ function LangSwitch({ variant = "nav", onNavigated }: { variant?: "nav" | "menu"
      página recarrega. Trocar só o estado deixava o URL a dizer `/en` com o
      texto em português — e o recarregar desfazia a escolha. Por isso aqui a
      troca leva também para a versão correspondente da mesma página. Fora do
-     blog não há par de endereços e o `blogPathIn` devolve `null`.
+     blog e das páginas legais não há par de endereços e o `pagePathIn`
+     devolve `null`.
 
      `replace: true` — troca de idioma não é um novo passo no histórico, é a
      mesma página noutra língua. Sem isto, o botão Voltar do browser tinha de
@@ -171,7 +175,7 @@ function LangSwitch({ variant = "nav", onNavigated }: { variant?: "nav" | "menu"
      idioma, sem efeito visível, e só a seguir a navegação real). */
   const escolher = (l: Lang) => {
     setLang(l)
-    const destino = blogPathIn(location.pathname, l)
+    const destino = pagePathIn(location.pathname, l)
     if (destino && destino !== location.pathname) navigate(destino, { replace: true })
     /* No menu móvel isto vive dentro do overlay a tapar o ecrã — os restantes
        botões desse overlay fecham-no ao navegar (via `go()`), e este tinha
@@ -1009,7 +1013,7 @@ function ContactSection() {
   const c = COPY[lang].contact
   const labelStyle: React.CSSProperties = { color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(20px, 2.36vw, 34px)", lineHeight: 1.1, letterSpacing: "0.01em" }
   const sep = <span style={{ color: GOLD, opacity: 0.35, fontSize: "clamp(15px, 1.39vw, 20px)" }}> // </span>
-  const footerLink: React.CSSProperties = { color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "clamp(11px, 0.85vw, 13px)", opacity: 0.4, letterSpacing: "2px", textTransform: "uppercase", textDecoration: "none" }
+  const navigate = useNavigate()
 
   return (
     <div className="relative min-h-screen flex flex-col justify-end pb-10 md:pb-16 pt-24 md:pt-0" id="contact">
@@ -1037,12 +1041,10 @@ function ContactSection() {
           </div>
         </motion.div>
 
-        {/* Footer — 3 separate links + copyright */}
+        {/* Footer — Privacidade e Cookies (páginas do site), Termos (iubenda) + copyright */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-5 gap-4" style={{ borderTop: `1px solid ${GOLD}1a` }}>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-8">
-            <a href="https://www.iubenda.com/privacy-policy/48985541" target="_blank" rel="noopener noreferrer" style={footerLink}>{c.privacy}</a>
-            <a href="https://www.iubenda.com/privacy-policy/48985541/cookie-policy" target="_blank" rel="noopener noreferrer" style={footerLink}>{c.cookies}</a>
-            <a href="https://www.iubenda.com/termos-e-condicoes/48985541" target="_blank" rel="noopener noreferrer" style={footerLink}>{c.terms}</a>
+            <LegalLinks lang={lang} onNavigate={navigate} />
           </div>
           <div className="flex items-center gap-5">
             <LangSwitch />
@@ -1416,6 +1418,15 @@ function ArticlePage() {
   return <ArticleView post={post} lang={lang} onNavigate={navigate} instant={instant} />
 }
 
+/* As políticas legais: o idioma vem do endereço (ver `langFromPath`), por isso
+   o `lang` aqui já é o da página. */
+function LegalPageRoute({ page }: { page: LegalPage }) {
+  const lang = useLang()
+  const navigate = useNavigate()
+  const instant = useEntradaInstantanea()
+  return <LegalView page={page} lang={lang} onNavigate={navigate} instant={instant} />
+}
+
 /* ─── Home Page ──────────────────────────────────────────────────────────── */
 function HomePage() {
   return (
@@ -1460,12 +1471,19 @@ function Layout() {
   const { pathname } = useLocation()
   useLangFromPath(pathname)
   useDocumentMeta(pathname)
+  const lang = useLang()
+  const navigate = useNavigate()
+  /* O blog e as políticas trazem o seu rodapé dentro das próprias vistas (que
+     também se renderizam no servidor); a página inicial tem o rodapé grande,
+     na secção de contacto. Faltavam estas duas. */
+  const rodapePequeno = /^\/(team|services)\/?$/.test(pathname)
   return (
     <div>
       <ScrollToTop />
       <BackgroundVideo />
       <SiteNav />
       <Outlet />
+      {rodapePequeno && <PageFooter lang={lang} onNavigate={navigate} />}
     </div>
   )
 }
@@ -1488,6 +1506,12 @@ const router = createBrowserRouter([
          assim que o JavaScript montasse. */
       { path: "en/blog",       Component: BlogPage },
       { path: "en/blog/:slug", Component: ArticlePage },
+      /* As políticas de privacidade e de cookies, também uma por idioma — os
+         endereços são os de `scripts/legal.mjs`. */
+      { path: "privacidade",   element: <LegalPageRoute page="privacy" /> },
+      { path: "cookies",       element: <LegalPageRoute page="cookies" /> },
+      { path: "en/privacy",    element: <LegalPageRoute page="privacy" /> },
+      { path: "en/cookies",    element: <LegalPageRoute page="cookies" /> },
     ],
   },
 ])
@@ -1550,9 +1574,10 @@ function LoadingScreen({ progress }: { progress: number }) {
   )
 }
 
-/* As páginas do blog são pré-renderizadas em HTML. Se ficassem à espera do
+/* As páginas do blog e as legais são pré-renderizadas em HTML. Se ficassem à espera do
    vídeo do hero, o visitante olhava para o ecrã de carregamento enquanto o
-   texto já estava na página — por isso nestas rotas o preloader é ignorado. */
+   texto já estava na página — por isso nestas rotas o preloader é ignorado (o mesmo vale para as
+   políticas legais, que o `langFromPath` também reconhece). */
 const isBlogPath = (pathname: string) => langFromPath(pathname) !== null
 
 export default function App() {

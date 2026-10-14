@@ -10,14 +10,16 @@
    `renderToString`, mete o resultado dentro do `<div id="root">` e troca o
    `<head>` genérico do site pelas etiquetas próprias da página. O resultado
    são páginas completas em `dist/blog/<slug>/index.html` (pt) e
-   `dist/en/blog/<slug>/index.html` (en), mais as duas listas.
+   `dist/en/blog/<slug>/index.html` (en), mais as duas listas e as quatro
+   páginas legais (privacidade e cookies, nos dois idiomas).
 
    O JavaScript continua a carregar por cima e a aplicação arranca como
    sempre; a diferença é que o texto já lá está antes disso. ──────────────── */
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import { buildHead, buildListHead, revealInitialState } from './head.mjs'
+import { buildHead, buildListHead, buildLegalHead, revealInitialState } from './head.mjs'
+import { legalOutputs } from './legal.mjs'
 import { buildSitemap } from './sitemap.mjs'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -63,7 +65,7 @@ const molde = fs.readFileSync(TEMPLATE, 'utf-8')
 /* O `import.meta.glob` do `posts.ts` só existe depois do Vite, por isso os
    artigos vêm do bundle compilado — e é ao importá-lo que o `parsePost` corre
    e os avisos (se os houver) aparecem. */
-const { renderArticle, renderList, POSTS, postsFor, postBySlug, validatePosts, LANGS } =
+const { renderArticle, renderList, renderLegal, POSTS, postsFor, postBySlug, validatePosts, LANGS } =
   await import(pathToFileURL(SSR_ENTRY).href)
 
 /* ─── Frontmatter incompleto ─────────────────────────────────────────────────
@@ -122,6 +124,7 @@ const prefixo = (lang) => (lang === 'pt' ? [] : [lang])
 const todosOsPosts = []
 
 let escritos = 0
+let legais = 0
 for (const lang of LANGS) {
   const posts = postsFor(lang)
   for (const { slug } of posts) todosOsPosts.push({ slug, lang })
@@ -161,6 +164,25 @@ for (const lang of LANGS) {
   }
 }
 
+/* ─── As políticas legais ────────────────────────────────────────────────────
+   Privacidade e cookies, nos dois idiomas: quatro páginas, no endereço que o
+   `legal.mjs` define (`/privacidade/`, `/cookies/`, `/en/privacy/`,
+   `/en/cookies/`). Têm de se ler sem JavaScript, como os artigos. */
+for (const { page, lang, dir } of legalOutputs()) {
+  const corpo = renderLegal(page, lang)
+  /* Uma política que sai vazia é pior do que nenhuma: um ficheiro Markdown em
+     falta ou vazio dava uma página só com o título. */
+  if (corpo.length < 2000) falhar(`a página legal "${page}" (${lang}) saiu com ${corpo.length} caracteres — o texto está em falta?`)
+  const pagina = montarPagina({
+    head: buildLegalHead({ page, lang }),
+    body: corpo,
+    lang,
+  })
+  console.log(`  ${rel(escrever(dir, pagina))}`)
+  escritos++
+  legais++
+}
+
 /* O `sitemap.xml` fica na raiz do `dist`, não num `index.html` dentro de
    pasta — por isso não usa o `escrever()` de cima, mas segue o mesmo padrão:
    cria a pasta de destino (aqui, já existe) e grava o ficheiro. */
@@ -179,4 +201,4 @@ if (avisos.length > 0) {
   )
 }
 
-console.log(`\n✓ pré-renderizadas ${escritos} páginas do blog\n`)
+console.log(`\n✓ pré-renderizadas ${escritos} páginas (${escritos - legais} do blog, ${legais} legais)\n`)

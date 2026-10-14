@@ -1,6 +1,7 @@
 import { COPY, langFromPath, type Lang } from "./i18n"
 import { postBySlug } from "@/lib/blog/posts"
 import { fullTitle, listMeta } from "../../scripts/head.mjs"
+import { legalMeta, legalPageFromPath } from "../../scripts/legal.mjs"
 
 /* ─── Título e descrição de cada página ──────────────────────────────────────
    O `prerender.mjs` escreve no HTML de cada página do blog o `<title>` e a
@@ -38,6 +39,13 @@ export function pageMeta(pathname: string, lang: Lang): PageMeta {
        site, não o de um artigo inventado a partir do endereço. */
   } else if (LISTA.test(pathname)) {
     const { title, description } = listMeta(l)
+    return { title: fullTitle(title), description }
+  }
+  /* As políticas legais têm título próprio, o mesmo que o `head.mjs` põe no
+     HTML pré-renderizado (`legalMeta` é a fonte dos dois). */
+  const legal = legalPageFromPath(pathname)
+  if (legal) {
+    const { title, description } = legalMeta(legal.page, legal.lang)
     return { title: fullTitle(title), description }
   }
   return COPY[l].meta

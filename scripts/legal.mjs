@@ -25,6 +25,15 @@ const PATHS = {
 
 export const legalPath = (page, lang) => PATHS[page][lang]
 
+/* O que o `prerender.mjs` tem de escrever: uma entrada por página e idioma, com
+   a pasta (em partes) onde vai o `index.html`. `/privacidade/` → `['privacidade']`,
+   `/en/privacy/` → `['en', 'privacy']`. Vive aqui, e não no `prerender.mjs`,
+   para os testes poderem ver quais são sem correrem um build. */
+export const legalOutputs = () =>
+  LEGAL_PAGES.flatMap(page => ['pt', 'en'].map(lang => ({
+    page, lang, dir: legalPath(page, lang).split('/').filter(Boolean),
+  })))
+
 /* Data da última revisão do texto, em ISO. É ela que aparece no topo das
    páginas («Última atualização») — por isso muda sempre que o texto mudar, e
    só então. */

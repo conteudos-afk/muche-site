@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { legalPageFromPath, legalPath } from "../../scripts/legal.mjs"
 
 export type Lang = "en" | "pt"
 
@@ -12,7 +13,8 @@ export function detectLang(): Lang {
 }
 
 /* ─── O idioma que o endereço impõe ──────────────────────────────────────────
-   As páginas do blog são pré-renderizadas em HTML, uma por idioma: `/blog/` e
+   As páginas do blog (e as legais, mais abaixo) são pré-renderizadas em HTML,
+   uma por idioma: `/blog/` e
    `/blog/<slug>/` saem em português, `/en/blog/` e `/en/blog/<slug>/` em
    inglês (a barra final é a forma que a Cloudflare serve — ver o
    `blog/navigate.ts`).
@@ -27,10 +29,13 @@ export function detectLang(): Lang {
    idioma, e aí a escolha continua a ser a de sempre. ─────────────────────── */
 const CAMINHO_BLOG = /^\/(en\/)?blog(\/|$)/
 
+/* As políticas de privacidade e de cookies seguem a mesma regra do blog: o
+   idioma é o do endereço (`/privacidade/` e `/cookies/` em pt, `/en/privacy/`
+   e `/en/cookies/` em en — ver `scripts/legal.mjs`). */
 export function langFromPath(pathname: string): Lang | null {
   const m = CAMINHO_BLOG.exec(pathname)
-  if (!m) return null
-  return m[1] ? "en" : "pt"
+  if (m) return m[1] ? "en" : "pt"
+  return legalPageFromPath(pathname)?.lang ?? null
 }
 
 /* O mesmo endereço no outro idioma, para o seletor PT/EN poder acompanhar.
@@ -44,6 +49,19 @@ export function blogPathIn(pathname: string, lang: Lang): string | null {
   if (!m) return null
   const resto = (m[1] ?? "").replace(/\/+$/, "")
   return `${lang === "en" ? "/en" : ""}/blog${resto}/`
+}
+
+/* O mesmo para as páginas legais: de `/privacidade/` para `/en/privacy/` e ao
+   contrário. `null` se o endereço não for de nenhuma. */
+export function legalPathIn(pathname: string, lang: Lang): string | null {
+  const p = legalPageFromPath(pathname)
+  return p ? legalPath(p.page, lang) : null
+}
+
+/* Tudo o que tem um par de endereços por idioma — o blog e as páginas legais.
+   É o que o seletor PT/EN consulta. */
+export function pagePathIn(pathname: string, lang: Lang): string | null {
+  return blogPathIn(pathname, lang) ?? legalPathIn(pathname, lang)
 }
 
 function initialLang(): Lang {
@@ -155,6 +173,7 @@ export const COPY = {
       terms: "Terms",
     },
     back: "Back",
+    legal: { updated: "Last updated" },
     services: {
       scrollHint: "Scroll to explore",
     },
@@ -204,6 +223,7 @@ export const COPY = {
       terms: "Termos",
     },
     back: "Voltar",
+    legal: { updated: "Última atualização" },
     services: {
       scrollHint: "Desliza para explorar",
     },
@@ -256,4 +276,15 @@ export function translateReadTime(readTime: string, lang: Lang): string {
   if (lang !== "pt") return readTime
   const n = readTime.match(/\d+/)?.[0]
   return n ? `${n} min de leitura` : readTime
+}
+
+/* A data completa das páginas legais: «14 de outubro de 2026» em português,
+   «14 October 2026» em inglês (britânico: dia primeiro, sem vírgula). Um texto
+   que não seja uma data ISO passa como está. */
+export function translateFullDate(date: string, lang: Lang): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  const mes = m ? Number(m[2]) - 1 : -1
+  if (!m || mes < 0 || mes > 11) return date
+  const dia = Number(m[3])
+  return lang === "pt" ? `${dia} de ${MONTHS_PT[mes]} de ${m[1]}` : `${dia} ${MONTHS_EN[mes]} ${m[1]}`
 }

@@ -4,6 +4,7 @@ import { translateCategory, translateDate, translateReadTime, COPY } from "../i1
 import type { Lang, Post } from "@/lib/blog/types"
 import { GOLD, SANS, SERIF, CAMPTON_BOOK } from "./tokens"
 import { articleHref, linkProps, type OnNavigate } from "./navigate"
+import { PageFooter } from "../legal/LegalFooter"
 /* A lista vive no `lib/blog`, partilhada com a validação do frontmatter no
    build — ver `src/lib/blog/categories.ts`. */
 import { BLOG_CATEGORIES, type BlogCategory } from "@/lib/blog/categories"
@@ -21,6 +22,7 @@ export function BlogListView({ posts, lang, onNavigate, instant = false }: { pos
   )
 
   return (
+    <>
     <div className="min-h-screen pt-28 md:pt-36 pb-20 md:pb-32 px-6 md:px-14 relative z-10">
       {/* Overlay escuro para melhor legibilidade sobre o vídeo de fundo */}
       <div className="fixed inset-0 pointer-events-none z-0" style={{ background: "linear-gradient(to bottom, rgba(6,15,19,0.55) 0%, rgba(6,15,19,0.82) 40%, rgba(6,15,19,0.92) 100%)" }} />
@@ -136,5 +138,7 @@ export function BlogListView({ posts, lang, onNavigate, instant = false }: { pos
         </div>
       </div>
     </div>
+    <PageFooter lang={lang} onNavigate={onNavigate} />
+    </>
   )
 }
