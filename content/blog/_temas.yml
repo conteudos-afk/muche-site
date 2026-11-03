@@ -42,7 +42,7 @@ temas:
       vezes, e o que está a mais ou a menos em cada um"
     categoria: "Web Design"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: o-que-e-preciso-antes-de-uma-rodagem
     tema: "O que é preciso ter pronto antes de uma rodagem"
@@ -50,7 +50,7 @@ temas:
       pessoas — e o que acontece a cada dia de rodagem quando falta"
     categoria: "Video Production"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: como-escolher-agencia-criativa
     tema: "Como escolher uma agência criativa"
@@ -66,7 +66,7 @@ temas:
       manter o ritmo depois do primeiro mês"
     categoria: "Podcasts"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: fotografia-de-produto-quantas-imagens
     tema: "Quantas fotografias de produto são precisas para uma loja online"
