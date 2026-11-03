@@ -6,7 +6,9 @@ Um cookie é um pequeno ficheiro que um site guarda no teu dispositivo e que lhe
 
 ## O que guardamos no teu browser
 
-Uma coisa só: o idioma.
+Duas coisas, e nenhuma delas sai do teu dispositivo: o idioma que escolheste e, se jogares, o teu progresso no jogo.
+
+### O idioma
 
 - **Nome:** `muche-lang`
 - **Onde:** o `localStorage` do teu browser. Não é um cookie, mas a lei trata-o da mesma maneira, por isso falamos dele.
@@ -19,6 +21,22 @@ Uma coisa só: o idioma.
 **Porque não pedimos consentimento.** É uma preferência que escolhes tu e que serve só para o site funcionar como pediste. A Lei n.º 41/2004, que transpõe a diretiva europeia sobre privacidade nas comunicações eletrónicas, dispensa o consentimento quando o armazenamento é estritamente necessário para prestar um serviço que o utilizador pediu expressamente. Escolher o idioma é isso.
 
 **Como apagar.** Nas definições do teu browser, em dados do site (ou «cookies e dados de sites»), remove os dados de muche.pt. O site volta a usar o idioma do teu browser.
+
+### O jogo
+
+Em [/jogo/](/jogo/) há um jogo, o *Muche vs. Stressalot*, que guarda o que já fizeste para não recomeçares do zero de cada vez.
+
+- **Nomes:** `muche.prog` e `muche.sound`
+- **Onde:** o `localStorage` do teu browser, tal como o idioma.
+- **Conteúdo:** os teus recordes em cada nível, os níveis que acabaste, as meias que ganhaste e se o som está ligado.
+- **Quando é guardado:** enquanto jogas. Se nunca abrires a página do jogo, não fica nada guardado.
+- **Para quê:** para o jogo se lembrar do teu progresso e da tua preferência de som.
+- **Duração:** não expira. Fica até o apagares.
+- **Para onde vai:** para lado nenhum. O jogo corre inteiro no teu dispositivo e não comunica com servidor nenhum, nem nosso nem de outros.
+
+**Porque não pedimos consentimento.** Vale o mesmo que para o idioma: é o jogo a fazer aquilo que lhe pediste ao jogar. Nada disto serve para te identificar, nem é partilhado com ninguém.
+
+**Como apagar.** Dentro do próprio jogo, no botão «Apagar progresso». Ou, como tudo o resto, nas definições do browser.
 
 ## A única ligação a um terceiro
 

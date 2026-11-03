@@ -237,6 +237,10 @@ function SiteNav() {
     { label: c.work, fn: () => go("/", "work") },
     { label: c.team, fn: () => go("/team") },
     { label: c.blog, fn: () => go(blogHref(lang)) },
+    /* O jogo é uma página estática em `public/jogo/`, fora do router: tem de
+       ser uma navegação do browser, não um `navigate()`, senão o react-router
+       procura uma rota que não existe. */
+    { label: c.game, fn: () => { setOpen(false); window.location.href = "/jogo/" } },
     { label: c.hub,  fn: () => { setOpen(false); window.open("https://hub.muche.pt/", "_blank", "noopener") } },
     { label: c.talk, fn: () => go("/", "contact") },
   ]
@@ -315,6 +319,7 @@ function SiteNav() {
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/", "work")}>{c.work}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/team")}>{c.team}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go(blogHref(lang))}>{c.blog}</motion.button>
+          <motion.button {...hoverProps} style={btnStyle} onClick={() => { window.location.href = "/jogo/" }}>{c.game}</motion.button>
         </div>
         <div ref={moscaWrapRef} className="absolute left-1/2 -translate-x-1/2 z-50">
           <motion.button onHoverStart={handleMoscaHoverStart} whileHover={{ rotate: 15 }} transition={{ type: "spring", stiffness: 300, damping: 14 }} onClick={handleMoscaClick} style={{ x: smoothMoscaX, y: smoothMoscaY, background: "none", border: "none", cursor: "pointer" }}>
