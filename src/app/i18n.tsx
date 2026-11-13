@@ -140,7 +140,7 @@ export const COPY = {
       title: "Muche — The Creative Agency",
       description: "Creative agency in Portugal. Video, photography, branding, design, web and podcast — we turn challenges into thoughtful, effective creative work.",
     },
-    nav: { work: "Work", services: "Services", team: "Team", blog: "Blog", hub: "Digital Hub", talk: "Let's Talk" },
+    nav: { work: "Work", services: "Services", team: "Team", blog: "Blog", game: "Game", hub: "Digital Hub", talk: "Let's Talk" },
     hero: {
       tagline: "The Creative Agency",
       tags: ["Video", "Photography", "Branding", "Design", "Web", "Podcast"],
@@ -192,7 +192,7 @@ export const COPY = {
       title: "Muche — Agência Criativa",
       description: "Agência criativa em Portugal. Vídeo, fotografia, branding, design, web e podcast — transformamos desafios em propostas criativas, cuidadas e eficazes.",
     },
-    nav: { work: "Trabalho", services: "Serviços", team: "Equipa", blog: "Blog", hub: "Digital Hub", talk: "Fala Connosco" },
+    nav: { work: "Trabalho", services: "Serviços", team: "Equipa", blog: "Blog", game: "Jogo", hub: "Digital Hub", talk: "Fala Connosco" },
     hero: {
       tagline: "A Agência Criativa",
       tags: ["Vídeo", "Fotografia", "Branding", "Design", "Web", "Podcast"],
