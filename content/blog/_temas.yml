@@ -74,7 +74,7 @@ temas:
       orçamento de uma sessão"
     categoria: "Photography & Events"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: o-que-entregar-a-um-designer
     tema: "O que tens de entregar a um designer para o trabalho arrancar"
@@ -115,7 +115,7 @@ temas:
       estratégia de marca"
     categoria: "Branding & Visual Identity"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: quanto-custa-uma-identidade-visual
     tema: "Quanto custa uma identidade visual completa"
@@ -124,7 +124,7 @@ temas:
       significar um trabalho incompleto"
     categoria: "Branding & Visual Identity"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: o-que-e-branding
     tema: "O que é branding, afinal"
