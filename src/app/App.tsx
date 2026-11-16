@@ -12,6 +12,22 @@ import videoOliviaHotel from "@/imports/OliviaHotel.mp4"
 import videoDecoProtesteVertical from "@/imports/DecoProteste_vertical.mp4"
 import videoLPCCVertical from "@/imports/LPCC_PORTFOLIO_vertical.mp4"
 import videoOliviaHotelVertical from "@/imports/OliviaHotel_vertical.mp4"
+import celltrion36 from "@/imports/Celltrion/switch-36.jpg"
+import celltrion3  from "@/imports/Celltrion/switch-3.jpg"
+import celltrion34 from "@/imports/Celltrion/switch-34.jpg"
+import celltrion2  from "@/imports/Celltrion/switch-2.jpg"
+import celltrion49 from "@/imports/Celltrion/switch-49.jpg"
+import celltrion22 from "@/imports/Celltrion/switch-22.jpg"
+import celltrion4  from "@/imports/Celltrion/switch-4.jpg"
+import dia42      from "@/imports/DIA/ia-42.jpg"
+import diaD1n2    from "@/imports/DIA/day1-nwm-2.jpg"
+import diaD1n27   from "@/imports/DIA/day1-nwm-27.jpg"
+import diaD1n25   from "@/imports/DIA/day1-nwm-25.jpg"
+import diaD1n50   from "@/imports/DIA/day1-nwm-50.jpg"
+import diaD1n42   from "@/imports/DIA/day1-nwm-42.jpg"
+import diaD2n31   from "@/imports/DIA/day2-nwm-31.jpg"
+import diaD2n8    from "@/imports/DIA/day2-nwm-8.jpg"
+import dia38      from "@/imports/DIA/ia-38.jpg"
 import imgTeamBg   from "@/imports/Equipa/9e968e30d54dd8c86db81bbd440330d0c8bbd7af.png"
 import imgTeamBase from "@/imports/Equipa/014471abff9def0ea5f6c8ea469567d04bd612e3.png"
 import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a96.png"
@@ -109,6 +125,68 @@ function useWindowWidth() {
     return () => window.removeEventListener("resize", fn)
   }, [])
   return w
+}
+
+/* ─── Photo slideshow — fotos em crossfade com zoom lento (Ken Burns), para
+   que uma cobertura de evento em fotografia se comporte como um vídeo. Só
+   carrega as restantes fotos perto do viewport e só corre o relógio quando
+   está visível. `x` é o ponto focal horizontal (%), usado quando a caixa é
+   mais estreita que a foto (9:16 em mobile). */
+type Slide = { src: string; x?: number }
+const SLIDE_MS = 2600
+const SLIDE_FADE_S = 0.9
+
+function PhotoSlideshow({ slides, alt, className }: { slides: Slide[]; alt: string; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [loaded, setLoaded] = useState(false)
+  const [visible, setVisible] = useState(false)
+  const [idx, setIdx] = useState(0)
+  const n = slides.length
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const near = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setLoaded(true); near.disconnect() }
+    }, { rootMargin: "1500px" })
+    const vis = new IntersectionObserver(([e]) => setVisible(e.isIntersecting))
+    near.observe(el)
+    vis.observe(el)
+    return () => { near.disconnect(); vis.disconnect() }
+  }, [])
+
+  useEffect(() => {
+    if (!loaded || !visible || n < 2) return
+    const t = setInterval(() => setIdx(i => (i + 1) % n), SLIDE_MS)
+    return () => clearInterval(t)
+  }, [loaded, visible, n])
+
+  const prev = (idx - 1 + n) % n
+  return (
+    <div ref={ref} className={`relative overflow-hidden ${className ?? ""}`} style={{ background: "#060f13" }}>
+      {(loaded ? slides : slides.slice(0, 1)).map((s, i) => {
+        const isCur = i === idx
+        const isPrev = i === prev
+        return (
+          <motion.img
+            key={s.src}
+            src={s.src}
+            alt={alt}
+            draggable={false}
+            decoding="async"
+            className="absolute inset-0 size-full object-cover"
+            style={{ objectPosition: `${s.x ?? 50}% center`, zIndex: isCur ? 2 : isPrev ? 1 : 0 }}
+            initial={{ opacity: i === 0 ? 1 : 0, scale: 1 }}
+            animate={{ opacity: isCur || isPrev ? 1 : 0, scale: isCur || isPrev ? 1.1 : 1 }}
+            transition={{
+              opacity: { duration: isCur ? SLIDE_FADE_S : 0 },
+              scale: isCur ? { duration: SLIDE_MS / 1000 + SLIDE_FADE_S, ease: "linear" } : { duration: 0 },
+            }}
+          />
+        )
+      })}
+    </div>
+  )
 }
 
 /* ─── Lazy video — loads src only when entering viewport ─────────────────── */
@@ -757,6 +835,7 @@ function ManifestoSection() {
 type PortfolioItem =
   | { img: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
   | { video: string; videoMobile: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
+  | { slides: Slide[]; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
 
 // videoMobile é a versão vertical (9:16) enviada para mobile/tablet — o
 // desktop usa sempre `video`, a versão horizontal original.
@@ -765,6 +844,24 @@ const PORTFOLIO: PortfolioItem[] = [
   { video: videoOliviaHotel, videoMobile: videoOliviaHotelVertical, client: "Olivia Hotel", services: "Photography // Video", concept: "We focus on visual storytelling that transforms spaces into experiences, creating an irresistible aesthetic that invites guests to check in before they even arrive.", services_pt: "Fotografia // Vídeo", concept_pt: "Focamo-nos em storytelling visual que transforma espaços em experiências, criando uma estética irresistível que convida os hóspedes a fazer check-in antes mesmo de chegarem." },
   { video: videoLPCC, videoMobile: videoLPCCVertical, client: "LPCC", services: "Branding // Podcast // Web Design", concept: "Muche created the visual identity, website, and produced the podcast called Ligacoes.", services_pt: "Branding // Podcast // Web Design", concept_pt: "A Muche criou a identidade visual, o website, e produziu o podcast chamado Ligações." },
   { video: videoDecoProteste, videoMobile: videoDecoProtesteVertical, client: "Deco Proteste", services: "Promotional Video", concept: "We created a cinematic piece that captures the holiday spirit while reinforcing the brand's commitment to consumers, ensuring their message stood out during the busiest time of the year.", services_pt: "Vídeo Promocional", concept_pt: "Criámos uma peça cinematográfica que capta o espírito natalício, reforçando o compromisso da marca com os consumidores e garantindo que a sua mensagem se destacou na época mais concorrida do ano." },
+  {
+    slides: [
+      { src: celltrion36, x: 50 }, { src: celltrion3, x: 50 }, { src: celltrion34, x: 55 }, { src: celltrion2, x: 40 },
+      { src: celltrion49, x: 60 }, { src: celltrion22, x: 45 }, { src: celltrion4, x: 75 },
+    ],
+    client: "Celltrion", services: "Branding // Event Coverage", services_pt: "Branding // Cobertura de Evento",
+    concept: "We developed the visual identity of SWITCH, an event dedicated to public procurement in healthcare for hospital pharmacists, and ensured its photographic coverage.",
+    concept_pt: "Desenvolvemos a identidade visual do SWITCH, um evento dedicado à contratação pública em saúde para farmacêuticos hospitalares, e assegurámos a sua cobertura fotográfica.",
+  },
+  {
+    slides: [
+      { src: dia42, x: 50 }, { src: diaD1n2, x: 56 }, { src: diaD1n27, x: 46 }, { src: diaD1n25, x: 40 }, { src: diaD1n50, x: 50 },
+      { src: diaD1n42, x: 55 }, { src: diaD2n31, x: 40 }, { src: diaD2n8, x: 45 }, { src: dia38, x: 50 },
+    ],
+    client: "DIA", services: "Event Coverage", services_pt: "Cobertura de Evento",
+    concept: "We turn every moment of the event into visual content, through photography and video that capture the energy, the details and the experiences worth keeping.",
+    concept_pt: "Transformamos cada momento do evento em conteúdo visual, através de fotografia e vídeo que captam a energia, os detalhes e as experiências que merecem ficar.",
+  },
 ]
 
 function portfolioText(item: PortfolioItem, lang: Lang) {
@@ -811,7 +908,9 @@ function MobilePortfolioCard({
     >
       <div style={{ width: `${boxW}px` }}>
         <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${boxH}px`, background: "#060f13" }}>
-          {"video" in item
+          {"slides" in item
+            ? <PhotoSlideshow slides={item.slides} alt={item.client} className="size-full" />
+            : "video" in item
             ? <LazyVideo src={isPhone ? item.videoMobile : item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
             : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={isPhone && item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
           }
@@ -861,7 +960,7 @@ function PortfolioSection() {
   // recupera a altura que o cartão tinha antes (68vh de média).
   const cardW    = isMobile ? vpw * 0.88 : Math.min(vpw * 0.80, vp.h * 0.68 * (16 / 9))
   const gap      = isMobile ? 28 : 96
-  const targetX  = -(3 * (cardW + gap))
+  const targetX  = -((PORTFOLIO.length - 1) * (cardW + gap))
   const rawProgress    = useScrollProgress(ref, "end-end")
   const smoothProgress = useSpring(rawProgress, { stiffness: 55, damping: 22, restDelta: 0.0005 })
   // Zonas de espera no início e no fim: enquanto o progresso do scroll está
@@ -947,7 +1046,7 @@ function PortfolioSection() {
   }
 
   return (
-    <div ref={ref} id="work" style={{ height: "760vh", position: "relative" }}>
+    <div ref={ref} id="work" style={{ height: `${100 + 220 * (PORTFOLIO.length - 1)}vh`, position: "relative" }}>
       <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center" style={{ paddingTop: "9vh" }}>
         <motion.div
           style={{ x, gap: `${gap}px`, paddingLeft: "56px" }}
@@ -959,7 +1058,9 @@ function PortfolioSection() {
               /* ── Desktop: media 16:9 em cima, texto por baixo ── */
               <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9", background: "#060f13" }}>
-                  {"video" in item
+                  {"slides" in item
+                    ? <PhotoSlideshow slides={item.slides} alt={item.client} className="size-full" />
+                    : "video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : item.client === "Teentac"
                       ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" onNavigate={navigate} />
@@ -1150,7 +1251,9 @@ function ServicesPage() {
               className="absolute left-6 right-6 md:left-14 md:right-14 overflow-hidden"
               style={{ top: "clamp(80px, 13vh, 130px)", bottom: "clamp(150px, 24vh, 240px)", borderRadius: "20px" }}
             >
-              {"video" in currentProject
+              {"slides" in currentProject
+                ? <PhotoSlideshow slides={currentProject.slides} alt={currentProject.client} className="size-full" />
+                : "video" in currentProject
                 ? <LazyVideo src={(currentProject as { video: string }).video} className="size-full object-cover" style={{ background: "#060f13" }} />
                 : <img src={(currentProject as { img: string }).img} alt={currentProject.client} className="size-full object-cover" />
               }
@@ -1522,11 +1625,20 @@ const PRELOAD_IMAGES = [imgPort1, imgTeamBase, imgTeamOv1, imgTeamOv2, imgTeamOv
    carregados pelo <LazyVideo>, que só define o src quando a secção fica ativa. */
 const PRELOAD_VIDEOS = [heroVideo]
 const PRELOAD_TIMEOUT_MS = 15000
+/* Tempo mínimo no ecrã de carregamento — sem isto, com a cache quente a
+   animação nem chegava a ser vista. */
+const PRELOAD_MIN_MS = 2800
 
 function useAssetPreloader() {
   const total = PRELOAD_IMAGES.length + PRELOAD_VIDEOS.length
   const [loaded, setLoaded] = useState(0)
-  const [ready, setReady] = useState(total === 0)
+  const [assetsReady, setReady] = useState(total === 0)
+  const [minElapsed, setMinElapsed] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setMinElapsed(true), PRELOAD_MIN_MS)
+    return () => clearTimeout(t)
+  }, [])
+  const ready = assetsReady && minElapsed
 
   useEffect(() => {
     if (total === 0) return
@@ -1556,20 +1668,163 @@ function useAssetPreloader() {
   return { progress: total === 0 ? 1 : loaded / total, ready }
 }
 
+/* Ecrã de carregamento "spa": pingos de água caem sobre a mosca e as ondas
+   que se propagam fazem-na estremecer — o mesmo efeito (mapa de
+   deslocamento) do logótipo MUCHE na home. Fundo calmo, frases ao ritmo de
+   uma respiração e um fio fino que preenche com o progresso. A saída é um
+   esbater suave com desfoque. */
+const BREATH_S = 4.2
+const DROP_UW = 24.7101, DROP_UH = 19   // viewBox da mosca
+const DROP_PAD = 12
+const DROP_MAP_X0 = -DROP_PAD, DROP_MAP_Y0 = -DROP_PAD
+const DROP_MAP_W = DROP_UW + DROP_PAD * 2, DROP_MAP_H = DROP_UH + DROP_PAD * 2
+const DROP_CANVAS_W = 180
+const DROP_CANVAS_H = Math.round((DROP_CANVAS_W * DROP_MAP_H) / DROP_MAP_W)
+const DROP_LIFETIME_S = 3.4
+const DROP_EVERY_MS = 1500
+
+function WaterDropMosca({ width }: { width: number }) {
+  const height = Math.round(width * (DROP_UH / DROP_UW))
+  const feImageRef = useRef<SVGFEImageElement>(null)
+  const filterId = useRef(`loader-water-${++muchRippleUid}`).current
+  const [armed, setArmed] = useState(false)
+
+  useEffect(() => {
+    const canvas = document.createElement("canvas")
+    canvas.width = DROP_CANVAS_W
+    canvas.height = DROP_CANVAS_H
+    const smooth = document.createElement("canvas")
+    smooth.width = DROP_CANVAS_W
+    smooth.height = DROP_CANVAS_H
+    const ctx = canvas.getContext("2d")
+    const sctx = smooth.getContext("2d")
+    if (!ctx || !sctx) return
+    let drops: { x: number; y: number; t0: number }[] = []
+    const spawn = () => {
+      drops.push({
+        x: 3 + Math.random() * (DROP_UW - 6),
+        y: 2 + Math.random() * (DROP_UH - 4),
+        t0: performance.now() / 1000,
+      })
+    }
+    const WAVELENGTH = 4.4, SPEED = 6.5, SPATIAL_DECAY = 15, TIME_DECAY = 0.6, RING_WIDTH = 3.8
+
+    const draw = () => {
+      const now = performance.now() / 1000
+      drops = drops.filter(d => now - d.t0 < DROP_LIFETIME_S)
+      const img = ctx.createImageData(DROP_CANVAS_W, DROP_CANVAS_H)
+      const data = img.data
+      for (let py = 0; py < DROP_CANVAS_H; py++) {
+        const vy = DROP_MAP_Y0 + (py / DROP_CANVAS_H) * DROP_MAP_H
+        for (let px = 0; px < DROP_CANVAS_W; px++) {
+          const vx = DROP_MAP_X0 + (px / DROP_CANVAS_W) * DROP_MAP_W
+          let dxs = 0, dys = 0
+          for (const d of drops) {
+            const dx = vx - d.x, dy = vy - d.y
+            const dist = Math.hypot(dx, dy) || 0.0001
+            const age = now - d.t0
+            const front = SPEED * age
+            const envelope = Math.exp(-Math.pow((dist - front) / RING_WIDTH, 2))
+            const amp = Math.exp(-dist / SPATIAL_DECAY) * Math.exp(-age * TIME_DECAY) * envelope
+            const wave = Math.sin(((dist - front) / WAVELENGTH) * Math.PI * 2) * amp
+            dxs += (dx / dist) * wave
+            dys += (dy / dist) * wave
+          }
+          const i = (py * DROP_CANVAS_W + px) * 4
+          data[i]     = Math.max(0, Math.min(255, 128 + dxs * 95))
+          data[i + 1] = Math.max(0, Math.min(255, 128 + dys * 95))
+          data[i + 2] = 128
+          data[i + 3] = 255
+        }
+      }
+      ctx.putImageData(img, 0, 0)
+      sctx.clearRect(0, 0, DROP_CANVAS_W, DROP_CANVAS_H)
+      sctx.filter = "blur(1.5px)"
+      sctx.drawImage(canvas, 0, 0)
+      feImageRef.current?.setAttribute("href", smooth.toDataURL())
+    }
+
+    const first = setTimeout(() => { spawn(); draw(); setArmed(true) }, 250)
+    const spawner = setInterval(spawn, DROP_EVERY_MS)
+    const frames = setInterval(draw, 33)
+    return () => { clearTimeout(first); clearInterval(spawner); clearInterval(frames) }
+  }, [])
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${DROP_UW} ${DROP_UH}`} fill="none" style={{ overflow: "visible" }}>
+      <defs>
+        <filter id={filterId} x="-60%" y="-60%" width="220%" height="220%" colorInterpolationFilters="sRGB">
+          <feImage ref={feImageRef} href={RIPPLE_NEUTRAL_HREF} x={DROP_MAP_X0} y={DROP_MAP_Y0} width={DROP_MAP_W} height={DROP_MAP_H} preserveAspectRatio="none" result="rippleMap" />
+          <feDisplacementMap in="SourceGraphic" in2="rippleMap" scale={3.4} xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+      </defs>
+      <g style={{ filter: armed ? `url(#${filterId})` : "none" }}>
+        <path d={svgPaths.p29ca6980} fill={GOLD} />
+      </g>
+    </svg>
+  )
+}
+
 function LoadingScreen({ progress }: { progress: number }) {
+  const lang = useLang()
+  const target = useMotionValue(0)
+  useEffect(() => { target.set(progress) }, [progress, target])
+  const bar = useSpring(target, { stiffness: 30, damping: 22, restDelta: 0.001 })
+  const [exhale, setExhale] = useState(false)
+  useEffect(() => {
+    const t = setInterval(() => setExhale(v => !v), BREATH_S * 1000)
+    return () => clearInterval(t)
+  }, [])
+  const words = lang === "pt" ? ["Respira fundo", "Solta devagar"] : ["Breathe in", "Let it go"]
   return (
     <motion.div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center"
-      style={{ background: DARK }}
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden"
+      style={{ background: `radial-gradient(ellipse at 50% 46%, #123039 0%, ${DARK} 62%, #081317 100%)` }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
     >
-      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.8, repeat: Infinity, ease: "linear" }}>
-        <NavHamburger />
+      <motion.div
+        className="flex flex-col items-center"
+        exit={{ filter: "blur(14px)", scale: 1.08 }}
+        transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <motion.div
+          className="relative flex items-center justify-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <motion.div
+            className="absolute rounded-full"
+            style={{ width: 260, height: 260, background: "radial-gradient(circle, rgba(255,170,3,0.17) 0%, rgba(255,170,3,0) 68%)" }}
+            animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.45, 1, 0.45] }}
+            transition={{ duration: BREATH_S * 2, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
+          />
+          <motion.div
+            animate={{ scale: [1, 1.12, 1] }}
+            transition={{ duration: BREATH_S * 2, repeat: Infinity, ease: [0.45, 0, 0.55, 1] }}
+          >
+            <WaterDropMosca width={150} />
+          </motion.div>
+        </motion.div>
+        <div style={{ height: "22px", marginTop: "44px", position: "relative", width: "240px", textAlign: "center" }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={exhale ? "out" : "in"}
+              initial={{ opacity: 0, y: 4, filter: "blur(4px)" }}
+              animate={{ opacity: 0.6, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -4, filter: "blur(4px)" }}
+              transition={{ duration: 1.1, ease: "easeInOut" }}
+              style={{ color: GOLD, fontFamily: CAMPTON_BOOK, fontWeight: 300, fontSize: "12px", letterSpacing: "5px", textTransform: "uppercase" }}
+            >
+              {words[exhale ? 1 : 0]}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        <div style={{ marginTop: "28px", width: "96px", height: "1px", background: "rgba(255,170,3,0.15)", overflow: "hidden" }}>
+          <motion.div style={{ height: "100%", background: GOLD, opacity: 0.55, transformOrigin: "0 50%", scaleX: bar }} />
+        </div>
       </motion.div>
-      <div style={{ marginTop: "22px", color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "11px", letterSpacing: "4px", textTransform: "uppercase", opacity: 0.5 }}>
-        {Math.round(progress * 100)}%
-      </div>
     </motion.div>
   )
 }
