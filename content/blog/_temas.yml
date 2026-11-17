@@ -148,7 +148,7 @@ temas:
       vir na entrega, e o que falta quando o trabalho foi feito à pressa"
     categoria: "Branding & Visual Identity"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: quanto-tempo-demora-uma-identidade-visual
     tema: "Quanto tempo demora a criar uma identidade visual"
@@ -156,7 +156,7 @@ temas:
       definição da estratégia, não o desenho, que ocupa mais tempo"
     categoria: "Branding & Visual Identity"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: vale-a-pena-branding-pequena-empresa
     tema: "Vale a pena investir em branding sendo uma empresa pequena"
@@ -172,7 +172,7 @@ temas:
       levar, e o que é impossível de acelerar sem perder qualidade"
     categoria: "Video Production"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: quanto-custa-um-dia-de-filmagem
     tema: "Quanto custa um dia de filmagem"
