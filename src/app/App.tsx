@@ -28,6 +28,24 @@ import diaD1n42   from "@/imports/DIA/day1-nwm-42.jpg"
 import diaD2n31   from "@/imports/DIA/day2-nwm-31.jpg"
 import diaD2n8    from "@/imports/DIA/day2-nwm-8.jpg"
 import dia38      from "@/imports/DIA/ia-38.jpg"
+import apfhD1n33 from "@/imports/APFH/dia1-33.jpg"
+import apfhFtp027 from "@/imports/APFH/apfh-ftp027.jpg"
+import apfhLr7 from "@/imports/APFH/proxima-senha-lr-7.jpg"
+import apfhDr41 from "@/imports/APFH/dr--41.jpg"
+import apfhD1n178 from "@/imports/APFH/dia1-178.jpg"
+import apfhRo48 from "@/imports/APFH/ro-apfh-16-48.jpg"
+import apfhD1n7 from "@/imports/APFH/dia1-7.jpg"
+import apfhLr69 from "@/imports/APFH/proxima-senha-lr-69.jpg"
+import apfhDr3 from "@/imports/APFH/dr--3.jpg"
+import apfhRo46 from "@/imports/APFH/ro-apfh-16-46.jpg"
+import apfhD1n208 from "@/imports/APFH/dia1-208.jpg"
+import apfhLr149 from "@/imports/APFH/proxima-senha-lr-149.jpg"
+import apfhRo18 from "@/imports/APFH/ro-apfh-16-18.jpg"
+import apfhFtp032 from "@/imports/APFH/apfh-ftp032.jpg"
+import apfhDr20 from "@/imports/APFH/dr--20.jpg"
+import apfhLr34 from "@/imports/APFH/proxima-senha-lr-34.jpg"
+import apfhD3n117 from "@/imports/APFH/dia3-117.jpg"
+import apfhLr175 from "@/imports/APFH/proxima-senha-lr-175.jpg"
 import imgTeamBg   from "@/imports/Equipa/9e968e30d54dd8c86db81bbd440330d0c8bbd7af.png"
 import imgTeamBase from "@/imports/Equipa/014471abff9def0ea5f6c8ea469567d04bd612e3.png"
 import imgTeamOv1  from "@/imports/Equipa/dbd736375893729f1be8f01cc7ff334c18534a96.png"
@@ -861,6 +879,18 @@ const PORTFOLIO: PortfolioItem[] = [
     client: "DIA", services: "Event Coverage", services_pt: "Cobertura de Evento",
     concept: "We turn every moment of the event into visual content, through photography and video that capture the energy, the details and the experiences worth keeping.",
     concept_pt: "Transformamos cada momento do evento em conteúdo visual, através de fotografia e vídeo que captam a energia, os detalhes e as experiências que merecem ficar.",
+  },
+  {
+    slides: [
+      { src: apfhD1n33, x: 55 }, { src: apfhFtp027, x: 60 }, { src: apfhLr7, x: 50 }, { src: apfhDr41, x: 58 },
+      { src: apfhD1n178, x: 62 }, { src: apfhRo48, x: 64 }, { src: apfhD1n7, x: 40 }, { src: apfhLr69, x: 55 },
+      { src: apfhDr3, x: 55 }, { src: apfhRo46, x: 40 }, { src: apfhD1n208, x: 50 }, { src: apfhLr149, x: 60 },
+      { src: apfhRo18, x: 80 }, { src: apfhFtp032, x: 45 }, { src: apfhDr20, x: 55 }, { src: apfhLr34, x: 45 },
+      { src: apfhD3n117, x: 55 }, { src: apfhLr175, x: 70 },
+    ],
+    client: "APFH", services: "Branding // Design // Event Coverage // Social Media", services_pt: "Branding // Design // Cobertura de Evento // Redes Sociais",
+    concept: "We shape APFH's presence at every touchpoint: from the visual concept of the events to design, photographic and video coverage, and social media communication.",
+    concept_pt: "Damos forma à presença da APFH em todos os pontos de contacto: do conceito visual dos eventos ao design, cobertura fotográfica e vídeo, e comunicação nas redes sociais.",
   },
 ]
 
