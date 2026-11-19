@@ -32,13 +32,13 @@ Nothing else happens to it. Messages do not go into a CRM, onto a mailing list o
 - **Legal basis:** your request, when you write to ask for a proposal or a service (Article 6(1)(b) of the GDPR); in other cases, our legitimate interest in replying to people who write to us (point (f)).
 - **Retention:** we keep messages for as long as the relationship justifies it, that is, while there is a conversation, a project or a legal obligation to meet. We have not set a period in days or years, because it depends on the case, and we would rather say so than make up a number. If you want us to delete a conversation, ask: we will delete it, unless the law requires us to keep something (invoicing documents, for example).
 
-### The Teentac preview
+### The Teentac and V4V previews
 
-In the "Work" section, on the desktop version, the site shows an image of a laptop. There is a button that loads Teentac's live website inside it. Teentac is a client of ours, and that website is not ours.
+In the "Work" section, the site shows an image of a laptop (on the desktop version) and, on the phone version, a phone. There is a button that loads the live website of one of our clients inside it: Teentac's and V4V's (on the laptop on desktop, and on the phone on phones). Those websites are not ours.
 
-**Your browser contacts teentac.pt only after you click that button.** When you do, teentac.pt receives your IP address and the usual details of a request, and may store its own cookies on your device. That no longer goes through us: it is handled by Teentac, under that website's own privacy policy. If you do not click the button, none of this happens. On phones and tablets there is no button: you only see the image.
+**Your browser contacts the relevant website, teentac.pt or vision4value.com, only after you click the button of that preview.** When you do, that website receives your IP address and the usual details of a request, and may store its own cookies on your device. That no longer goes through us: it is handled by Teentac or V4V, under each website's own privacy policy. If you do not click the button, none of this happens. On tablets there is no button: you only see the image.
 
-- **Legal basis:** your consent, which you give by clicking the button (Article 6(1)(a) of the GDPR). You can withdraw it whenever you like: reload the page and Teentac's website is no longer open. Any cookies it has already stored can be cleared in your browser settings.
+- **Legal basis:** your consent, which you give by clicking the button (Article 6(1)(a) of the GDPR). You can withdraw it whenever you like: reload the page and Teentac's or V4V's website is no longer open. Any cookies it has already stored can be cleared in your browser settings.
 
 ### Cookies and browser storage
 
@@ -52,7 +52,7 @@ We make no automated decisions about you and we do not profile you. There is no 
 
 - **Cloudflare**, which hosts the site and therefore receives the server logs.
 - **Google**, which provides Google Workspace, where email messages are kept. Google processes them on our behalf.
-- **Teentac**, only if you click the preview button, and on its own account.
+- **Teentac** and **V4V**, only if you click the button of their respective preview, and on their own account.
 
 We do not sell data to anyone or pass it on for marketing.
 

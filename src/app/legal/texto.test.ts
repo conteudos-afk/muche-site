@@ -24,11 +24,11 @@ test('a política de privacidade cobre o que a lei pede, nos dois idiomas', () =
   /* Responsável, servidor, e-mail, Teentac, direitos, CNPD, decisões
      automatizadas, conservação. */
   for (const trecho of ['Muche, LDA.', 'NIPC 516400479', 'conteudos@muche.pt', 'Cloudflare', 'interesse legítimo', 'Google Workspace',
-    'CRM', 'teentac.pt', 'seus próprios cookies', 'RGPD', 'CNPD', 'www.cnpd.pt', 'decisões automatizadas', 'perfis', 'Conservação']) {
+    'CRM', 'teentac.pt', 'vision4value.com', 'seus próprios cookies', 'RGPD', 'CNPD', 'www.cnpd.pt', 'decisões automatizadas', 'perfis', 'Conservação']) {
     expect(pt, `pt: ${trecho}`).toContain(trecho)
   }
   for (const trecho of ['Muche, LDA.', 'NIPC 516400479', 'conteudos@muche.pt', 'Cloudflare', 'legitimate interest', 'Google Workspace',
-    'CRM', 'teentac.pt', 'its own cookies', 'GDPR', 'CNPD', 'www.cnpd.pt', 'automated decisions', 'profile', 'Retention']) {
+    'CRM', 'teentac.pt', 'vision4value.com', 'its own cookies', 'GDPR', 'CNPD', 'www.cnpd.pt', 'automated decisions', 'profile', 'Retention']) {
     expect(en, `en: ${trecho}`).toContain(trecho)
   }
 })
@@ -36,10 +36,10 @@ test('a política de privacidade cobre o que a lei pede, nos dois idiomas', () =
 test('a política de cookies diz o que há: nenhum cookie, o idioma no localStorage, o Teentac', () => {
   const pt = legalMarkdown('cookies', 'pt')
   const en = legalMarkdown('cookies', 'en')
-  for (const t of ['não define cookies', 'muche-lang', 'localStorage', 'consentimento', 'Lei n.º 41/2004', 'teentac.pt', 'Carregar pré-visualização']) {
+  for (const t of ['não define cookies', 'muche-lang', 'localStorage', 'consentimento', 'Lei n.º 41/2004', 'teentac.pt', 'vision4value.com', 'Carregar pré-visualização']) {
     expect(pt, `pt: ${t}`).toContain(t)
   }
-  for (const t of ['sets no cookies', 'muche-lang', 'localStorage', 'consent', 'Law 41/2004', 'teentac.pt', 'Load live preview']) {
+  for (const t of ['sets no cookies', 'muche-lang', 'localStorage', 'consent', 'Law 41/2004', 'teentac.pt', 'vision4value.com', 'Load live preview']) {
     expect(en, `en: ${t}`).toContain(t)
   }
 })
@@ -50,6 +50,8 @@ test('a política cita o botão com as palavras que o botão tem', async () => {
   const { COPY } = await import('../i18n')
   expect(legalMarkdown('cookies', 'pt')).toContain(`«${COPY.pt.portfolio.teentac.load}»`)
   expect(legalMarkdown('cookies', 'en')).toContain(`"${COPY.en.portfolio.teentac.load}"`)
+  expect(legalMarkdown('cookies', 'pt')).toContain(`«${COPY.pt.portfolio.v4v.load}»`)
+  expect(legalMarkdown('cookies', 'en')).toContain(`"${COPY.en.portfolio.v4v.load}"`)
 })
 
 /* Uma política que lista o que o site não tem é uma promessa falsa. O texto

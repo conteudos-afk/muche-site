@@ -162,6 +162,12 @@ export const COPY = {
         note: "Opens Teentac's real website in here. Once it loads, teentac.pt can see your IP address and may set its own cookies.",
         more: "Find out more",
       },
+      v4v: {
+        title: "V4V — live preview",
+        load: "Load live preview",
+        note: "Opens V4V's real website in here. Once it loads, vision4value.com can see your IP address and may set its own cookies.",
+        more: "Find out more",
+      },
     },
     contact: {
       heading: ["let's", "Talk?"],
@@ -210,6 +216,12 @@ export const COPY = {
         title: "Teentac — pré-visualização em direto",
         load: "Carregar pré-visualização",
         note: "Abre aqui dentro o site real do Teentac. Ao carregar, o teentac.pt fica a ver o teu endereço IP e pode guardar cookies próprios.",
+        more: "Saber mais",
+      },
+      v4v: {
+        title: "V4V — pré-visualização em direto",
+        load: "Carregar pré-visualização",
+        note: "Abre aqui dentro o site real da V4V. Ao carregar, o vision4value.com fica a ver o teu endereço IP e pode guardar cookies próprios.",
         more: "Saber mais",
       },
     },
