@@ -12,6 +12,8 @@ import videoOliviaHotel from "@/imports/OliviaHotel.mp4"
 import videoDecoProtesteVertical from "@/imports/DecoProteste_vertical.mp4"
 import videoLPCCVertical from "@/imports/LPCC_PORTFOLIO_vertical.mp4"
 import videoOliviaHotelVertical from "@/imports/OliviaHotel_vertical.mp4"
+import videoPulmonale from "@/imports/Pulmonale.mp4"
+import videoPulmonaleVertical from "@/imports/Pulmonale_vertical.mp4"
 import celltrion36 from "@/imports/Celltrion/switch-36.jpg"
 import celltrion3  from "@/imports/Celltrion/switch-3.jpg"
 import celltrion34 from "@/imports/Celltrion/switch-34.jpg"
@@ -892,6 +894,9 @@ const PORTFOLIO: PortfolioItem[] = [
     concept: "We shape APFH's presence at every touchpoint: from the visual concept of the events to design, photographic and video coverage, and social media communication.",
     concept_pt: "Damos forma à presença da APFH em todos os pontos de contacto: do conceito visual dos eventos ao design, cobertura fotográfica e vídeo, e comunicação nas redes sociais.",
   },
+  { video: videoPulmonale, videoMobile: videoPulmonaleVertical, client: "Pulmonale", services: "Branding // Website // Social Media // Podcast", services_pt: "Branding // Website // Redes Sociais // Podcast",
+    concept: "We developed Pulmonale's visual communication, from the concept and event materials to the website and podcast. We also create photography, video and social media content for the lung cancer awareness campaigns.",
+    concept_pt: "Desenvolvemos a comunicação visual da Pulmonale, desde o conceito e materiais para eventos ao website e podcast. Criamos também conteúdos de fotografia, vídeo e redes sociais para as campanhas de sensibilização para o cancro do pulmão." },
 ]
 
 function portfolioText(item: PortfolioItem, lang: Lang) {
