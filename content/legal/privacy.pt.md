@@ -32,13 +32,13 @@ Não acontece mais nada. As mensagens não vão para um CRM, não vão para uma 
 - **Fundamento:** o teu pedido, quando nos escreves a pedir uma proposta ou um serviço (artigo 6.º, n.º 1, alínea b), do RGPD); nos outros casos, o nosso interesse legítimo em responder a quem nos escreve (alínea f)).
 - **Conservação:** guardamos as mensagens enquanto a relação o justificar, isto é, enquanto houver uma conversa, um projeto ou uma obrigação legal a cumprir. Não fixámos um prazo em dias ou anos, porque depende de cada caso, e preferimos dizê-lo assim a inventar um número. Se quiseres que apaguemos uma conversa, pede-nos: apagamo-la, a não ser que a lei nos obrigue a guardar alguma coisa (por exemplo, documentos de faturação).
 
-### A pré-visualização do Teentac
+### As pré-visualizações do Teentac e da V4V
 
-Na secção «Trabalho», na versão para computador, o site mostra uma imagem de um portátil. Há um botão para carregar, lá dentro, o site do Teentac em direto. O Teentac é um cliente nosso e esse site não é nosso.
+Na secção «Trabalho», o site mostra a imagem de um portátil (na versão para computador) e, na versão para telemóvel, a de um telemóvel. Há um botão para carregar, lá dentro, o site de um cliente nosso em direto: o do Teentac e o da V4V (no portátil, em computador, e no telemóvel, em telemóveis). Esses sites não são nossos.
 
-**Só depois de carregares nesse botão é que o teu browser contacta o teentac.pt.** Quando o fazes, o teentac.pt recebe o teu endereço IP e os dados normais de um pedido, e pode guardar no teu dispositivo os seus próprios cookies. Isso já não passa por nós: é tratado pelo Teentac, de acordo com a política de privacidade desse site. Se não carregares no botão, nada disto acontece. Em telemóveis e tablets não há botão: só vês a imagem.
+**Só depois de carregares no botão de uma pré-visualização é que o teu browser contacta o site respetivo: o teentac.pt ou o vision4value.com.** Quando o fazes, esse site recebe o teu endereço IP e os dados normais de um pedido, e pode guardar no teu dispositivo os seus próprios cookies. Isso já não passa por nós: é tratado pelo Teentac ou pela V4V, de acordo com a política de privacidade de cada um desses sites. Se não carregares no botão, nada disto acontece. Em tablets não há botão: só vês a imagem.
 
-- **Fundamento:** o teu consentimento, que dás ao carregares no botão (artigo 6.º, n.º 1, alínea a), do RGPD). Podes retirá-lo quando quiseres: recarrega a página e o site do Teentac deixa de estar aberto. Os cookies que ele já tenha guardado apagam-se nas definições do teu browser.
+- **Fundamento:** o teu consentimento, que dás ao carregares no botão (artigo 6.º, n.º 1, alínea a), do RGPD). Podes retirá-lo quando quiseres: recarrega a página e o site do Teentac ou da V4V deixa de estar aberto. Os cookies que ele já tenha guardado apagam-se nas definições do teu browser.
 
 ### Cookies e armazenamento no browser
 
@@ -52,7 +52,7 @@ Não tomamos decisões automatizadas sobre ti e não fazemos perfis. Não há an
 
 - **Cloudflare**, que aloja o site e, por isso, recebe os registos do servidor.
 - **Google**, que fornece o Google Workspace, onde ficam as mensagens de e-mail. A Google trata-as por nossa conta.
-- **Teentac**, só se carregares no botão da pré-visualização, e por conta própria.
+- **Teentac** e **V4V**, só se carregares no botão da pré-visualização de cada um, e por conta própria.
 
 Não vendemos dados a ninguém nem os cedemos para marketing.
 

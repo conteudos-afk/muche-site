@@ -18,7 +18,7 @@ test('cada página legal sai com o título, a data e o texto, e nada escondido',
     /* O estado inicial do `motion` esconderia o texto a quem não corre JS. */
     expect(h).not.toMatch(/opacity:0[;"]/)
     expect(h).toContain(lang === 'pt' ? 'Última atualização' : 'Last updated')
-    expect(h).toContain(lang === 'pt' ? '14 de outubro de 2026' : '14 October 2026')
+    expect(h).toContain(lang === 'pt' ? '19 de novembro de 2026' : '19 November 2026')
     expect(h).not.toContain('<iframe')
     expect(h).not.toContain('teentac.pt/"')
   }
@@ -27,8 +27,8 @@ test('cada página legal sai com o título, a data e o texto, e nada escondido',
 test('o idioma da página é o do texto: pt em português, en em inglês', () => {
   expect(html('privacy', 'pt')).toContain('Quem é o responsável')
   expect(html('privacy', 'en')).toContain('Who is responsible')
-  expect(html('cookies', 'pt')).toContain('A única ligação a um terceiro')
-  expect(html('cookies', 'en')).toContain('The one link to a third party')
+  expect(html('cookies', 'pt')).toContain('As únicas ligações a terceiros')
+  expect(html('cookies', 'en')).toContain('The links to third parties')
   expect(html('privacy', 'pt')).not.toContain('Who is responsible')
   expect(html('privacy', 'en')).not.toContain('Quem é o responsável')
 })

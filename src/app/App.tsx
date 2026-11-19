@@ -14,6 +14,40 @@ import videoLPCCVertical from "@/imports/LPCC_PORTFOLIO_vertical.mp4"
 import videoOliviaHotelVertical from "@/imports/OliviaHotel_vertical.mp4"
 import videoPulmonale from "@/imports/Pulmonale.mp4"
 import videoPulmonaleVertical from "@/imports/Pulmonale_vertical.mp4"
+import videoMaisFarmacia from "@/imports/MaisFarmacia.mp4"
+import videoMaisFarmaciaVertical from "@/imports/MaisFarmacia_vertical.mp4"
+import musica9 from "@/imports/Musicamera/9.jpg"
+import musica1 from "@/imports/Musicamera/1.jpg"
+import musica3 from "@/imports/Musicamera/3.jpg"
+import musica11 from "@/imports/Musicamera/11.jpg"
+import musica4 from "@/imports/Musicamera/4.jpg"
+import musica7 from "@/imports/Musicamera/7.jpg"
+import musica2 from "@/imports/Musicamera/2.jpg"
+import musica8 from "@/imports/Musicamera/8.jpg"
+import musica5 from "@/imports/Musicamera/5.jpg"
+import musica10 from "@/imports/Musicamera/10.jpg"
+import musica6 from "@/imports/Musicamera/6.jpg"
+import apesAps3 from "@/imports/APES/aps-3.jpg"
+import apesN11534200 from "@/imports/APES/novas-11534200.jpg"
+import apesAps2 from "@/imports/APES/aps-2.jpg"
+import apesN12381500 from "@/imports/APES/novas-12381500.jpg"
+import apesAps7 from "@/imports/APES/aps-7.jpg"
+import apesN11391200 from "@/imports/APES/novas-11391200.jpg"
+import apesAps4 from "@/imports/APES/aps-4.jpg"
+import apesN12393400 from "@/imports/APES/novas-12393400.jpg"
+import apesAps5 from "@/imports/APES/aps-5.jpg"
+import apesN11413300 from "@/imports/APES/novas-11413300.jpg"
+import apesAps6 from "@/imports/APES/aps-6.jpg"
+import apesN12192800 from "@/imports/APES/novas-12192800.jpg"
+import apesAps9 from "@/imports/APES/aps-9.jpg"
+import apesN11310400 from "@/imports/APES/novas-11310400.jpg"
+import apesAps10 from "@/imports/APES/aps-10.jpg"
+import phyto6 from "@/imports/Phytoderm/6.jpg"
+import phyto3 from "@/imports/Phytoderm/3.jpg"
+import phyto5 from "@/imports/Phytoderm/5.jpg"
+import phyto2 from "@/imports/Phytoderm/2.jpg"
+import phyto4 from "@/imports/Phytoderm/4.jpg"
+import phyto7 from "@/imports/Phytoderm/7.jpg"
 import celltrion36 from "@/imports/Celltrion/switch-36.jpg"
 import celltrion3  from "@/imports/Celltrion/switch-3.jpg"
 import celltrion34 from "@/imports/Celltrion/switch-34.jpg"
@@ -23,13 +57,18 @@ import celltrion22 from "@/imports/Celltrion/switch-22.jpg"
 import celltrion4  from "@/imports/Celltrion/switch-4.jpg"
 import dia42      from "@/imports/DIA/ia-42.jpg"
 import diaD1n2    from "@/imports/DIA/day1-nwm-2.jpg"
-import diaD1n27   from "@/imports/DIA/day1-nwm-27.jpg"
 import diaD1n25   from "@/imports/DIA/day1-nwm-25.jpg"
 import diaD1n50   from "@/imports/DIA/day1-nwm-50.jpg"
 import diaD1n42   from "@/imports/DIA/day1-nwm-42.jpg"
 import diaD2n31   from "@/imports/DIA/day2-nwm-31.jpg"
 import diaD2n8    from "@/imports/DIA/day2-nwm-8.jpg"
 import dia38      from "@/imports/DIA/ia-38.jpg"
+import diaN1 from "@/imports/DIA/new-1.jpg"
+import diaN2 from "@/imports/DIA/new-2.jpg"
+import diaN3 from "@/imports/DIA/new-3.jpg"
+import diaN4 from "@/imports/DIA/new-4.jpg"
+import diaN5 from "@/imports/DIA/new-5.jpg"
+import diaN6 from "@/imports/DIA/new-6.jpg"
 import apfhD1n33 from "@/imports/APFH/dia1-33.jpg"
 import apfhFtp027 from "@/imports/APFH/apfh-ftp027.jpg"
 import apfhLr7 from "@/imports/APFH/proxima-senha-lr-7.jpg"
@@ -64,6 +103,7 @@ import { blogHref } from "./blog/navigate"
 import { GOLD, CAMPTON_BOLD, CAMPTON_BOOK, SANS, SERIF } from "./blog/tokens"
 import { postsFor, postBySlug } from "@/lib/blog/posts"
 import { TeentacInteractiveMockup } from "./TeentacMockup"
+import { V4VMockup } from "./V4VMockup"
 import { LegalView } from "./legal/LegalView"
 import { LegalLinks, PageFooter } from "./legal/LegalFooter"
 import type { LegalPage } from "./legal/content"
@@ -152,11 +192,11 @@ function useWindowWidth() {
    carrega as restantes fotos perto do viewport e só corre o relógio quando
    está visível. `x` é o ponto focal horizontal (%), usado quando a caixa é
    mais estreita que a foto (9:16 em mobile). */
-type Slide = { src: string; x?: number }
+type Slide = { src: string; x?: number; y?: number }
 const SLIDE_MS = 2600
 const SLIDE_FADE_S = 0.9
 
-function PhotoSlideshow({ slides, alt, className }: { slides: Slide[]; alt: string; className?: string }) {
+function PhotoSlideshow({ slides, alt, className, fit, startDelay = 0, zoom }: { slides: Slide[]; alt: string; className?: string; fit?: "blur"; startDelay?: number; zoom?: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const [loaded, setLoaded] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -177,9 +217,10 @@ function PhotoSlideshow({ slides, alt, className }: { slides: Slide[]; alt: stri
 
   useEffect(() => {
     if (!loaded || !visible || n < 2) return
-    const t = setInterval(() => setIdx(i => (i + 1) % n), SLIDE_MS)
-    return () => clearInterval(t)
-  }, [loaded, visible, n])
+    let t: ReturnType<typeof setInterval> | undefined
+    const d = setTimeout(() => { t = setInterval(() => setIdx(i => (i + 1) % n), SLIDE_MS) }, startDelay)
+    return () => { clearTimeout(d); if (t) clearInterval(t) }
+  }, [loaded, visible, n, startDelay])
 
   const prev = (idx - 1 + n) % n
   return (
@@ -187,6 +228,26 @@ function PhotoSlideshow({ slides, alt, className }: { slides: Slide[]; alt: stri
       {(loaded ? slides : slides.slice(0, 1)).map((s, i) => {
         const isCur = i === idx
         const isPrev = i === prev
+        const anim = {
+          initial: { opacity: i === 0 ? 1 : 0, scale: 1 },
+          animate: { opacity: isCur || isPrev ? 1 : 0, scale: isCur || isPrev ? (zoom ?? (fit === "blur" ? 1.03 : 1.1)) : 1 },
+          transition: {
+            opacity: { duration: isCur ? SLIDE_FADE_S : 0 },
+            scale: isCur ? { duration: SLIDE_MS / 1000 + SLIDE_FADE_S, ease: "linear" as const } : { duration: 0 },
+          },
+        }
+        const z = isCur ? 2 : isPrev ? 1 : 0
+        /* `fit: "blur"` — a foto inteira, sem cortes, centrada sobre uma cópia
+           desfocada dela própria que preenche o resto da caixa. Serve as fotos
+           muito mais largas do que o cartão (cinema 2,4:1 num cartão 9:16). */
+        if (fit === "blur") {
+          return (
+            <motion.div key={s.src} className="absolute inset-0" style={{ zIndex: z }} {...anim}>
+              <img src={s.src} alt="" aria-hidden="true" draggable={false} decoding="async" className="absolute inset-0 size-full object-cover" style={{ filter: "blur(22px) brightness(0.55)", transform: "scale(1.2)" }} />
+              <img src={s.src} alt={alt} draggable={false} decoding="async" className="absolute inset-0 size-full object-contain" />
+            </motion.div>
+          )
+        }
         return (
           <motion.img
             key={s.src}
@@ -195,15 +256,28 @@ function PhotoSlideshow({ slides, alt, className }: { slides: Slide[]; alt: stri
             draggable={false}
             decoding="async"
             className="absolute inset-0 size-full object-cover"
-            style={{ objectPosition: `${s.x ?? 50}% center`, zIndex: isCur ? 2 : isPrev ? 1 : 0 }}
-            initial={{ opacity: i === 0 ? 1 : 0, scale: 1 }}
-            animate={{ opacity: isCur || isPrev ? 1 : 0, scale: isCur || isPrev ? 1.1 : 1 }}
-            transition={{
-              opacity: { duration: isCur ? SLIDE_FADE_S : 0 },
-              scale: isCur ? { duration: SLIDE_MS / 1000 + SLIDE_FADE_S, ease: "linear" } : { duration: 0 },
-            }}
+            style={{ objectPosition: `${s.x ?? 50}% ${s.y ?? 50}%`, zIndex: z }}
+            {...anim}
           />
         )
+      })}
+    </div>
+  )
+}
+
+/* ─── Faixas de cinema — para fotos muito mais largas do que o cartão ─────────
+   Uma foto 2,4:1 num cartão vertical 9:16 só deixa ver ~23% da largura se for
+   cortada, ou uma tira fina no meio de um cartão desfocado se for inteira.
+   Aqui empilham-se `rows` faixas: cada uma mostra a foto inteira (quase sem
+   corte) e tem o seu próprio slideshow, com outra foto e desfasado no tempo. */
+function PhotoStrip({ slides, alt, rows = 4 }: { slides: Slide[]; alt: string; rows?: number }) {
+  const n = slides.length
+  return (
+    <div className="size-full flex flex-col" style={{ gap: "2px", background: "#060f13" }}>
+      {Array.from({ length: rows }, (_, k) => {
+        const off = Math.round((k * n) / rows)
+        const rot = [...slides.slice(off), ...slides.slice(0, off)]
+        return <PhotoSlideshow key={k} slides={rot} alt={k === 0 ? alt : ""} zoom={1.04} startDelay={Math.round((k * SLIDE_MS) / rows)} className="flex-1 min-h-0" />
       })}
     </div>
   )
@@ -855,28 +929,30 @@ function ManifestoSection() {
 type PortfolioItem =
   | { img: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
   | { video: string; videoMobile: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
-  | { slides: Slide[]; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
+  | { slides: Slide[]; fit?: "blur"; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
+  | { mockup: "v4v"; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
 
 // videoMobile é a versão vertical (9:16) enviada para mobile/tablet — o
 // desktop usa sempre `video`, a versão horizontal original.
 const PORTFOLIO: PortfolioItem[] = [
-  { img: imgPort1, client: "Teentac", services: "Branding // Web Design", concept: "We created the full visual identity and website, balancing medical credibility with a vibrant, youth-centric design to turn complex health data into a supportive, empathetic experience.", services_pt: "Branding // Web Design", concept_pt: "Criámos a identidade visual completa e o website, equilibrando a credibilidade médica com um design vibrante e jovem, transformando dados de saúde complexos numa experiência acolhedora e empática." },
+  { img: imgPort1, client: "Teentac", services: "Branding // Design // Web Design", concept: "We created the full visual identity and website, balancing medical credibility with a vibrant, youth-centric design to turn complex health data into a supportive, empathetic experience.", services_pt: "Branding // Design // Web Design", concept_pt: "Criámos a identidade visual completa e o website, equilibrando a credibilidade médica com um design vibrante e jovem, transformando dados de saúde complexos numa experiência acolhedora e empática." },
   { video: videoOliviaHotel, videoMobile: videoOliviaHotelVertical, client: "Olivia Hotel", services: "Photography // Video", concept: "We focus on visual storytelling that transforms spaces into experiences, creating an irresistible aesthetic that invites guests to check in before they even arrive.", services_pt: "Fotografia // Vídeo", concept_pt: "Focamo-nos em storytelling visual que transforma espaços em experiências, criando uma estética irresistível que convida os hóspedes a fazer check-in antes mesmo de chegarem." },
-  { video: videoLPCC, videoMobile: videoLPCCVertical, client: "LPCC", services: "Branding // Podcast // Web Design", concept: "Muche created the visual identity, website, and produced the podcast called Ligacoes.", services_pt: "Branding // Podcast // Web Design", concept_pt: "A Muche criou a identidade visual, o website, e produziu o podcast chamado Ligações." },
+  { video: videoLPCC, videoMobile: videoLPCCVertical, client: "LPCC", services: "Branding // Design // Podcast // Web Design", concept: "Muche created the visual identity, website, and produced the podcast called Ligacoes.", services_pt: "Branding // Design // Podcast // Web Design", concept_pt: "A Muche criou a identidade visual, o website, e produziu o podcast chamado Ligações." },
   { video: videoDecoProteste, videoMobile: videoDecoProtesteVertical, client: "Deco Proteste", services: "Promotional Video", concept: "We created a cinematic piece that captures the holiday spirit while reinforcing the brand's commitment to consumers, ensuring their message stood out during the busiest time of the year.", services_pt: "Vídeo Promocional", concept_pt: "Criámos uma peça cinematográfica que capta o espírito natalício, reforçando o compromisso da marca com os consumidores e garantindo que a sua mensagem se destacou na época mais concorrida do ano." },
   {
     slides: [
       { src: celltrion36, x: 50 }, { src: celltrion3, x: 50 }, { src: celltrion34, x: 55 }, { src: celltrion2, x: 40 },
       { src: celltrion49, x: 60 }, { src: celltrion22, x: 45 }, { src: celltrion4, x: 75 },
     ],
-    client: "Celltrion", services: "Branding // Event Coverage", services_pt: "Branding // Cobertura de Evento",
+    client: "Celltrion", services: "Branding // Design // Event Coverage", services_pt: "Branding // Design // Cobertura de Evento",
     concept: "We developed the visual identity of SWITCH, an event dedicated to public procurement in healthcare for hospital pharmacists, and ensured its photographic coverage.",
     concept_pt: "Desenvolvemos a identidade visual do SWITCH, um evento dedicado à contratação pública em saúde para farmacêuticos hospitalares, e assegurámos a sua cobertura fotográfica.",
   },
   {
     slides: [
-      { src: dia42, x: 50 }, { src: diaD1n2, x: 56 }, { src: diaD1n27, x: 46 }, { src: diaD1n25, x: 40 }, { src: diaD1n50, x: 50 },
-      { src: diaD1n42, x: 55 }, { src: diaD2n31, x: 40 }, { src: diaD2n8, x: 45 }, { src: dia38, x: 50 },
+      { src: dia42, x: 50 }, { src: diaN5, x: 45 }, { src: diaD1n2, x: 56 }, { src: diaN1, x: 45 },
+      { src: diaD1n25, x: 40 }, { src: diaN4, x: 30 }, { src: diaD1n50, x: 50 }, { src: diaD1n42, x: 55 }, { src: diaN2, x: 55 },
+      { src: diaD2n31, x: 40 }, { src: diaN3, x: 55 }, { src: diaD2n8, x: 45 }, { src: dia38, x: 50 }, { src: diaN6, x: 80 },
     ],
     client: "DIA", services: "Event Coverage", services_pt: "Cobertura de Evento",
     concept: "We turn every moment of the event into visual content, through photography and video that capture the energy, the details and the experiences worth keeping.",
@@ -894,9 +970,45 @@ const PORTFOLIO: PortfolioItem[] = [
     concept: "We shape APFH's presence at every touchpoint: from the visual concept of the events to design, photographic and video coverage, and social media communication.",
     concept_pt: "Damos forma à presença da APFH em todos os pontos de contacto: do conceito visual dos eventos ao design, cobertura fotográfica e vídeo, e comunicação nas redes sociais.",
   },
-  { video: videoPulmonale, videoMobile: videoPulmonaleVertical, client: "Pulmonale", services: "Branding // Website // Social Media // Podcast", services_pt: "Branding // Website // Redes Sociais // Podcast",
+  { video: videoPulmonale, videoMobile: videoPulmonaleVertical, client: "Pulmonale", services: "Branding // Design // Website // Social Media // Podcast", services_pt: "Branding // Design // Website // Redes Sociais // Podcast",
     concept: "We developed Pulmonale's visual communication, from the concept and event materials to the website and podcast. We also create photography, video and social media content for the lung cancer awareness campaigns.",
     concept_pt: "Desenvolvemos a comunicação visual da Pulmonale, desde o conceito e materiais para eventos ao website e podcast. Criamos também conteúdos de fotografia, vídeo e redes sociais para as campanhas de sensibilização para o cancro do pulmão." },
+  {
+    slides: [
+      { src: phyto6, x: 48 }, { src: phyto3, x: 50 }, { src: phyto5, x: 35 }, { src: phyto2, x: 40 }, { src: phyto4, x: 45 }, { src: phyto7, x: 50 },
+    ],
+    client: "Phytoderm", services: "Event Coverage", services_pt: "Cobertura de Evento",
+    concept: "We covered Phytoderm's 20th anniversary celebration with photography and video, turning the best moments of the event into content for the brand.",
+    concept_pt: "Acompanhámos a celebração dos 20 anos da Phytoderm, com fotografia e vídeo, transformando os melhores momentos do evento em conteúdo para a marca.",
+  },
+  { video: videoMaisFarmacia, videoMobile: videoMaisFarmaciaVertical, client: "Grupo Maisfarmácia", services: "Video // Social Media", services_pt: "Vídeo // Redes Sociais",
+    concept: "We create themed videos for Grupo Maisfarmácia's social media, with content designed to communicate dynamically and bring the brand closer to its community.",
+    concept_pt: "Criamos vídeos temáticos para as redes sociais do Grupo Maisfarmácia, com conteúdos pensados para comunicar de forma dinâmica e aproximar a marca da sua comunidade." },
+  {
+    slides: [
+      { src: musica9, x: 56 }, { src: musica1, x: 60 }, { src: musica3, x: 80 }, { src: musica11, x: 37 }, { src: musica4, x: 66 }, { src: musica7, x: 58 }, { src: musica2, x: 55 }, { src: musica8, x: 50 }, { src: musica5, x: 54 }, { src: musica10, x: 57 }, { src: musica6, x: 58 },
+    ],
+    fit: "blur", client: "Musicamera", services: "Photography // Video", services_pt: "Fotografia // Vídeo",
+    concept: "We follow Musicamera's concerts through photography and video, capturing the energy of the performances, the musicians and the moments that make each show.",
+    concept_pt: "Acompanhamos os concertos da Musicamera através de fotografia e vídeo, captando a energia das atuações, os músicos e os momentos que fazem cada espetáculo.",
+  },
+  {
+    slides: [
+      { src: apesAps3, x: 60 }, { src: apesN11534200, x: 85 }, { src: apesAps2, x: 30 }, { src: apesN12381500, x: 53 },
+      { src: apesAps7, x: 14 }, { src: apesN11391200, x: 73 }, { src: apesAps4, x: 50, y: 60 }, { src: apesN12393400, x: 66 },
+      { src: apesAps5, x: 57 }, { src: apesN11413300, x: 34 }, { src: apesAps6, x: 35 }, { src: apesN12192800, x: 58 },
+      { src: apesAps9, x: 32 }, { src: apesN11310400, x: 50 }, { src: apesAps10, x: 57 },
+    ],
+    client: "APES", services: "Branding // Design // Event Coverage", services_pt: "Branding // Design // Cobertura de Evento",
+    concept: "We developed the visual identity and all the communication materials for the event, from the initial concept to the design and the photo and video coverage.",
+    concept_pt: "Desenvolvemos a identidade visual e todas as peças de comunicação do evento, desde o conceito inicial até ao design e à cobertura em fotografia e vídeo.",
+  },
+  {
+    mockup: "v4v",
+    client: "V4V", services: "Branding // Design // Website", services_pt: "Branding // Design // Website",
+    concept: "We built the V4V brand from scratch, from the creation of the visual identity and its graphic elements to the development of the website, ensuring a consistent presence.",
+    concept_pt: "Desenvolvemos a marca V4V de raiz, desde a criação da identidade visual e dos seus elementos gráficos até ao desenvolvimento do website, garantindo uma presença consistente.",
+  },
 ]
 
 function portfolioText(item: PortfolioItem, lang: Lang) {
@@ -909,7 +1021,7 @@ function portfolioText(item: PortfolioItem, lang: Lang) {
    o projeto seguinte já está a aparecer enquanto o anterior ainda está a
    desaparecer — nunca há um momento sem nenhum projeto visível. */
 function MobilePortfolioCard({
-  item, i, n, progress, boxW, boxH, isPhone, teentacObjX, services, concept,
+  item, i, n, progress, boxW, boxH, isPhone, services, concept,
 }: {
   item: PortfolioItem
   i: number
@@ -918,7 +1030,6 @@ function MobilePortfolioCard({
   boxW: number
   boxH: number
   isPhone: boolean
-  teentacObjX: number
   services: string
   concept: string
 }) {
@@ -935,19 +1046,29 @@ function MobilePortfolioCard({
   const scale    = useTransform(local, inRange, isFirst ? [1, 0.84] : isLast ? [0.84, 1] : [0.84, 1, 1, 0.84])
   const blur     = useTransform(local, inRange, isFirst ? ["blur(0px)", "blur(10px)"] : isLast ? ["blur(10px)", "blur(0px)"] : ["blur(10px)", "blur(0px)", "blur(0px)", "blur(10px)"])
   const opacity  = useTransform(local, inRange, isFirst ? [1, 0] : isLast ? [0, 1] : [0, 1, 1, 0])
+  /* Os cartões estão todos empilhados no mesmo ecrã: um cartão invisível não
+     pode apanhar toques (o do V4V tem um botão e um iframe lá dentro). */
+  const pointerEvents = useTransform(opacity, o => (o > 0.6 ? "auto" : "none"))
+  const navigate = useNavigate()
 
   return (
     <motion.div
       className="absolute inset-0 flex flex-col items-center justify-center"
-      style={{ scale, filter: blur, opacity, zIndex: i, transformOrigin: "50% 38%", padding: "72px 16px 0" }}
+      style={{ scale, filter: blur, opacity, pointerEvents, zIndex: i, transformOrigin: "50% 38%", padding: "72px 16px 0" }}
     >
       <div style={{ width: `${boxW}px` }}>
         <div className="relative overflow-hidden shrink-0" style={{ width: "100%", height: `${boxH}px`, background: "#060f13" }}>
-          {"slides" in item
-            ? <PhotoSlideshow slides={item.slides} alt={item.client} className="size-full" />
+          {isPhone && item.client === "Teentac"
+            ? <V4VMockup site="teentac" device="phone" interactive className="size-full" onNavigate={navigate} />
+            : "mockup" in item
+            ? <V4VMockup device={isPhone ? "phone" : "laptop"} interactive={isPhone} className="size-full" onNavigate={navigate} />
+            : "slides" in item
+            ? (isPhone && item.fit === "blur"
+                ? <PhotoStrip slides={item.slides} alt={item.client} />
+                : <PhotoSlideshow slides={item.slides} fit={item.fit} alt={item.client} className="size-full" />)
             : "video" in item
             ? <LazyVideo src={isPhone ? item.videoMobile : item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
-            : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" style={isPhone && item.client === "Teentac" ? { objectPosition: `${teentacObjX}% center` } : undefined} draggable={false} />
+            : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" draggable={false} />
           }
         </div>
         <div style={{ padding: "14px 4px 0", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -1023,16 +1144,6 @@ function PortfolioSection() {
   const phoneMediaHRaw = vp.h * 0.60
   const phoneMediaW    = Math.min(phoneMediaHRaw * (9 / 16), vpw - 32)
   const phoneMediaH    = phoneMediaW * (16 / 9)
-  // Teentac é uma imagem (não vídeo), 1920x1440 (4:3) — mais larga do que a
-  // caixa 9:16, por isso usa object-fit: cover com o object-position
-  // calculado para centrar o ecrã do laptop em vez de cortar arbitrariamente.
-  const TEENTAC_IMG_W = 1920, TEENTAC_IMG_H = 1440, TEENTAC_SCREEN_CENTER_X = 1030
-  const teentacCropW = (phoneMediaW / phoneMediaH) * TEENTAC_IMG_H
-  const teentacTotalCrop = Math.max(0, TEENTAC_IMG_W - teentacCropW)
-  const teentacObjX = teentacTotalCrop > 0
-    ? Math.max(0, Math.min(100, ((TEENTAC_SCREEN_CENTER_X - teentacCropW / 2) / teentacTotalCrop) * 100))
-    : 50
-
   // ── Tablet: os vídeos ficavam demasiado cortados com o recorte vertical
   // do telemóvel. Aqui a caixa é 16:9 — o MESMO enquadramento do desktop
   // (fonte `video`, não `videoMobile`) — só redimensionada para caber no
@@ -1069,7 +1180,6 @@ function PortfolioSection() {
                 boxW={boxW}
                 boxH={boxH}
                 isPhone={isPhone}
-                teentacObjX={teentacObjX}
                 services={services}
                 concept={concept}
               />
@@ -1093,8 +1203,10 @@ function PortfolioSection() {
               /* ── Desktop: media 16:9 em cima, texto por baixo ── */
               <div key={i} className="shrink-0 flex flex-col" style={{ width: `${cardW}px` }}>
                 <div className="relative overflow-hidden shrink-0" style={{ width: "100%", aspectRatio: "16/9", background: "#060f13" }}>
-                  {"slides" in item
-                    ? <PhotoSlideshow slides={item.slides} alt={item.client} className="size-full" />
+                  {"mockup" in item
+                    ? <V4VMockup device="laptop" interactive className="size-full" onNavigate={navigate} />
+                    : "slides" in item
+                    ? <PhotoSlideshow slides={item.slides} fit={item.fit} alt={item.client} className="size-full" />
                     : "video" in item
                     ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : item.client === "Teentac"
@@ -1286,8 +1398,10 @@ function ServicesPage() {
               className="absolute left-6 right-6 md:left-14 md:right-14 overflow-hidden"
               style={{ top: "clamp(80px, 13vh, 130px)", bottom: "clamp(150px, 24vh, 240px)", borderRadius: "20px" }}
             >
-              {"slides" in currentProject
-                ? <PhotoSlideshow slides={currentProject.slides} alt={currentProject.client} className="size-full" />
+              {"mockup" in currentProject
+                ? <V4VMockup device="laptop" interactive={false} className="size-full" />
+                : "slides" in currentProject
+                ? <PhotoSlideshow slides={currentProject.slides} fit={currentProject.fit} alt={currentProject.client} className="size-full" />
                 : "video" in currentProject
                 ? <LazyVideo src={(currentProject as { video: string }).video} className="size-full object-cover" style={{ background: "#060f13" }} />
                 : <img src={(currentProject as { img: string }).img} alt={currentProject.client} className="size-full object-cover" />

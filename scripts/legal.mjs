@@ -37,7 +37,7 @@ export const legalOutputs = () =>
 /* Data da última revisão do texto, em ISO. É ela que aparece no topo das
    páginas («Última atualização») — por isso muda sempre que o texto mudar, e
    só então. */
-export const LEGAL_UPDATED = '2026-10-14'
+export const LEGAL_UPDATED = '2026-11-19'
 
 /* Para um endereço, diz que página legal é e em que idioma — ou `null` se não
    for nenhuma. Aceita a forma sem barra final, como o resto do site. */

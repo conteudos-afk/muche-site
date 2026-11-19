@@ -49,9 +49,9 @@ test('o localStorage só guarda o idioma, e só o i18n lhe toca', () => {
   expect(ler('src/app/i18n.tsx')).toMatch(/const STORAGE_KEY = "muche-lang"/)
 })
 
-test('nenhum <script> nem <iframe> de fora: o único iframe é o do Teentac', () => {
-  const comIframe = CODIGO.filter(f => /<iframe/.test(ler(f)))
-  expect(comIframe).toEqual([path.join('src', 'app', 'TeentacMockup.tsx')])
+test('nenhum <script> nem <iframe> de fora: os únicos iframes são o do Teentac e o da V4V', () => {
+  const comIframe = CODIGO.filter(f => /<iframe/.test(ler(f))).sort()
+  expect(comIframe).toEqual([path.join('src', 'app', 'TeentacMockup.tsx'), path.join('src', 'app', 'V4VMockup.tsx')])
   for (const f of CODIGO) expect(ler(f), f).not.toMatch(/<script/)
   expect(ler('index.html').match(/<script/g)).toHaveLength(1)
 })

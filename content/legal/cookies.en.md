@@ -20,15 +20,15 @@ Just one thing: your language.
 
 **How to delete it.** In your browser settings, under site data (or "cookies and site data"), remove the data for muche.pt. The site goes back to using your browser's language.
 
-## The one link to a third party
+## The links to third parties
 
-In the "Work" section, on the desktop version, there is an image of a laptop that can show the live website of Teentac, a client of ours. By default it shows only the image. Teentac's website is loaded only if you click the "Load live preview" button.
+In the "Work" section, there is an image of a laptop (on the desktop version) and of a phone (on the phone version) that can show the live website of a client of ours: Teentac's and V4V's (laptop on desktop, and phone on phones). By default they show only the image. The client's website is loaded only if you click the "Load live preview" button.
 
-- **If you click:** teentac.pt receives your IP address and may store its own cookies on your device. We do not control which cookies they are or what they do: that is down to Teentac and that website's own policy.
-- **If you do not click:** nothing. Your browser does not contact teentac.pt.
-- **To undo it:** reload the page. Any cookies Teentac has already stored can be cleared in your browser settings, where you can also block third-party cookies.
+- **If you click:** teentac.pt (Teentac) or vision4value.com (V4V), depending on the preview, receives your IP address and may store its own cookies on your device. We do not control which cookies they are or what they do: that is down to the client and that website's own policy.
+- **If you do not click:** nothing. Your browser does not contact teentac.pt or vision4value.com.
+- **To undo it:** reload the page. Any cookies Teentac or V4V have already stored can be cleared in your browser settings, where you can also block third-party cookies.
 
-On phones and tablets there is no button: you only see the image.
+On tablets there is no button: you only see the image.
 
 ## Everything else
 

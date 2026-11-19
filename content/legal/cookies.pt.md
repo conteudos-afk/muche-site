@@ -20,15 +20,15 @@ Uma coisa só: o idioma.
 
 **Como apagar.** Nas definições do teu browser, em dados do site (ou «cookies e dados de sites»), remove os dados de muche.pt. O site volta a usar o idioma do teu browser.
 
-## A única ligação a um terceiro
+## As únicas ligações a terceiros
 
-Na secção «Trabalho», na versão para computador, há uma imagem de um portátil que pode mostrar, em direto, o site do Teentac, um cliente nosso. Por defeito mostra só a imagem. O site do Teentac só é carregado se carregares no botão «Carregar pré-visualização».
+Na secção «Trabalho», há uma imagem de um portátil (na versão para computador) e de um telemóvel (na versão para telemóvel) que podem mostrar, em direto, o site de um cliente nosso: o do Teentac e o da V4V (portátil, em computador, e telemóvel, em telemóveis). Por defeito mostram só a imagem. O site do cliente só é carregado se carregares no botão «Carregar pré-visualização».
 
-- **Se carregares:** o teentac.pt recebe o teu endereço IP e pode guardar no teu dispositivo os seus próprios cookies. Não controlamos que cookies são, nem o que fazem: isso é com o Teentac e com a política desse site.
-- **Se não carregares:** nada. O teu browser não contacta o teentac.pt.
-- **Para o desfazeres:** recarrega a página. Os cookies que o Teentac já tenha guardado apagam-se nas definições do teu browser, onde também podes bloquear cookies de terceiros.
+- **Se carregares:** o teentac.pt (Teentac) ou o vision4value.com (V4V), conforme a pré-visualização, recebe o teu endereço IP e pode guardar no teu dispositivo os seus próprios cookies. Não controlamos que cookies são, nem o que fazem: isso é com o cliente e com a política desse site.
+- **Se não carregares:** nada. O teu browser não contacta o teentac.pt nem o vision4value.com.
+- **Para o desfazeres:** recarrega a página. Os cookies que o Teentac ou a V4V já tenham guardado apagam-se nas definições do teu browser, onde também podes bloquear cookies de terceiros.
 
-Em telemóveis e tablets não há botão: só vês a imagem.
+Em tablets não há botão: só vês a imagem.
 
 ## Tudo o resto
 
