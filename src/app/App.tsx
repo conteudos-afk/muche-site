@@ -43,7 +43,6 @@ import apesAps2 from "@/imports/APES/aps-2.jpg"
 import apesN12381500 from "@/imports/APES/novas-12381500.jpg"
 import apesAps7 from "@/imports/APES/aps-7.jpg"
 import apesN11391200 from "@/imports/APES/novas-11391200.jpg"
-import apesAps4 from "@/imports/APES/aps-4.jpg"
 import apesN12393400 from "@/imports/APES/novas-12393400.jpg"
 import apesAps5 from "@/imports/APES/aps-5.jpg"
 import apesN11413300 from "@/imports/APES/novas-11413300.jpg"
@@ -295,34 +294,15 @@ function PhotoStrip({ slides, alt, rows = 4, live = true }: { slides: Slide[]; a
 }
 
 /* ─── Lazy video — loads src only when entering viewport ─────────────────── */
-/* ─── Vídeos parados enquanto se faz scroll ──────────────────────────────────
-   Descodificar vídeo e mover a página ao mesmo tempo era o que fazia o scroll
-   do portfólio "encravar" (medido: ~30 fps com um vídeo à vista, 120 fps sem
-   ele). Enquanto há scroll, os vídeos ficam congelados no frame em que
-   estavam; ~150 ms depois de parar, retomam. */
-const scrollSubs = new Set<() => void>()
-let scrollingNow = false
-let scrollTimer: ReturnType<typeof setTimeout> | undefined
-if (typeof window !== "undefined") {
-  window.addEventListener("scroll", () => {
-    if (!scrollingNow) { scrollingNow = true; scrollSubs.forEach(f => f()) }
-    if (scrollTimer) clearTimeout(scrollTimer)
-    scrollTimer = setTimeout(() => { scrollingNow = false; scrollSubs.forEach(f => f()) }, 150)
-  }, { passive: true })
-}
-
-/* Toca quando `shouldPlay` e a página está parada; pára caso contrário. */
+/* ─── Vídeos sempre a tocar quando se veem ──────────────────────────────────
+   Os vídeos não podem parar durante o scroll (parece que encrava). Só se
+   pausam quando estão fora do ecrã, onde ninguém os vê. */
 function useVideoPlayback(ref: React.RefObject<HTMLVideoElement | null>, shouldPlay: boolean) {
   useEffect(() => {
     const v = ref.current
     if (!v) return
-    const apply = () => {
-      if (shouldPlay && !scrollingNow) v.play().catch(() => {})
-      else v.pause()
-    }
-    apply()
-    scrollSubs.add(apply)
-    return () => { scrollSubs.delete(apply) }
+    if (shouldPlay) v.play().catch(() => {})
+    else v.pause()
   }, [ref, shouldPlay])
 }
 
@@ -992,7 +972,7 @@ function ManifestoSection() {
 type PortfolioItem =
   | { img: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
   | { video: string; videoMobile: string; poster: string; posterMobile: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
-  | { slides: Slide[]; fit?: "blur"; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
+  | { slides: Slide[]; fit?: "blur"; rows?: number; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
   | { mockup: "v4v"; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
 
 // videoMobile é a versão vertical (9:16) enviada para mobile/tablet — o
@@ -1007,7 +987,7 @@ const PORTFOLIO: PortfolioItem[] = [
       { src: celltrion36, x: 50 }, { src: celltrion3, x: 50 }, { src: celltrion34, x: 55 }, { src: celltrion2, x: 40 },
       { src: celltrion49, x: 60 }, { src: celltrion22, x: 45 }, { src: celltrion4, x: 75 },
     ],
-    client: "Celltrion", services: "Branding // Design // Event Coverage", services_pt: "Branding // Design // Cobertura de Evento",
+    rows: 3, client: "Celltrion", services: "Branding // Design // Event Coverage", services_pt: "Branding // Design // Cobertura de Evento",
     concept: "We developed the visual identity of SWITCH, an event dedicated to public procurement in healthcare for hospital pharmacists, and ensured its photographic coverage.",
     concept_pt: "Desenvolvemos a identidade visual do SWITCH, um evento dedicado à contratação pública em saúde para farmacêuticos hospitalares, e assegurámos a sua cobertura fotográfica.",
   },
@@ -1017,7 +997,7 @@ const PORTFOLIO: PortfolioItem[] = [
       { src: diaD1n25, x: 40 }, { src: diaN4, x: 30 }, { src: diaD1n50, x: 50 }, { src: diaD1n42, x: 55 }, { src: diaN2, x: 55 },
       { src: diaD2n31, x: 40 }, { src: diaN3, x: 55 }, { src: diaD2n8, x: 45 }, { src: dia38, x: 50 }, { src: diaN6, x: 80 },
     ],
-    client: "DIA", services: "Event Coverage", services_pt: "Cobertura de Evento",
+    rows: 3, client: "DIA", services: "Event Coverage", services_pt: "Cobertura de Evento",
     concept: "We turn every moment of the event into visual content, through photography and video that capture the energy, the details and the experiences worth keeping.",
     concept_pt: "Transformamos cada momento do evento em conteúdo visual, através de fotografia e vídeo que captam a energia, os detalhes e as experiências que merecem ficar.",
   },
@@ -1029,7 +1009,7 @@ const PORTFOLIO: PortfolioItem[] = [
       { src: apfhRo18, x: 80 }, { src: apfhFtp032, x: 45 }, { src: apfhDr20, x: 55 }, { src: apfhLr34, x: 45 },
       { src: apfhD3n117, x: 55 }, { src: apfhLr175, x: 70 },
     ],
-    client: "APFH", services: "Branding // Design // Event Coverage // Social Media", services_pt: "Branding // Design // Cobertura de Evento // Redes Sociais",
+    rows: 3, client: "APFH", services: "Branding // Design // Event Coverage // Social Media", services_pt: "Branding // Design // Cobertura de Evento // Redes Sociais",
     concept: "We shape APFH's presence at every touchpoint: from the visual concept of the events to design, photographic and video coverage, and social media communication.",
     concept_pt: "Damos forma à presença da APFH em todos os pontos de contacto: do conceito visual dos eventos ao design, cobertura fotográfica e vídeo, e comunicação nas redes sociais.",
   },
@@ -1040,7 +1020,7 @@ const PORTFOLIO: PortfolioItem[] = [
     slides: [
       { src: phyto6, x: 48 }, { src: phyto3, x: 50 }, { src: phyto5, x: 35 }, { src: phyto2, x: 40 }, { src: phyto4, x: 45 }, { src: phyto7, x: 50 },
     ],
-    client: "Phytoderm", services: "Event Coverage", services_pt: "Cobertura de Evento",
+    rows: 3, client: "Phytoderm", services: "Event Coverage", services_pt: "Cobertura de Evento",
     concept: "We covered Phytoderm's 20th anniversary celebration with photography and video, turning the best moments of the event into content for the brand.",
     concept_pt: "Acompanhámos a celebração dos 20 anos da Phytoderm, com fotografia e vídeo, transformando os melhores momentos do evento em conteúdo para a marca.",
   },
@@ -1051,18 +1031,18 @@ const PORTFOLIO: PortfolioItem[] = [
     slides: [
       { src: musica9, x: 56 }, { src: musica1, x: 60 }, { src: musica3, x: 80 }, { src: musica11, x: 37 }, { src: musica4, x: 66 }, { src: musica7, x: 58 }, { src: musica2, x: 55 }, { src: musica8, x: 50 }, { src: musica5, x: 54 }, { src: musica10, x: 57 }, { src: musica6, x: 58 },
     ],
-    fit: "blur", client: "Musicamera", services: "Photography // Video", services_pt: "Fotografia // Vídeo",
+    fit: "blur", rows: 4, client: "Musicamera", services: "Photography // Video", services_pt: "Fotografia // Vídeo",
     concept: "We follow Musicamera's concerts through photography and video, capturing the energy of the performances, the musicians and the moments that make each show.",
     concept_pt: "Acompanhamos os concertos da Musicamera através de fotografia e vídeo, captando a energia das atuações, os músicos e os momentos que fazem cada espetáculo.",
   },
   {
     slides: [
       { src: apesAps3, x: 60 }, { src: apesN11534200, x: 85 }, { src: apesAps2, x: 30 }, { src: apesN12381500, x: 53 },
-      { src: apesAps7, x: 14 }, { src: apesN11391200, x: 73 }, { src: apesAps4, x: 50, y: 60 }, { src: apesN12393400, x: 66 },
+      { src: apesAps7, x: 14 }, { src: apesN11391200, x: 73 }, { src: apesN12393400, x: 66 },
       { src: apesAps5, x: 57 }, { src: apesN11413300, x: 34 }, { src: apesAps6, x: 35 }, { src: apesN12192800, x: 58 },
       { src: apesAps9, x: 32 }, { src: apesN11310400, x: 50 }, { src: apesAps10, x: 57 },
     ],
-    client: "APES", services: "Branding // Design // Event Coverage", services_pt: "Branding // Design // Cobertura de Evento",
+    rows: 3, client: "APES", services: "Branding // Design // Event Coverage", services_pt: "Branding // Design // Cobertura de Evento",
     concept: "We developed the visual identity and all the communication materials for the event, from the initial concept to the design and the photo and video coverage.",
     concept_pt: "Desenvolvemos a identidade visual e todas as peças de comunicação do evento, desde o conceito inicial até ao design e à cobertura em fotografia e vídeo.",
   },
@@ -1130,8 +1110,8 @@ function MobilePortfolioCard({
             : "mockup" in item
             ? <V4VMockup device={isPhone ? "phone" : "laptop"} interactive={isPhone} className="size-full" onNavigate={navigate} />
             : "slides" in item
-            ? (isPhone && item.fit === "blur"
-                ? <PhotoStrip slides={item.slides} alt={item.client} live={live} />
+            ? (isPhone && item.rows
+                ? <PhotoStrip slides={item.slides} rows={item.rows} alt={item.client} live={live} />
                 : <PhotoSlideshow slides={item.slides} fit={item.fit} alt={item.client} className="size-full" live={live} />)
             : "video" in item
             ? <LazyVideo src={isPhone ? item.videoMobile : item.video} poster={isPhone ? item.posterMobile : item.poster} live={live} className="size-full object-cover" style={{ background: "#060f13" }} />
