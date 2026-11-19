@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, type ReactNode } from "react"
-import { motion, AnimatePresence, useMotionValue, useTransform, useSpring, animate, type PanInfo, type MotionValue } from "motion/react"
+import { motion, AnimatePresence, useMotionValue, useMotionValueEvent, useTransform, useSpring, animate, type PanInfo, type MotionValue } from "motion/react"
 import { RouterProvider, createBrowserRouter, Outlet, useNavigate, useParams, useLocation } from "react-router"
 import heroVideo from "@/imports/Hero_video.mp4"
 import svgPaths from "@/imports/HomeFinal/svg-kkmjukgdk7"
@@ -16,6 +16,16 @@ import videoPulmonale from "@/imports/Pulmonale.mp4"
 import videoPulmonaleVertical from "@/imports/Pulmonale_vertical.mp4"
 import videoMaisFarmacia from "@/imports/MaisFarmacia.mp4"
 import videoMaisFarmaciaVertical from "@/imports/MaisFarmacia_vertical.mp4"
+import posterOlivia from "@/imports/posters/olivia.jpg"
+import posterOliviaV from "@/imports/posters/olivia_v.jpg"
+import posterLpcc from "@/imports/posters/lpcc.jpg"
+import posterLpccV from "@/imports/posters/lpcc_v.jpg"
+import posterDeco from "@/imports/posters/deco.jpg"
+import posterDecoV from "@/imports/posters/deco_v.jpg"
+import posterPulmonale from "@/imports/posters/pulmonale.jpg"
+import posterPulmonaleV from "@/imports/posters/pulmonale_v.jpg"
+import posterMaisf from "@/imports/posters/maisf.jpg"
+import posterMaisfV from "@/imports/posters/maisf_v.jpg"
 import musica9 from "@/imports/Musicamera/9.jpg"
 import musica1 from "@/imports/Musicamera/1.jpg"
 import musica3 from "@/imports/Musicamera/3.jpg"
@@ -196,7 +206,7 @@ type Slide = { src: string; x?: number; y?: number }
 const SLIDE_MS = 2600
 const SLIDE_FADE_S = 0.9
 
-function PhotoSlideshow({ slides, alt, className, fit, startDelay = 0, zoom }: { slides: Slide[]; alt: string; className?: string; fit?: "blur"; startDelay?: number; zoom?: number }) {
+function PhotoSlideshow({ slides, alt, className, fit, startDelay = 0, zoom, live = true }: { slides: Slide[]; alt: string; className?: string; fit?: "blur"; startDelay?: number; zoom?: number; live?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const [loaded, setLoaded] = useState(false)
   const [visible, setVisible] = useState(false)
@@ -216,11 +226,11 @@ function PhotoSlideshow({ slides, alt, className, fit, startDelay = 0, zoom }: {
   }, [])
 
   useEffect(() => {
-    if (!loaded || !visible || n < 2) return
+    if (!loaded || !visible || !live || n < 2) return
     let t: ReturnType<typeof setInterval> | undefined
     const d = setTimeout(() => { t = setInterval(() => setIdx(i => (i + 1) % n), SLIDE_MS) }, startDelay)
     return () => { clearTimeout(d); if (t) clearInterval(t) }
-  }, [loaded, visible, n, startDelay])
+  }, [loaded, visible, live, n, startDelay])
 
   const prev = (idx - 1 + n) % n
   return (
@@ -243,7 +253,8 @@ function PhotoSlideshow({ slides, alt, className, fit, startDelay = 0, zoom }: {
         if (fit === "blur") {
           return (
             <motion.div key={s.src} className="absolute inset-0" style={{ zIndex: z }} {...anim}>
-              <img src={s.src} alt="" aria-hidden="true" draggable={false} decoding="async" className="absolute inset-0 size-full object-cover" style={{ filter: "blur(22px) brightness(0.55)", transform: "scale(1.2)" }} />
+              {/* O desfoque é caro: só a foto que se vê (e a que sai) o tem. */}
+              {(isCur || isPrev) && <img src={s.src} alt="" aria-hidden="true" draggable={false} decoding="async" className="absolute inset-0 size-full object-cover" style={{ filter: "blur(22px) brightness(0.55)", transform: "scale(1.2)" }} />}
               <img src={s.src} alt={alt} draggable={false} decoding="async" className="absolute inset-0 size-full object-contain" />
             </motion.div>
           )
@@ -270,41 +281,93 @@ function PhotoSlideshow({ slides, alt, className, fit, startDelay = 0, zoom }: {
    cortada, ou uma tira fina no meio de um cartão desfocado se for inteira.
    Aqui empilham-se `rows` faixas: cada uma mostra a foto inteira (quase sem
    corte) e tem o seu próprio slideshow, com outra foto e desfasado no tempo. */
-function PhotoStrip({ slides, alt, rows = 4 }: { slides: Slide[]; alt: string; rows?: number }) {
+function PhotoStrip({ slides, alt, rows = 4, live = true }: { slides: Slide[]; alt: string; rows?: number; live?: boolean }) {
   const n = slides.length
   return (
     <div className="size-full flex flex-col" style={{ gap: "2px", background: "#060f13" }}>
       {Array.from({ length: rows }, (_, k) => {
         const off = Math.round((k * n) / rows)
         const rot = [...slides.slice(off), ...slides.slice(0, off)]
-        return <PhotoSlideshow key={k} slides={rot} alt={k === 0 ? alt : ""} zoom={1.04} startDelay={Math.round((k * SLIDE_MS) / rows)} className="flex-1 min-h-0" />
+        return <PhotoSlideshow key={k} slides={rot} alt={k === 0 ? alt : ""} zoom={1.04} live={live} startDelay={Math.round((k * SLIDE_MS) / rows)} className="flex-1 min-h-0" />
       })}
     </div>
   )
 }
 
 /* ─── Lazy video — loads src only when entering viewport ─────────────────── */
-function LazyVideo({ src, className, style }: { src: string; className?: string; style?: React.CSSProperties }) {
+/* ─── Vídeos parados enquanto se faz scroll ──────────────────────────────────
+   Descodificar vídeo e mover a página ao mesmo tempo era o que fazia o scroll
+   do portfólio "encravar" (medido: ~30 fps com um vídeo à vista, 120 fps sem
+   ele). Enquanto há scroll, os vídeos ficam congelados no frame em que
+   estavam; ~150 ms depois de parar, retomam. */
+const scrollSubs = new Set<() => void>()
+let scrollingNow = false
+let scrollTimer: ReturnType<typeof setTimeout> | undefined
+if (typeof window !== "undefined") {
+  window.addEventListener("scroll", () => {
+    if (!scrollingNow) { scrollingNow = true; scrollSubs.forEach(f => f()) }
+    if (scrollTimer) clearTimeout(scrollTimer)
+    scrollTimer = setTimeout(() => { scrollingNow = false; scrollSubs.forEach(f => f()) }, 150)
+  }, { passive: true })
+}
+
+/* Toca quando `shouldPlay` e a página está parada; pára caso contrário. */
+function useVideoPlayback(ref: React.RefObject<HTMLVideoElement | null>, shouldPlay: boolean) {
+  useEffect(() => {
+    const v = ref.current
+    if (!v) return
+    const apply = () => {
+      if (shouldPlay && !scrollingNow) v.play().catch(() => {})
+      else v.pause()
+    }
+    apply()
+    scrollSubs.add(apply)
+    return () => { scrollSubs.delete(apply) }
+  }, [ref, shouldPlay])
+}
+
+function HeroVideo() {
   const ref = useRef<HTMLVideoElement>(null)
-  const [active, setActive] = useState(false)
+  const [inView, setInView] = useState(true)
   useEffect(() => {
     const el = ref.current
     if (!el) return
-    const obs = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setActive(true); obs.disconnect() }
-    }, { rootMargin: "1500px" }) // margem grande — começa a carregar bem antes de entrar em vista
+    const obs = new IntersectionObserver(([e]) => setInView(e.isIntersecting))
     obs.observe(el)
     return () => obs.disconnect()
   }, [])
+  useVideoPlayback(ref, inView)
+  return <video ref={ref} src={heroVideo} muted loop playsInline preload="auto" className="size-full object-cover" />
+}
+
+function LazyVideo({ src, poster, className, style, live = true }: { src: string; poster?: string; className?: string; style?: React.CSSProperties; live?: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [loaded, setLoaded] = useState(false)
+  const [inView, setInView] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const near = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setLoaded(true); near.disconnect() }
+    }, { rootMargin: "3000px" }) // margem grande — começa a carregar bem antes de entrar em vista
+    const vis = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { rootMargin: "120px" })
+    near.observe(el)
+    vis.observe(el)
+    return () => { near.disconnect(); vis.disconnect() }
+  }, [])
+  /* Só toca o que se vê. Antes, depois de carregado, o vídeo tocava para
+     sempre — com seis vídeos a descodificar ao mesmo tempo, o scroll do
+     portfólio descia para ~30 fps. */
+  useVideoPlayback(ref, loaded && inView && live)
   return (
     <video
       ref={ref}
-      src={active ? src : undefined}
-      autoPlay
+      src={loaded ? src : undefined}
+      poster={poster}
       muted
       loop
       playsInline
-      preload={active ? "auto" : "none"}
+      preload={loaded ? "auto" : "none"}
       className={className}
       style={style}
     />
@@ -320,7 +383,7 @@ const DARK = "#0b1c22"
 function BackgroundVideo() {
   return (
     <div className="fixed inset-0 z-0" style={{ background: DARK }}>
-      <video src={heroVideo} autoPlay muted loop playsInline preload="auto" className="size-full object-cover" />
+      <HeroVideo />
       <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(11,28,34,0.25) 50%, rgba(6,15,19,0.55) 100%)" }} />
     </div>
   )
@@ -928,7 +991,7 @@ function ManifestoSection() {
 /* ─── Section 3: Portfolio ───────────────────────────────────────────────── */
 type PortfolioItem =
   | { img: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
-  | { video: string; videoMobile: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
+  | { video: string; videoMobile: string; poster: string; posterMobile: string; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
   | { slides: Slide[]; fit?: "blur"; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
   | { mockup: "v4v"; client: string; services: string; concept: string; services_pt: string; concept_pt: string }
 
@@ -936,9 +999,9 @@ type PortfolioItem =
 // desktop usa sempre `video`, a versão horizontal original.
 const PORTFOLIO: PortfolioItem[] = [
   { img: imgPort1, client: "Teentac", services: "Branding // Design // Web Design", concept: "We created the full visual identity and website, balancing medical credibility with a vibrant, youth-centric design to turn complex health data into a supportive, empathetic experience.", services_pt: "Branding // Design // Web Design", concept_pt: "Criámos a identidade visual completa e o website, equilibrando a credibilidade médica com um design vibrante e jovem, transformando dados de saúde complexos numa experiência acolhedora e empática." },
-  { video: videoOliviaHotel, videoMobile: videoOliviaHotelVertical, client: "Olivia Hotel", services: "Photography // Video", concept: "We focus on visual storytelling that transforms spaces into experiences, creating an irresistible aesthetic that invites guests to check in before they even arrive.", services_pt: "Fotografia // Vídeo", concept_pt: "Focamo-nos em storytelling visual que transforma espaços em experiências, criando uma estética irresistível que convida os hóspedes a fazer check-in antes mesmo de chegarem." },
-  { video: videoLPCC, videoMobile: videoLPCCVertical, client: "LPCC", services: "Branding // Design // Podcast // Web Design", concept: "Muche created the visual identity, website, and produced the podcast called Ligacoes.", services_pt: "Branding // Design // Podcast // Web Design", concept_pt: "A Muche criou a identidade visual, o website, e produziu o podcast chamado Ligações." },
-  { video: videoDecoProteste, videoMobile: videoDecoProtesteVertical, client: "Deco Proteste", services: "Promotional Video", concept: "We created a cinematic piece that captures the holiday spirit while reinforcing the brand's commitment to consumers, ensuring their message stood out during the busiest time of the year.", services_pt: "Vídeo Promocional", concept_pt: "Criámos uma peça cinematográfica que capta o espírito natalício, reforçando o compromisso da marca com os consumidores e garantindo que a sua mensagem se destacou na época mais concorrida do ano." },
+  { video: videoOliviaHotel, videoMobile: videoOliviaHotelVertical, poster: posterOlivia, posterMobile: posterOliviaV, client: "Olivia Hotel", services: "Photography // Video", concept: "We focus on visual storytelling that transforms spaces into experiences, creating an irresistible aesthetic that invites guests to check in before they even arrive.", services_pt: "Fotografia // Vídeo", concept_pt: "Focamo-nos em storytelling visual que transforma espaços em experiências, criando uma estética irresistível que convida os hóspedes a fazer check-in antes mesmo de chegarem." },
+  { video: videoLPCC, videoMobile: videoLPCCVertical, poster: posterLpcc, posterMobile: posterLpccV, client: "LPCC", services: "Branding // Design // Podcast // Web Design", concept: "Muche created the visual identity, website, and produced the podcast called Ligacoes.", services_pt: "Branding // Design // Podcast // Web Design", concept_pt: "A Muche criou a identidade visual, o website, e produziu o podcast chamado Ligações." },
+  { video: videoDecoProteste, videoMobile: videoDecoProtesteVertical, poster: posterDeco, posterMobile: posterDecoV, client: "Deco Proteste", services: "Promotional Video", concept: "We created a cinematic piece that captures the holiday spirit while reinforcing the brand's commitment to consumers, ensuring their message stood out during the busiest time of the year.", services_pt: "Vídeo Promocional", concept_pt: "Criámos uma peça cinematográfica que capta o espírito natalício, reforçando o compromisso da marca com os consumidores e garantindo que a sua mensagem se destacou na época mais concorrida do ano." },
   {
     slides: [
       { src: celltrion36, x: 50 }, { src: celltrion3, x: 50 }, { src: celltrion34, x: 55 }, { src: celltrion2, x: 40 },
@@ -970,7 +1033,7 @@ const PORTFOLIO: PortfolioItem[] = [
     concept: "We shape APFH's presence at every touchpoint: from the visual concept of the events to design, photographic and video coverage, and social media communication.",
     concept_pt: "Damos forma à presença da APFH em todos os pontos de contacto: do conceito visual dos eventos ao design, cobertura fotográfica e vídeo, e comunicação nas redes sociais.",
   },
-  { video: videoPulmonale, videoMobile: videoPulmonaleVertical, client: "Pulmonale", services: "Branding // Design // Website // Social Media // Podcast", services_pt: "Branding // Design // Website // Redes Sociais // Podcast",
+  { video: videoPulmonale, videoMobile: videoPulmonaleVertical, poster: posterPulmonale, posterMobile: posterPulmonaleV, client: "Pulmonale", services: "Branding // Design // Website // Social Media // Podcast", services_pt: "Branding // Design // Website // Redes Sociais // Podcast",
     concept: "We developed Pulmonale's visual communication, from the concept and event materials to the website and podcast. We also create photography, video and social media content for the lung cancer awareness campaigns.",
     concept_pt: "Desenvolvemos a comunicação visual da Pulmonale, desde o conceito e materiais para eventos ao website e podcast. Criamos também conteúdos de fotografia, vídeo e redes sociais para as campanhas de sensibilização para o cancro do pulmão." },
   {
@@ -981,7 +1044,7 @@ const PORTFOLIO: PortfolioItem[] = [
     concept: "We covered Phytoderm's 20th anniversary celebration with photography and video, turning the best moments of the event into content for the brand.",
     concept_pt: "Acompanhámos a celebração dos 20 anos da Phytoderm, com fotografia e vídeo, transformando os melhores momentos do evento em conteúdo para a marca.",
   },
-  { video: videoMaisFarmacia, videoMobile: videoMaisFarmaciaVertical, client: "Grupo Maisfarmácia", services: "Video // Social Media", services_pt: "Vídeo // Redes Sociais",
+  { video: videoMaisFarmacia, videoMobile: videoMaisFarmaciaVertical, poster: posterMaisf, posterMobile: posterMaisfV, client: "Grupo Maisfarmácia", services: "Video // Social Media", services_pt: "Vídeo // Redes Sociais",
     concept: "We create themed videos for Grupo Maisfarmácia's social media, with content designed to communicate dynamically and bring the brand closer to its community.",
     concept_pt: "Criamos vídeos temáticos para as redes sociais do Grupo Maisfarmácia, com conteúdos pensados para comunicar de forma dinâmica e aproximar a marca da sua comunidade." },
   {
@@ -1049,6 +1112,10 @@ function MobilePortfolioCard({
   /* Os cartões estão todos empilhados no mesmo ecrã: um cartão invisível não
      pode apanhar toques (o do V4V tem um botão e um iframe lá dentro). */
   const pointerEvents = useTransform(opacity, o => (o > 0.6 ? "auto" : "none"))
+  /* Um cartão invisível não toca vídeo nem passa fotos: estão todos
+     empilhados no mesmo ecrã e a ver-se só um (ou dois, na transição). */
+  const [live, setLive] = useState(isFirst)
+  useMotionValueEvent(opacity, "change", v => setLive(v > 0.03))
   const navigate = useNavigate()
 
   return (
@@ -1064,10 +1131,10 @@ function MobilePortfolioCard({
             ? <V4VMockup device={isPhone ? "phone" : "laptop"} interactive={isPhone} className="size-full" onNavigate={navigate} />
             : "slides" in item
             ? (isPhone && item.fit === "blur"
-                ? <PhotoStrip slides={item.slides} alt={item.client} />
-                : <PhotoSlideshow slides={item.slides} fit={item.fit} alt={item.client} className="size-full" />)
+                ? <PhotoStrip slides={item.slides} alt={item.client} live={live} />
+                : <PhotoSlideshow slides={item.slides} fit={item.fit} alt={item.client} className="size-full" live={live} />)
             : "video" in item
-            ? <LazyVideo src={isPhone ? item.videoMobile : item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
+            ? <LazyVideo src={isPhone ? item.videoMobile : item.video} poster={isPhone ? item.posterMobile : item.poster} live={live} className="size-full object-cover" style={{ background: "#060f13" }} />
             : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" draggable={false} />
           }
         </div>
@@ -1208,20 +1275,22 @@ function PortfolioSection() {
                     : "slides" in item
                     ? <PhotoSlideshow slides={item.slides} fit={item.fit} alt={item.client} className="size-full" />
                     : "video" in item
-                    ? <LazyVideo src={item.video} className="size-full object-cover" style={{ background: "#060f13" }} />
+                    ? <LazyVideo src={item.video} poster={item.poster} className="size-full object-cover" style={{ background: "#060f13" }} />
                     : item.client === "Teentac"
                       ? <TeentacInteractiveMockup img={(item as { img: string }).img} className="size-full" onNavigate={navigate} />
                       : <img src={(item as { img: string }).img} alt={item.client} className="size-full object-cover" />
                   }
                 </div>
                 <div className="flex items-start justify-between" style={{ paddingTop: "14px", gap: "32px" }}>
-                  <div className="flex gap-8 items-start" style={{ maxWidth: "46%" }}>
+                  <div className="flex gap-8 items-start" style={{ flex: "1 1 0", minWidth: "34%", maxWidth: "46%" }}>
                     <div style={{ fontFamily: CAMPTON_BOOK, fontWeight: 300, color: GOLD, fontSize: "clamp(12px, 1.1vw, 18px)", textAlign: "right", minWidth: "52px", opacity: 0.7, paddingTop: "2px", flexShrink: 0 }}>{c.concept}</div>
                     <p style={{ fontFamily: CAMPTON_BOLD, fontWeight: 600, color: "#ffffff", fontSize: "clamp(11px, 0.95vw, 15px)", lineHeight: 1.55 }}>{concept}</p>
                   </div>
-                  <div className="flex flex-col items-end" style={{ gap: "4px", textAlign: "right", flexShrink: 0 }}>
+                  {/* O nome pode encolher e quebrar, mas nunca passa de ~60% da largura:
+                      o texto do projeto fica sempre com pelo menos ~35%. */}
+                  <div className="flex flex-col items-end" style={{ gap: "4px", textAlign: "right", flex: "0 1 auto", minWidth: 0, maxWidth: "60%" }}>
                     <div style={{ fontFamily: CAMPTON_BOOK, fontWeight: 300, color: GOLD, fontSize: "clamp(12px, 1.1vw, 18px)", opacity: 0.7 }}>{c.client}</div>
-                    <div style={{ fontFamily: CAMPTON_BOLD, fontWeight: 700, color: GOLD, fontSize: "clamp(36px, 5.2vw, 84px)", lineHeight: 1.05, letterSpacing: "-1px" }}>{item.client}</div>
+                    <div style={{ fontFamily: CAMPTON_BOLD, fontWeight: 700, color: GOLD, fontSize: item.client.length > 12 ? "clamp(28px, 3.9vw, 64px)" : "clamp(36px, 5.2vw, 84px)", lineHeight: 1.05, letterSpacing: "-1px", textWrap: "balance" }}>{item.client}</div>
                     <p style={{ fontFamily: CAMPTON_BOOK, fontWeight: 400, color: GOLD, fontSize: "clamp(10px, 0.95vw, 16px)", opacity: 0.8 }}>{services}</p>
                   </div>
                 </div>
@@ -1403,7 +1472,7 @@ function ServicesPage() {
                 : "slides" in currentProject
                 ? <PhotoSlideshow slides={currentProject.slides} fit={currentProject.fit} alt={currentProject.client} className="size-full" />
                 : "video" in currentProject
-                ? <LazyVideo src={(currentProject as { video: string }).video} className="size-full object-cover" style={{ background: "#060f13" }} />
+                ? <LazyVideo src={(currentProject as { video: string }).video} poster={(currentProject as { poster: string }).poster} className="size-full object-cover" style={{ background: "#060f13" }} />
                 : <img src={(currentProject as { img: string }).img} alt={currentProject.client} className="size-full object-cover" />
               }
               <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(6,15,19,0.72) 0%, transparent 55%)" }} />
