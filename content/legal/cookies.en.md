@@ -6,7 +6,9 @@ A cookie is a small file that a website stores on your device and that is sent b
 
 ## What we store in your browser
 
-Just one thing: your language.
+Two things, and neither leaves your device: the language you chose and, if you play, your progress in the game.
+
+### Your language
 
 - **Name:** `muche-lang`
 - **Where:** your browser's `localStorage`. It is not a cookie, but the law treats it in the same way, so we tell you about it.
@@ -19,6 +21,22 @@ Just one thing: your language.
 **Why we do not ask for consent.** It is a preference that you choose yourself, and it exists only so that the site works the way you asked. Portuguese Law 41/2004, which implements the European directive on privacy in electronic communications, does not require consent where storage is strictly necessary to provide a service the user has expressly requested. Choosing a language is exactly that.
 
 **How to delete it.** In your browser settings, under site data (or "cookies and site data"), remove the data for muche.pt. The site goes back to using your browser's language.
+
+### The game
+
+At [/jogo/](/jogo/) there is a game, *Muche vs. Stressalot*, which stores what you have done so that you do not start from scratch every time.
+
+- **Names:** `muche.prog` and `muche.sound`
+- **Where:** your browser's `localStorage`, same as the language.
+- **Content:** your best score on each level, the levels you finished, the socks you won, and whether sound is on.
+- **When it is stored:** while you play. If you never open the game page, nothing is stored.
+- **What for:** so the game remembers your progress and your sound preference.
+- **Duration:** it does not expire. It stays until you delete it.
+- **Where it goes:** nowhere. The game runs entirely on your device and talks to no server, ours or anyone else's.
+
+**Why we do not ask for consent.** The same reasoning as for the language: it is the game doing what you asked of it by playing. None of it identifies you, and none of it is shared with anyone.
+
+**How to delete it.** Inside the game itself, with the "Apagar progresso" button. Or, like everything else, in your browser settings.
 
 ## The one link to a third party
 
