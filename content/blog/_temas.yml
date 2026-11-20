@@ -180,7 +180,7 @@ temas:
       e porque dois orçamentos para o mesmo dia podem diferir tanto"
     categoria: "Video Production"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: como-escolher-produtora-de-video
     tema: "Como escolher uma produtora de vídeo"
@@ -205,7 +205,7 @@ temas:
       para o formato desde o início, não cortado de outra coisa"
     categoria: "Video Production"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: um-video-de-marca-ou-varios-videos-curtos
     tema: "É melhor um vídeo de marca ou vários vídeos curtos para redes sociais"
@@ -229,7 +229,7 @@ temas:
       dos projetos atrasa: à espera de conteúdos do próprio cliente"
     categoria: "Web Design"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: o-que-esta-incluido-no-preco-de-um-site
     tema: "O que está incluído no preço de um site"
