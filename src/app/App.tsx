@@ -1173,7 +1173,7 @@ function PortfolioSection() {
   /* A altura do cartão (média + texto) tem de caber com margem em cima (menu) e
      em baixo: o que sobra depois do menu, da margem de baixo e da linha do
      texto é a altura da média. */
-  const textRowH = Math.min(190, Math.max(140, vpw * 0.1))
+  const textRowH = Math.min(150, Math.max(110, vpw * 0.08))
   const mediaHd  = Math.max(vp.h * 0.5, vp.h - 130 - 66 - textRowH - 14)
   const gutter   = gutterPx(vpw)
   const cardW    = isMobile ? vpw * 0.88 : Math.min(vpw - gutter * 2, mediaHd * (16 / 9))
@@ -1278,14 +1278,14 @@ function PortfolioSection() {
                 </div>
                 <div className="flex items-start justify-between" style={{ paddingTop: "14px", gap: "32px" }}>
                   <div className="flex gap-8 items-start" style={{ flex: "1 1 0", minWidth: "34%", maxWidth: "46%" }}>
-                    <div style={{ fontFamily: CAMPTON_BOOK, fontWeight: 300, color: GOLD, fontSize: "clamp(12px, 1.1vw, 18px)", textAlign: "right", minWidth: "52px", opacity: 0.7, paddingTop: "2px", flexShrink: 0 }}>{c.concept}</div>
+                    <div style={{ fontFamily: CAMPTON_BOOK, fontWeight: 300, color: GOLD, fontSize: "clamp(10px, 0.8vw, 13px)", textAlign: "right", minWidth: "44px", opacity: 0.7, paddingTop: "2px", flexShrink: 0 }}>{c.concept}</div>
                     <p style={{ fontFamily: CAMPTON_BOLD, fontWeight: 600, color: "#ffffff", fontSize: "clamp(11px, 0.95vw, 15px)", lineHeight: 1.55 }}>{concept}</p>
                   </div>
                   {/* O nome pode encolher e quebrar, mas nunca passa de ~60% da largura:
                       o texto do projeto fica sempre com pelo menos ~35%. */}
                   <div className="flex flex-col items-end" style={{ gap: "4px", textAlign: "right", flex: "0 1 auto", minWidth: 0, maxWidth: "60%" }}>
-                    <div style={{ fontFamily: CAMPTON_BOOK, fontWeight: 300, color: GOLD, fontSize: "clamp(12px, 1.1vw, 18px)", opacity: 0.7 }}>{c.client}</div>
-                    <div style={{ fontFamily: CAMPTON_BOLD, fontWeight: 700, color: GOLD, fontSize: item.client.length > 12 ? "clamp(28px, 3.9vw, 64px)" : "clamp(36px, 5.2vw, 84px)", lineHeight: 1.05, letterSpacing: "-1px", textWrap: "balance" }}>{item.client}</div>
+                    <div style={{ fontFamily: CAMPTON_BOOK, fontWeight: 300, color: GOLD, fontSize: "clamp(10px, 0.8vw, 13px)", opacity: 0.7 }}>{c.client}</div>
+                    <div style={{ fontFamily: CAMPTON_BOLD, fontWeight: 700, color: GOLD, fontSize: "clamp(22px, 2.8vw, 46px)", lineHeight: 1.05, letterSpacing: "-1px", textWrap: "balance" }}>{item.client}</div>
                     <p style={{ fontFamily: CAMPTON_BOOK, fontWeight: 400, color: GOLD, fontSize: "clamp(10px, 0.95vw, 16px)", opacity: 0.8 }}>{services}</p>
                   </div>
                 </div>
