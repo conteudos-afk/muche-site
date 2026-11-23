@@ -359,6 +359,11 @@ function LazyVideo({ src, poster, className, style, live = true }: { src: string
    importar o App inteiro. Os valores são exatamente os mesmos. */
 const DARK = "#0b1c22"
 
+/* Margem lateral das páginas em computador — a mesma no menu, no portfólio e
+   na equipa, para tudo alinhar e haver espaço para respirar. */
+const GUTTER_CSS = "clamp(56px, 5vw, 96px)"
+const gutterPx = (vpw: number) => Math.min(96, Math.max(56, vpw * 0.05))
+
 /* ─── Fixed video background ─────────────────────────────────────────────── */
 function BackgroundVideo() {
   return (
@@ -525,7 +530,7 @@ function SiteNav() {
   return (
     <>
       {/* Desktop */}
-      <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between px-14 pt-10">
+      <nav ref={navRef} className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center justify-between pt-10" style={{ paddingLeft: GUTTER_CSS, paddingRight: GUTTER_CSS }}>
         <div className="flex gap-8 lg:gap-10">
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/", "work")}>{c.work}</motion.button>
           <motion.button {...hoverProps} style={btnStyle} onClick={() => go("/team")}>{c.team}</motion.button>
@@ -891,14 +896,18 @@ function HeroSection() {
   const [row1, row2] = [c.tags.slice(0, 3), c.tags.slice(3)]
   return (
     <div className="relative size-full overflow-hidden">
-      <div className="relative z-10 flex flex-col items-center justify-center h-full">
+      <div className="relative z-10 h-full">
+        {/* Logo e frase: centrados no ecrã. */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
         <motion.div className="w-full px-8 sm:px-14 md:px-20" initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1.3, ease: [0.16, 1, 0.3, 1] }}>
           <MucheLogo />
         </motion.div>
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2, delay: 0.35 }} className="mt-6" style={{ color: GOLD, fontFamily: SANS, fontWeight: 500, fontSize: "clamp(13px, 1.1vw, 17px)", letterSpacing: "clamp(3px, 0.6vw, 6px)", textTransform: "uppercase" }}>
           {c.tagline}
         </motion.p>
-        <motion.div className="flex flex-col md:flex-row items-center justify-center gap-2 md:gap-5" style={{ marginTop: "clamp(56px, 16vh, 180px)" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.1, delay: 0.7 }}>
+        </div>
+        {/* Áreas: alinhadas em baixo, respeitando a margem inferior. */}
+        <motion.div className="absolute left-0 right-0 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-5" style={{ bottom: "clamp(40px, 9vh, 96px)" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.1, delay: 0.7 }}>
           {/* Mobile: row 1 */}
           <div className="flex md:contents items-center gap-3 md:gap-5">
             {row1.map((s, i) => (
@@ -1161,7 +1170,13 @@ function PortfolioSection() {
   // monitores grandes) o cartão cresce para lá do que cabe e corta o nome
   // do cliente em baixo. Limitar a largura a 68vh x 16/9 mantém o 16:9 e
   // recupera a altura que o cartão tinha antes (68vh de média).
-  const cardW    = isMobile ? vpw * 0.88 : Math.min(vpw * 0.80, vp.h * 0.68 * (16 / 9))
+  /* A altura do cartão (média + texto) tem de caber com margem em cima (menu) e
+     em baixo: o que sobra depois do menu, da margem de baixo e da linha do
+     texto é a altura da média. */
+  const textRowH = Math.min(190, Math.max(140, vpw * 0.1))
+  const mediaHd  = Math.max(vp.h * 0.5, vp.h - 130 - 66 - textRowH - 14)
+  const gutter   = gutterPx(vpw)
+  const cardW    = isMobile ? vpw * 0.88 : Math.min(vpw - gutter * 2, mediaHd * (16 / 9))
   const gap      = isMobile ? 28 : 96
   const targetX  = -((PORTFOLIO.length - 1) * (cardW + gap))
   const rawProgress    = useScrollProgress(ref, "end-end")
@@ -1239,9 +1254,9 @@ function PortfolioSection() {
 
   return (
     <div ref={ref} id="work" style={{ height: `${100 + 220 * (PORTFOLIO.length - 1)}vh`, position: "relative" }}>
-      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center" style={{ paddingTop: "9vh" }}>
+      <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center" style={{ paddingTop: "110px", paddingBottom: "40px" }}>
         <motion.div
-          style={{ x, gap: `${gap}px`, paddingLeft: "56px" }}
+          style={{ x, gap: `${gap}px`, paddingLeft: `${gutter}px` }}
           className="flex items-stretch will-change-transform"
         >
           {PORTFOLIO.map((item, i) => {
@@ -1279,7 +1294,7 @@ function PortfolioSection() {
           })}
         </motion.div>
 
-        <motion.div className="absolute bottom-10 right-8 md:right-14 flex items-center gap-3" style={{ opacity: hintOpacity }}>
+        <motion.div className="absolute bottom-10 right-8 md:right-[clamp(56px,5vw,96px)] flex items-center gap-3" style={{ opacity: hintOpacity }}>
           <span style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "11px", letterSpacing: "4px", textTransform: "uppercase", opacity: 0.4 }}>{c.scroll}</span>
           <div style={{ width: "32px", height: "1px", background: GOLD, opacity: 0.3 }} />
         </motion.div>
@@ -1315,7 +1330,7 @@ function ContactSection() {
   return (
     <div className="relative min-h-screen flex flex-col justify-end pb-10 md:pb-16 pt-24 md:pt-0" id="contact">
       <div className="absolute inset-0 pointer-events-none" style={{ background: "linear-gradient(183deg, rgba(11,28,34,0) 0%, rgba(6,15,19,0.92) 100%)" }} />
-      <div className="relative z-10 px-6 md:px-14">
+      <div className="relative z-10 px-6 md:px-[clamp(56px,5vw,96px)]">
         <motion.div className="flex flex-col md:flex-row md:items-end md:justify-between gap-8" initial={{ opacity: 0, y: 60 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }} viewport={{ once: true, margin: "-60px" }} style={{ marginBottom: "48px" }}>
           {/* Big text */}
           <div style={{ color: GOLD, fontFamily: SERIF, fontWeight: 300, fontSize: "clamp(90px, 22vw, 400px)", letterSpacing: "0.01em", lineHeight: 0.58, textTransform: "uppercase", flexShrink: 0 }}>
@@ -1431,9 +1446,9 @@ function ServicesPage() {
       <div className="sticky top-0 h-screen overflow-hidden">
         <motion.div
           style={{ scale: pushScale, filter: pushBlur, borderRadius: pushRadius, opacity: pushOpacity, transformOrigin: "50% 38%" }}
-          className="size-full flex flex-col justify-end pb-10 md:pb-16 px-6 md:px-14"
+          className="size-full flex flex-col justify-end pb-10 md:pb-16 px-6 md:px-[clamp(56px,5vw,96px)]"
         >
-          <motion.button onClick={() => navigate("/")} whileHover={{ x: -3 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="absolute top-24 left-6 md:top-32 md:left-14" style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
+          <motion.button onClick={() => navigate("/")} whileHover={{ x: -3 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} className="absolute top-24 left-6 md:top-32 md:left-[clamp(56px,5vw,96px)]" style={{ color: GOLD, fontFamily: SANS, fontWeight: 300, fontSize: "13px", letterSpacing: "3px", textTransform: "uppercase", opacity: 0.5, background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
             <span>←</span> {cBack}
           </motion.button>
 
@@ -1444,7 +1459,7 @@ function ServicesPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, ease: "easeOut" }}
-              className="absolute left-6 right-6 md:left-14 md:right-14 overflow-hidden"
+              className="absolute left-6 right-6 md:left-[clamp(56px,5vw,96px)] md:right-[clamp(56px,5vw,96px)] overflow-hidden"
               style={{ top: "clamp(80px, 13vh, 130px)", bottom: "clamp(150px, 24vh, 240px)", borderRadius: "20px" }}
             >
               {"mockup" in currentProject
@@ -1593,7 +1608,16 @@ function TeamPage() {
   const isMobile = vpw < 1024
 
   /* Desktop (scroll-jacked horizontal carousel) — inalterado. */
-  const cardW   = vpw * 0.85
+  /* A foto mede 0,555 × a largura do cartão de altura; tem de caber no ecrã com
+     margem para o menu em cima e para respirar em baixo. */
+  const [vph, setVph] = useState(() => window.innerHeight)
+  useEffect(() => {
+    const fn = () => setVph(window.innerHeight)
+    window.addEventListener("resize", fn)
+    return () => window.removeEventListener("resize", fn)
+  }, [])
+  const gutter  = gutterPx(vpw)
+  const cardW   = Math.min(vpw - gutter * 2, (vph - 230) / 0.555)
   const gap     = 56
   const targetX = -((TEAM_MEMBERS.length - 1) * (cardW + gap))
   const rawProgress    = useScrollProgress(ref, "end-end")
@@ -1653,7 +1677,7 @@ function TeamPage() {
   return (
     <div ref={ref} style={{ height: `${TEAM_MEMBERS.length * 140}vh`, position: "relative" }}>
       <div className="sticky top-0 h-screen overflow-hidden flex flex-col justify-center">
-        <motion.div style={{ x, gap: `${gap}px`, paddingLeft: "56px" }} className="flex items-end will-change-transform pt-28">
+        <motion.div style={{ x, gap: `${gap}px`, paddingLeft: `${gutter}px` }} className="flex items-end will-change-transform pt-28">
           {TEAM_MEMBERS.map((m, i) => (
             <motion.div
               key={i}
