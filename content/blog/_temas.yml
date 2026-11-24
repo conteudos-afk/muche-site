@@ -237,7 +237,7 @@ temas:
       orçamento completo de um que deixa custos escondidos para depois"
     categoria: "Web Design"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: como-escolher-agencia-para-o-site
     tema: "Como escolher uma agência para fazer o site"
@@ -262,7 +262,7 @@ temas:
       que raramente entram no orçamento inicial"
     categoria: "Web Design"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: porque-o-meu-site-nao-aparece-no-google
     tema: "Porque é que o meu site não aparece no Google"
@@ -278,7 +278,7 @@ temas:
       modelos de preço e quando cada um compensa"
     categoria: "Graphic Design"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: quanto-custa-um-catalogo-ou-brochura
     tema: "Quanto custa criar um catálogo ou uma brochura"
