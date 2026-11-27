@@ -286,7 +286,7 @@ temas:
       impressão — e onde há margem para poupar sem perder qualidade"
     categoria: "Graphic Design"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: como-escolher-um-designer-grafico
     tema: "Como escolher um designer gráfico freelancer"
@@ -310,7 +310,7 @@ temas:
       suportes pesa mais no prazo do que a complexidade de cada peça"
     categoria: "Graphic Design"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: o-que-e-design-editorial
     tema: "O que é design editorial e quando é preciso"
@@ -326,7 +326,7 @@ temas:
       comuns, e qual compensa consoante o tamanho do catálogo"
     categoria: "Photography & Events"
     prioridade: 1
-    estado: por-escrever
+    estado: publicado
 
   - slug: quanto-custa-fotografo-para-evento-de-empresa
     tema: "Quanto custa contratar um fotógrafo para um evento de empresa"
